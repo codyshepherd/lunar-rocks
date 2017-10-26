@@ -85,21 +85,30 @@ v1.0
  #### Room
  - A Board (2x12x8 bitboard plus beats per second and possibly volume)
  - Two slots of Player information
+ - Each room is managed by a separate thread
  
  #### Player
  - Connection info (IP, port)
  - Username
  - Current rooms
  
- ### Administrator
+ #### Administrator
  - Special Player class
  - Authentication-based
  - Can issue special commands to the server
     - Kick user
     - Delete room
  
+ ### Server Actions
+ 
+ The server's goal is to update each player at least once every loop cycle (this figure 
+ will be derived from the room's set BPM).
+ 
  ## Stretch Goals
  
  - AI player
  - Text chat in room
+ - Player sets bpm
  - Per-room volume knob
+ - Multiple instrument choices
+ - One player manipulates multiple instruments
