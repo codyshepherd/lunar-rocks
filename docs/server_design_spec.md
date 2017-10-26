@@ -123,4 +123,4 @@ ID | Description | Includes | Notes
 110 | Client Disconnect   | [RoomId]              |
 
 ## Message Format
-See JSON schemas.
+See JSON schema 'src/schema/msg_header.json'
