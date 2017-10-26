@@ -1,5 +1,5 @@
 # Server Architecture
-v1.0
+v1.1
 
 ## Requirements
 ### Functional
@@ -61,18 +61,21 @@ v1.0
  
  ### Sockets Layer
  
- #### Two Socket Connections Per Client: Control & Content
+ Client and Server exchange messages over sockets (one per Player) according to a
+ specified protocol.
  
- ##### Control: Sends control messages & notifications
+ Messages take the form of JSON objects.
+ 
+ #### Control Messages & Notifications
  - (Client) Create new room
  - (Client) Join room
  - (Client) Leave room
  - (Server) Player left room
  - (Server) Player joined room
  
- ##### Content: Bitboard representing Client and Server configs
- - Header: Instrument type chosen
- - Header: Beats per minute
+ #### Board Updates (Bidirectional)
+ - Instrument type chosen
+ - Beats per minute
  - 12 x 8 bitboard (12 notes x 8 beats)
  
  ### Server State: Rooms & Players

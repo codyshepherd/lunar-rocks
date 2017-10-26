@@ -1,4 +1,5 @@
 # Server Design & API Specification
+version 1.1
 
 ## Custom Types
 
@@ -19,6 +20,7 @@ rooms | [RoomId]   | list of rooms player currently in
 ### Board
 Member | Type | Notes
 -------|------|------
+romm     | RoomId     | Identifies to which room the board belongs
 bitboard | [[[Bool]]] | A 3-D array of binary values
 bpm      | Int        | Hardcoded to begin; stretch goal is making this user-settable
 
@@ -49,6 +51,7 @@ Singleton object that wraps primary server process.
 #### main() : Unit
 Function Arguments:
 - None
+
 Serves listening thread pools
 
 ### Class: ServerThread
@@ -70,13 +73,12 @@ Class Fields:
 
 Member | Type | Notes
 -------|------|------
-players        | [Playername] | A list of player names
-num_players    | Int          | How many players are currently in the room
-board          | Board        | A Scala class
-clock          | Time         | A timer for sending updates to clients; derived from board.bpm
-controlSockets | HashMap      | (Playername: Socket) Allows thread to communicate with Players
-contentSockets | HashMap      | (Playername: Socket) Allows thread to communicate with Players
-timeouts       | [Time]       | Timeout trackers in case sockets become unresponsive
+players     | [Playername] | A list of player names
+num_players | Int          | How many players are currently in the room
+board       | Board        | A Scala class
+clock       | Time         | A timer for sending updates to clients; derived from board.bpm
+sockets     | HashMap      | (Playername: Socket) Allows thread to communicate with Players
+timeouts    | [Time]       | Timeout trackers in case sockets become unresponsive
 
 #### run() : Unit
 Function Arguments:
@@ -88,8 +90,7 @@ Room state according to player messages.
 #### addPlayer(): Unit
 Function Arguments:
 - Playername: name of player to add
-- control: socket for control messages
-- content: socket for content messages
+- socket: socket for control messages
 
 Add a player to Room
 
@@ -104,3 +105,22 @@ Returns current number of players in room.
 #### updatePlayers(): Unit
 
 #### updateBoard(): Unit
+
+## Message Types
+
+ID | Description | Includes | Notes
+---|-------------|----------|------
+100 | Update Board        | Board                 | Bi-directional
+101 | Create Room         |                       | Includes add player to room
+102 | Room Created        | RoomId                |
+103 | Join Room           | RoomId                | 
+104 | Leave Room          | RoomId                | 
+105 | Request All Players |                       |
+106 | All Players         | [Players]             |
+107 | Request All Rooms   |                       |
+108 | All Rooms           | [(RoomId: [Players])] |
+109 | Client Kick         |                       |
+110 | Client Disconnect   | [RoomId]              |
+
+## Message Format
+See JSON schemas.
