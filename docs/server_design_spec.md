@@ -54,6 +54,20 @@ Function Arguments:
 
 Serves listening thread pools
 
+#### addPlayer() : Boolean
+
+#### addRoom() : Boolean
+
+#### removePlayer() : Boolean
+
+#### removeRoom() : Boolean
+
+#### kickPlayer() : Boolean
+
+#### allRooms() : List[Room]
+
+#### allPlayers() : List[Player]
+
 ### Class: ServerThread
 Class Arguments:
 - Socket: a socket on which a connection has been accepted
@@ -62,12 +76,17 @@ Class Arguments:
 Function Arguments: 
 - None
 
-Handles new connections, parses initial messages, and hands off socket to appropriate
-RoomThread, creating new RoomThreads if necessary
+Handles a single Client connection, parses incoming messages, calls appropriate functions in Room and Player.
 
-### Class: RoomThread
+### Class: Room
+Description:
+
+Must be synchronized or event-driven to handle two simultaneous server threads fiddling around in it. Akka looks like
+a good candidate for event handling.
+
 Class Arguments:
-- RoomId: Int
+- id: Int
+- firstPlayer: Player
 
 Class Fields:
 
@@ -79,13 +98,6 @@ board       | Board        | A Scala class
 clock       | Time         | A timer for sending updates to clients; derived from board.bpm
 sockets     | HashMap      | (Playername: Socket) Allows thread to communicate with Players
 timeouts    | [Time]       | Timeout trackers in case sockets become unresponsive
-
-#### run() : Unit
-Function Arguments:
-- None
-
-Loops over player list, getting new messages from live connection buffers and updating
-Room state according to player messages.
 
 #### addPlayer(): Unit
 Function Arguments:
@@ -102,25 +114,25 @@ Returns current number of players in room.
 
 #### removePlayer(): Unit
 
-#### updatePlayers(): Unit
+#### getBoard(): Unit
 
-#### updateBoard(): Unit
+#### postBoard(): Unit
 
 ## Message Types
 
-ID | Description | Includes | Notes
----|-------------|----------|------
-100 | Update Board        | Board                 | Bi-directional
-101 | Create Room         |                       | Includes add player to room
-102 | Room Created        | RoomId                |
-103 | Join Room           | RoomId                | 
-104 | Leave Room          | RoomId                | 
-105 | Request All Players |                       |
-106 | All Players         | [Players]             |
-107 | Request All Rooms   |                       |
-108 | All Rooms           | [(RoomId: [Players])] |
-109 | Client Kick         |                       |
-110 | Client Disconnect   | [RoomId]              |
+ID | Description | Initiated By | Includes | Notes
+---|-------------|--------------|----------|------
+100 | Update Board        | Either | Board                 | Bi-directional
+101 | Create Room         | Client |                       | Includes add player to room
+102 | Room Created        | Server | RoomId                |
+103 | Join Room           | Client | RoomId                | 
+104 | Leave Room          | Client | RoomId                | 
+105 | Request All Players | Client |                       |
+106 | All Players         | Server | [Players]             |
+107 | Request All Rooms   | Client |                       |
+108 | All Rooms           | Server | [(RoomId: [Players])] |
+109 | Client Kick         | Server |                       |
+110 | Client Disconnect   | Client | [RoomId]              |
 
 ## Message Format
 See JSON schema 'src/schema/msg_header.json'
