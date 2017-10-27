@@ -48,7 +48,7 @@ update msg { input, messages } =
             ( Model newInput messages, Cmd.none )
 
         Send ->
-            ( Model "" messages, WebSocket.send "ws://localhost:8080" input )
+            ( Model "" messages, WebSocket.send "ws://localhost:8080/lobby" input )
 
         IncomingMessage str ->
             ( Model input (messages ++ [ str ]), Cmd.none )
@@ -60,7 +60,7 @@ update msg { input, messages } =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen "ws://localhost:8080" IncomingMessage
+    WebSocket.listen "ws://localhost:8080/lobby" IncomingMessage
 
 
 
