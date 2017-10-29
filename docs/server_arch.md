@@ -1,18 +1,18 @@
 # Server Architecture
-v1.1
+v1.1.1
 
 ## Requirements
 ### Functional
  - [ ] Accept Client Connections
  - [ ] Handle multiple clients
- - [ ] Client create room
- - [ ] Client list all rooms
- - [ ] Client join a room
- - [ ] Client leave a room
- - [ ] Client list members of a room
- - [ ] Client send messages to a room
- - [ ] Client join multiple rooms
- - [ ] Client send distinct messages to multiple selected rooms
+ - [ ] Client create session
+ - [ ] Client list all sessions
+ - [ ] Client join a session
+ - [ ] Client leave a session
+ - [ ] Client list members of a session
+ - [ ] Client send messages to a session
+ - [ ] Client join multiple sessions
+ - [ ] Client send distinct messages to multiple selected sessions
  - [ ] Client disconnect
  - [ ] Server kick client
  - [ ] Handle client crashes
@@ -25,19 +25,19 @@ v1.1
  
  ## Concepts
  
- ### Room
+ ### Session
  
- A "room" is a game session, requiring at least one player and no more than two.
+ A "session" is a game session, requiring at least one player and no more than two.
  
  The game is defined as two instrument voices specifying one (or more?) of twelve
  pitches to play on each of eight beats in an infinite loop. Each board consists of 
  exactly two instruments. One instrument may be silent if only one player is present 
- in the Room.
+ in the session.
  
- Players view the room and manipulate its state ("config") through the web client.
+ Players view the session and manipulate its state ("config") through the web client.
  
- A room must have one player. If the only player to a room leaves, the room is destroyed
- by the server.
+ A session must have one player. If the only player in a session leaves, the
+ session is destroyed by the server.
  
  ### Player
  
@@ -67,51 +67,51 @@ v1.1
  Messages take the form of JSON objects.
  
  #### Control Messages & Notifications
- - (Client) Create new room
- - (Client) Join room
- - (Client) Leave room
- - (Server) Player left room
- - (Server) Player joined room
+ - (Client) Create new session
+ - (Client) Join session
+ - (Client) Leave session
+ - (Server) Player left session
+ - (Server) Player joined session
  
  #### Board Updates (Bidirectional)
  - Instrument type chosen
  - Beats per minute
  - 12 x 8 bitboard (12 notes x 8 beats)
  
- ### Server State: Rooms & Players
+ ### Server State: Sessions & Players
  
- #### Idea: Lobby
- - A "menu room" every player joins when they first connect
- - No Board in this room
- - Server state presented via Lobby: current available rooms, current users
+ #### Home
+ - A "menu session" every player joins when they first connect
+ - No Board in this session
+ - Server state presented via Home: current available sessions, current users
  
- #### Room
+ #### Session
  - A Board (2x12x8 bitboard plus beats per second and possibly volume)
  - Two slots of Player information
- - Each room is managed by a separate thread
+ - Each session is managed by a separate thread
  
  #### Player
  - Connection info (IP, port)
  - Username
- - Current rooms
+ - Current sessions
  
  #### Administrator
  - Special Player class
  - Authentication-based
  - Can issue special commands to the server
     - Kick user
-    - Delete room
+    - Delete session
  
  ### Server Actions
  
  The server's goal is to update each player at least once every loop cycle (this figure 
- will be derived from the room's set BPM).
+ will be derived from the session's set BPM).
  
  ## Stretch Goals
  
  - AI player
- - Text chat in room
+ - Text chat in session
  - Player sets bpm
- - Per-room volume knob
+ - Per-session volume knob
  - Multiple instrument choices
  - One player manipulates multiple instruments
