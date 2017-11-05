@@ -1,65 +1,117 @@
 module Views exposing (..)
 
-import Html exposing (Html, div, text, input, a, button, h2, hr)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Json.Decode as Json
+import Color
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Element.Events exposing (..)
+import Element.Input as Input
+import Html
+
+
+-- import Html exposing (Html, div, text, input, a, button, h2, hr)
+-- import Html.Attributes exposing (..)
+
 import Models exposing (..)
 import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
+import Style exposing (..)
+import Style.Border as Border
+import Style.Color as Color
+import Style.Font as Font
 
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ h2 [] [ text "MUSIC" ]
-        , hr [] []
-        , page model
+stylesheet : StyleSheet Styles variation
+stylesheet =
+    Style.styleSheet
+        [ style None []
+        , style Main []
+        , style Navigation
+            [ Font.size 36
+            , Color.text Color.white
+            , Color.background Color.darkCharcoal
+            ]
+        , style MessageInput
+            [ Border.all 1 ]
         ]
 
 
-page : Model -> Html Msg
+view : Model -> Html.Html Msg
+view model =
+    Element.layout stylesheet <|
+        column None
+            []
+            [ navigation
+            , el None [ center, width (px 800) ] <|
+                column Main [ spacing 50, paddingTop 20, paddingBottom 50 ] (page model)
+            ]
+
+
+navigation =
+    row Navigation
+        [ center
+        , paddingTop 20
+        , paddingBottom 20
+        ]
+        [ h1 None [] (text "Music") ]
+
+
 page model =
     case model.route of
         Home ->
-            div []
-                [ div [ style [ ( "fontWeight", "bold" ), ( "paddingBottom", "10px" ) ] ] [ text "~HOME~" ]
-                , div [] (List.map viewSessionEntry model.sessions)
-                , div [ style [ ( "paddingTop", "10px" ) ] ]
-                    [ button [ onClick (AddSession (newId model.sessions)) ] [ text "Add Session" ] ]
+            [ textLayout None
+                [ spacingXY 25 25
+                , padding 60
                 ]
+                [ paragraph None
+                    [ paddingBottom 10 ]
+                    [ text "~HOME~" ]
+                , textLayout None
+                    []
+                    (List.map viewSessionEntry model.sessions)
+                , paragraph None
+                    [ paddingTop 10 ]
+                    [ button None [ onClick (AddSession (newId model.sessions)) ] (text "Add Session") ]
+                ]
+            ]
 
         SessionRoute id ->
-            div []
-                [ div [ style [ ( "fontWeight", "bold" ), ( "paddingBottom", "10px" ) ] ]
-                    [ text ("~SESSION " ++ id ++ "~") ]
-                , div []
-                    (List.map viewMessage model.session.messages)
-                , input [ onInput Input, onEnter Send, style [ ( "marginTop", "10px" ) ] ] []
-                , div [ style [ ( "paddingTop", "10px" ) ] ]
-                    [ a [ href sessionsPath ] [ text "<- HOME" ] ]
+            [ textLayout None
+                [ spacingXY 25 25
+                , padding 60
                 ]
+                [ paragraph None
+                    [ paddingBottom 10 ]
+                    [ text ("~SESSION " ++ id ++ "~") ]
+                , textLayout None
+                    []
+                    (List.map viewMessage model.session.messages)
+                , Input.text MessageInput
+                    []
+                    { label =
+                        Input.placeholder
+                            { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
+                            , text = "message"
+                            }
+                    , onChange = UserInput
+                    , options = []
+                    , value = ""
+                    }
+                , button None [ onClick Send ] (text "Send")
+                ]
+            ]
 
         NotFoundRoute ->
-            notFoundView
+            [ textLayout None [] [ text "Not found" ] ]
 
 
-viewSessionEntry : String -> Html msg
 viewSessionEntry sessionId =
-    div []
-        [ a [ href (sessionPath sessionId) ] [ text ("Session " ++ sessionId) ] ]
+    paragraph None
+        []
+        [ link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)) ]
 
 
-viewMessage : String -> Html msg
 viewMessage msg =
-    div [] [ text msg ]
-
-
-notFoundView : Html msg
-notFoundView =
-    div []
-        [ text "Not found"
-        ]
+    paragraph None [] [ text msg ]
 
 
 newId : List SessionId -> SessionId
@@ -70,15 +122,3 @@ newId sessions =
 
         Nothing ->
             "1"
-
-
-onEnter : Msg -> Html.Attribute Msg
-onEnter msg =
-    let
-        isEnter keycode =
-            if keycode == 13 then
-                Json.succeed msg
-            else
-                Json.fail "not ENTER"
-    in
-        on "keydown" (Json.andThen isEnter keyCode)

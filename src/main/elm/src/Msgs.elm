@@ -7,6 +7,6 @@ import Models exposing (SessionId)
 type Msg
     = OnLocationChange Location
     | AddSession SessionId
-    | Input String
+    | UserInput String
     | Send
     | IncomingMessage String

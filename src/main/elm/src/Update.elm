@@ -34,7 +34,7 @@ update msg model =
             , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ newId)
             )
 
-        Input newInput ->
+        UserInput newInput ->
             let
                 session =
                     Models.Session model.session.id newInput model.session.messages

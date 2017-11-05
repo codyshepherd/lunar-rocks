@@ -31,3 +31,10 @@ type Route
     = Home
     | SessionRoute SessionId
     | NotFoundRoute
+
+
+type Styles
+    = None
+    | Main
+    | Navigation
+    | MessageInput
