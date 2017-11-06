@@ -56,6 +56,58 @@ Music Application RFC Specificaiton
 
 2. Messages
 
+    Clients and servers send each other messages. A client should expect a
+    response from the server, which may be an explicit or implicit
+    acknowledgment depending on the message type. Message types are described in
+    section 4.
+    
+    Each message must contain the following parts: an integer source identifier
+    that indicates a client or server, an integer message identifier that
+    indicates message type, and a message payload. All messages must conform to
+    the JSON data interchange format (rfc 7159).
+    
+    Messages take the general form shown below.
+     
+     ```
+     {
+         "sourceID": integer,
+         "messageID":  integer,
+         "payload": {...}
+     }
+     ```
+    
+    The payload varies by the message type, and may include any of the
+    following: an integer session identifier, an integer track identifier, or a
+    session object. Section 4 describes payloads for each message type.
+     
+    A session object must contain the following parts: a session identifier, an
+    array client identifiers, a floating point tempo, and a board array. A board
+    array contains *p* track objects, where *p* is left to the implementor. A
+    track object contains an integer track identifier, an integer client
+    identifier, and an array of arrays that represents the grid of rests and
+    note events described in section 1.1.
+    
+    A session object takes the following form.
+    
+    ```
+    {
+         "sessionID": integer,
+         "clients":  [integer],
+         "tempo": integer,
+         "board": [trackObject]
+    }
+    ```
+
+    A track object takes the following form.
+     ```
+    {
+         "trackID": integer,
+         "clientID": integer,
+         "grid":  [[integer]]
+    }
+    ```
+     
+     
 3. Communication Flow
 
 4. Message Details
