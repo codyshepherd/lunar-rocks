@@ -186,7 +186,7 @@ As detailed in Section 2, Messages are identified by their message ID.
 Message IDs and descriptions are detailed in the following table:
 
 | ID | Description | Initiated By | Payload |
-|____|_____________|______________|__________|
+|----|-------------|--------------|---------|
 | 100| Update Session     | Either | Session                |
 | 101| Create Session     | Client | |
 | 102| Session Created    | Server | Session                |
