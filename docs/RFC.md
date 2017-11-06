@@ -185,16 +185,17 @@ As detailed in Section 2, Messages are identified by their message ID.
 
 Message IDs and descriptions are detailed in the following table:
 
-| ID | Description | Initiated By | Payload |
-|----|-------------|--------------|---------|
-| 100| Update Session     | Either | Session                |
-| 101| Create Session     | Client | |
-| 102| Session Created    | Server | Session                |
-| 103| Join Session       | Client | SessionID              |
-| 104| Leave Session      | Client | SessionID              |
-| 105| Update SessionList | Server | [SessionID]            |
-| 106| Disconnect         | Client | |
-| 107| Disconnect         | Server | |
-| 108| Broadcast          | Client | (Session, [SessionID]) |
-| 109| Request Track      | Client | (SessionID, TrackID)   |
-| 110| Relinquish Track   | Client | (SessionID, TrackID)   |
+| ID | Description | Initiated By | Payload | Notes |
+|----|-------------|--------------|---------|-------|
+| 100| Update Session     | Either | Session                | Used whenever Session states need to be updated |
+| 101| Create Session     | Client | | This request indicates to the Server that the Client wants to start a new Session |
+| 102| Session Created    | Server | Session                | The Server responds to a 101 request with the newly-created Session |
+| 103| Join Session       | Client | SessionID              | Used whenever a Client wants to join an existing Session |
+| 104| Leave Session      | Client | SessionID              | Used whenever a Client wants to leave a Session; if Client is last to leave, Session is destroyed |
+| 105| Update SessionList | Server | [SessionID]            | Server sends this update to Clients when its active Server list is updated |
+| 106| Disconnect         | Client | | Client notifies Server it is disconnecting |
+| 107| Disconnect         | Server | | Server notifies Client that either the Server is going down, or Client is being kicked |
+| 108| Broadcast          | Client | (Session, [SessionID]) | Used when the Client wants to update all its active Sessions with its current Board |
+| 109| Request Track      | Client | (SessionID, TrackID)   | Used when a Client wants to select a Track in a Session |
+| 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
+| 111| Track Request Response | Server | Granted/Refused (boolean) | Server notifies Client as to the status of its Track Request |
