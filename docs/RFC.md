@@ -110,4 +110,52 @@ Music Application RFC Specificaiton
      
 3. Communication Flow
 
+    All communication is between a client and a server, and communications use
+    either HTTP or Websockets. The initial contact from a client to a server is
+    done over HTTP when the client visits a website hosting an application that
+    implements the protocol. The client is sent an `index.html` file with a
+    JavaScript call to open a Websocket. The client requests a Websocket from
+    the server with an "upgrade" message, and the server replies with a
+    "switching protocols" message. From this point forward, all communication is
+    carried out over the Websocket.
+    
+    Communication in the protocol is one-to-all and one-to-many. 
+    
+    3.1 One-to-all (broadcast)
+    
+    One-to-all communication occurs only on the home page where the listing of
+    sessions is available to all connected clients. When a client requests a new
+    session, all clients are notified that a new session has been added.
+
+    3.2 One-to-many
+
+    One-to-many communcation occurs in sessions when a client requests a track,
+    relinquishes a track, updates a track, or changes the tempo. All clients
+    currently viewing the session are notified of the resulting change. Note
+    that for the message sender, this notification serves as an implicit
+    acknowledgement of their message.
+    
+    A special form of one-to-many communication occurs when a client wishes to
+    update multiple sessions with the configuration of their current session.
+    This communication will result in updates to sessions the client has open
+    but is not viewing.
+    
+    3.3 Connection Failures
+    
+    To ensure an active connection, communication must regularly occur between
+    the client and server. This may take the form of keep-alive messages for
+    example.
+    
+    If a client has not received a message from a server in over ten seconds, it
+    should assume the connection has been lost and notify the user. When the
+    connection has been re-established, the client should send an update to the
+    server with changes it has made since the last successful communication.
+    
+    If a server has not received a message from a client in over ten seconds, it
+    should hold information about the client for another twenty seconds and
+    await a new Websocket connection. If a new connection is made, the client
+    will send its sourceID in its first message and the server will restore the
+    lost session. If a new connection is not made, the server will consider the
+    connection with client terminated.
+    
 4. Message Details
