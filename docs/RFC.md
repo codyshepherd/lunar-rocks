@@ -185,16 +185,16 @@ As detailed in Section 2, Messages are identified by their message ID.
 
 Message IDs and descriptions are detailed in the following table:
 
-ID | Description | Initiated By | Payload
-___|_____________|______________|_________
-100| Update Session     | Either | Session
-101| Create Session     | Client |
-102| Session Created    | Server | Session
-103| Join Session       | Client | SessionID
-104| Leave Session      | Client | SessionID
-105| Update SessionList | Server | [SessionID]
-106| Disconnect         | Client |
-107| Disconnect         | Server |
-108| Broadcast          | Client | (Session, [SessionID])
-109| Request Track      | Client | (SessionID, TrackID)
-110| Relinquish Track   | Client | (SessionID, TrackID)
+| ID | Description | Initiated By | Payload |
+|____|_____________|______________|__________|
+| 100| Update Session     | Either | Session                |
+| 101| Create Session     | Client | |
+| 102| Session Created    | Server | Session                |
+| 103| Join Session       | Client | SessionID              |
+| 104| Leave Session      | Client | SessionID              |
+| 105| Update SessionList | Server | [SessionID]            |
+| 106| Disconnect         | Client | |
+| 107| Disconnect         | Server | |
+| 108| Broadcast          | Client | (Session, [SessionID]) |
+| 109| Request Track      | Client | (SessionID, TrackID)   |
+| 110| Relinquish Track   | Client | (SessionID, TrackID)   |
