@@ -1,10 +1,10 @@
-Music Application RFC Specificaiton
-    Brian Ginsburg
-    Cody Shepherd
+#Music Application RFC Specificaiton
+    ###Brian Ginsburg
+    ###Cody Shepherd
 
-1. Intro & Concepts
+##1. Intro & Concepts
 
-    1.1 Client
+    ###1.1 Client
 
     A client is any web browser connecting to a server. A client sends messages
     to a server and receives messages from a server. Each client is uniquely
@@ -52,9 +52,29 @@ Music Application RFC Specificaiton
     is silent for the last four beats. Sound B is played for a duration of 1 on
     alternating beats and rests between each note event. Sound A is never played.
     
-    1.2 Server
+    ###1.2 Server
 
-2. Messages
+    The Server is the program component that stores a version of all Sessions, and
+    handles asynchronous updates to, and requests for, Session state from Clients.
+
+    The Server sends and receives updates and other messages to and from Clients
+    via websockets, either when the Clients request updates, or when a Client's 
+    Session is updated by another Client in the same Session.
+
+    The Server handles asynchronous messages using a Select-style methodology for
+    handling I/O in a non-blocking manner.
+
+    The Server tracks bookeeping information necessary for the proper functioning of
+    the application, to include: 
+    - connected Clients, identified by UUID and nickname
+    - active Sessions per Client, organized by ClientID 
+    - active Sessions (copyless redundant storage), organized by SessionID
+    - maximum possible Sessions per Client, identified by a constant value
+
+    The Server handles Client crashes by relying on the websocket layer to raise an
+    exception if a websocket is timed out or otherwise broen.
+
+##2. Messages
 
     Clients and servers send each other messages. A client should expect a
     response from the server, which may be an explicit or implicit
@@ -108,7 +128,7 @@ Music Application RFC Specificaiton
     ```
      
      
-3. Communication Flow
+##3. Communication Flow
 
     All communication is between a client and a server, and communications use
     either HTTP or Websockets. The initial contact from a client to a server is
@@ -158,4 +178,21 @@ Music Application RFC Specificaiton
     lost session. If a new connection is not made, the server will consider the
     connection with client terminated.
     
-4. Message Details
+##4. Message Details
+    As detailed in Section 2, Messages are identified by their message ID. 
+
+    Message IDs and descriptions are detailed in the following table:
+
+    ID | Description | Initiated By | Payload
+    ___|_____________|______________|_________
+    100| Update Session     | Either | Session
+    101| Create Session     | Client |
+    102| Session Created    | Server | Session
+    103| Join Session       | Client | SessionID
+    104| Leave Session      | Client | SessionID
+    105| Update SessionList | Server | [SessionID]
+    106| Disconnect         | Client |
+    107| Disconnect         | Server |
+    108| Broadcast          | Client | (Session, [SessionID])
+    109| Request Track      | Client | (SessionID, TrackID)
+    110| Relinquish Track   | Client | (SessionID, TrackID)
