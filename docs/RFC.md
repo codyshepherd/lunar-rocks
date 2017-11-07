@@ -74,7 +74,7 @@ the application, to include:
 - maximum possible Sessions per Client, identified by a constant value
 
 The Server handles Client crashes by relying on the websocket layer to raise an
-exception if a websocket is timed out or otherwise broen.
+exception if a websocket is timed out or otherwise broken.
 
 ## 2. Messages
 
