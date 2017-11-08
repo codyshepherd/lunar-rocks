@@ -17,13 +17,31 @@ update msg model =
                 session =
                     case newRoute of
                         Models.SessionRoute id ->
-                            Models.Session id "" []
+                            Models.Session
+                                id
+                                model.session.tempo
+                                model.session.clients
+                                model.session.board
+                                ""
+                                []
 
                         Models.Home ->
-                            Models.Session "home" "" []
+                            Models.Session
+                                "home"
+                                model.session.tempo
+                                model.session.clients
+                                model.session.board
+                                ""
+                                []
 
                         Models.NotFoundRoute ->
-                            Models.Session "" "" []
+                            Models.Session
+                                ""
+                                model.session.tempo
+                                model.session.clients
+                                model.session.board
+                                ""
+                                []
             in
                 ( { model | route = newRoute, session = session }
                 , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ session.id)
@@ -34,10 +52,29 @@ update msg model =
             , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ newId)
             )
 
+        UpdateBoard cell ->
+            let
+                session =
+                    Models.Session
+                        model.session.id
+                        model.session.tempo
+                        model.session.clients
+                        model.session.board
+                        model.session.input
+                        (model.session.messages ++ [ (toString cell) ])
+            in
+                ( { model | session = session }, Cmd.none )
+
         UserInput newInput ->
             let
                 session =
-                    Models.Session model.session.id newInput model.session.messages
+                    Models.Session
+                        model.session.id
+                        model.session.tempo
+                        model.session.clients
+                        model.session.board
+                        newInput
+                        model.session.messages
             in
                 ( { model | session = session }, Cmd.none )
 
@@ -51,6 +88,12 @@ update msg model =
         IncomingMessage str ->
             let
                 session =
-                    Models.Session model.session.id model.session.input (model.session.messages ++ [ str ])
+                    Models.Session
+                        model.session.id
+                        model.session.tempo
+                        model.session.clients
+                        model.session.board
+                        model.session.input
+                        (model.session.messages ++ [ str ])
             in
                 ( { model | session = session }, Cmd.none )

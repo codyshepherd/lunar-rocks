@@ -14,7 +14,30 @@ initialModel : Route -> Model
 initialModel route =
     { clientId = ""
     , serverId = ""
-    , session = Session "" 0 [] [] "" []
+    , session =
+        Session ""
+            0
+            []
+            [ Track
+                ""
+                ""
+                [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
+                , List.repeat 8 1
+                , List.repeat 8 0
+                , List.repeat 8 0
+                , List.repeat 8 0
+                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
+                , List.repeat 8 0
+                , List.repeat 8 0
+                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
+                , [ 1, 0, 0, 0, 1, 0, 0, 0 ]
+                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
+                , List.repeat 8 0
+                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
+                ]
+            ]
+            ""
+            []
     , sessions = [ "1", "2", "3" ]
     , route = route
     }
@@ -63,4 +86,7 @@ type Styles
     = None
     | Main
     | Navigation
+    | Container
+    | Play
+    | Rest
     | MessageInput

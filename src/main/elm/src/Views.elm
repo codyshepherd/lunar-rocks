@@ -6,11 +6,6 @@ import Element.Attributes exposing (..)
 import Element.Events exposing (..)
 import Element.Input as Input
 import Html
-
-
--- import Html exposing (Html, div, text, input, a, button, h2, hr)
--- import Html.Attributes exposing (..)
-
 import Models exposing (..)
 import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
@@ -30,6 +25,14 @@ stylesheet =
             , Color.text Color.white
             , Color.background Color.darkCharcoal
             ]
+        , style Container
+            [ Color.background Color.darkCharcoal ]
+        , style Play
+            [ Color.background Color.darkBlue
+            , Color.text Color.white
+            ]
+        , style Rest
+            [ Color.text Color.white ]
         , style MessageInput
             [ Border.all 1 ]
         ]
@@ -41,8 +44,8 @@ view model =
         column None
             []
             [ navigation
-            , el None [ center, width (px 800) ] <|
-                column Main [ spacing 50, paddingTop 20, paddingBottom 50 ] (page model)
+            , el None [ center, width (px 797) ] <|
+                column Main [ paddingTop 20, paddingBottom 50 ] (page model)
             ]
 
 
@@ -60,7 +63,7 @@ page model =
         Home ->
             [ textLayout None
                 [ spacingXY 25 25
-                , padding 60
+                , padding 50
                 ]
                 [ paragraph None
                     [ paddingBottom 10 ]
@@ -76,16 +79,14 @@ page model =
 
         SessionRoute id ->
             [ textLayout None
-                [ spacingXY 25 25
-                , padding 60
-                ]
-                [ paragraph None
+                [ spacingXY 25 25 ]
+                ([ paragraph None
                     [ paddingBottom 10 ]
                     [ text ("~SESSION " ++ id ++ "~") ]
-                , textLayout None
+                 , textLayout None
                     []
                     (List.map viewMessage model.session.messages)
-                , Input.text MessageInput
+                 , Input.text MessageInput
                     []
                     { label =
                         Input.placeholder
@@ -96,8 +97,10 @@ page model =
                     , options = []
                     , value = ""
                     }
-                , button None [ onClick Send ] (text "Send")
-                ]
+                 , button None [ onClick Send ] (text "Send")
+                 ]
+                    ++ (viewBoard model.session.board)
+                )
             ]
 
         NotFoundRoute ->
@@ -112,6 +115,64 @@ viewSessionEntry sessionId =
 
 viewMessage msg =
     paragraph None [] [ text msg ]
+
+
+viewBoard board =
+    List.map viewTrack board
+
+
+viewTrack track =
+    grid Container
+        [ spacing 3 ]
+        { columns = List.repeat 8 (px 97)
+        , rows = List.repeat 13 (px 25)
+        , cells =
+            viewGrid (.grid track)
+        }
+
+
+viewGrid : List (List Int) -> List (OnGrid (Element Styles variation Msg))
+viewGrid grid =
+    let
+        rows =
+            List.map (List.indexedMap (,)) grid
+
+        tupleGrid =
+            List.indexedMap (,) rows
+    in
+        List.concatMap viewRow tupleGrid
+
+
+viewRow : ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
+viewRow row =
+    List.map (\c -> viewCell (Tuple.first row) c) (Tuple.second row)
+
+
+viewCell : Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
+viewCell row c =
+    let
+        col =
+            Tuple.first c
+
+        action =
+            Tuple.second c
+    in
+        cell
+            { start = ( col, row )
+            , width = 1
+            , height = 1
+            , content =
+                let
+                    act =
+                        case action of
+                            0 ->
+                                Rest
+
+                            _ ->
+                                Play
+                in
+                    (el act [ onClick (UpdateBoard ( col, row )) ] (text (toString action)))
+            }
 
 
 newId : List SessionId -> SessionId
