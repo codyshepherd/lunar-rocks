@@ -2,7 +2,9 @@ module Models exposing (..)
 
 
 type alias Model =
-    { session : Session
+    { clientId : ClientId
+    , serverId : ServerId
+    , session : Session
     , sessions : List SessionId
     , route : Route
     }
@@ -10,20 +12,11 @@ type alias Model =
 
 initialModel : Route -> Model
 initialModel route =
-    { session = Session "" "" []
+    { clientId = ""
+    , serverId = ""
+    , session = Session "" 0 [] [] "" []
     , sessions = [ "1", "2", "3" ]
     , route = route
-    }
-
-
-type alias SessionId =
-    String
-
-
-type alias Session =
-    { id : SessionId
-    , input : String
-    , messages : List String
     }
 
 
@@ -31,6 +24,39 @@ type Route
     = Home
     | SessionRoute SessionId
     | NotFoundRoute
+
+
+type alias SessionId =
+    String
+
+
+type alias ClientId =
+    String
+
+
+type alias ServerId =
+    String
+
+
+type alias Session =
+    { id : SessionId
+    , tempo : Int
+    , clients : List ClientId
+    , board : List Track
+    , input : String
+    , messages : List String
+    }
+
+
+type alias TrackId =
+    String
+
+
+type alias Track =
+    { trackID : TrackId
+    , clientID : ClientId
+    , grid : List (List Int)
+    }
 
 
 type Styles
