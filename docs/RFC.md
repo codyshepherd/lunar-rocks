@@ -74,7 +74,7 @@ the application, to include:
 - maximum possible Sessions per Client, identified by a constant value
 
 The Server handles Client crashes by relying on the websocket layer to raise an
-exception if a websocket is timed out or otherwise broen.
+exception if a websocket is timed out or otherwise broken.
 
 ## 2. Messages
 
@@ -186,7 +186,7 @@ As detailed in Section 2, Messages are identified by their message ID.
 Message IDs and descriptions are detailed in the following table:
 
 | ID | Description | Initiated By | Payload | Notes |
-|----|-------------|--------------|---------|-------|
+|----|-------------|----------|---------|-------------------------------------|
 | 100| Update Session     | Either | Session                | Used whenever Session states need to be updated |
 | 101| Create Session     | Client | | This request indicates to the Server that the Client wants to start a new Session |
 | 102| Session Created    | Server | Session                | The Server responds to a 101 request with the newly-created Session |
@@ -198,4 +198,4 @@ Message IDs and descriptions are detailed in the following table:
 | 108| Broadcast          | Client | (Session, [SessionID]) | Used when the Client wants to update all its active Sessions with its current Board |
 | 109| Request Track      | Client | (SessionID, TrackID)   | Used when a Client wants to select a Track in a Session |
 | 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
-| 111| Track Request Response | Server | Granted/Refused (boolean) | Server notifies Client as to the status of its Track Request |
+| 111| Track Request Response | Server | Boolean | Server notifies Client as to the status of its Track Request |
