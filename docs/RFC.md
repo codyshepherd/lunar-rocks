@@ -93,7 +93,7 @@ Messages take the general form shown below.
 ```
 {
     "sourceID": integer,
-    "messageID":  integer,
+    "messageID": integer,
     "payload": {...}
 }
 ```
@@ -114,7 +114,7 @@ A session object takes the following form.
 ```
 {
         "sessionID": integer,
-        "clients":  [integer],
+        "clients": [UUID],
         "tempo": integer,
         "board": [trackObject]
 }
@@ -124,7 +124,7 @@ A track object takes the following form.
 ```
 {
         "trackID": integer,
-        "clientID": integer,
+        "clientID": UUID,
         "grid":  [[integer]]
 }
 ```
