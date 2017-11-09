@@ -19,7 +19,7 @@ initialModel route =
             0
             []
             [ Track
-                ""
+                0
                 ""
                 [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
                 , List.repeat 8 1
@@ -72,13 +72,21 @@ type alias Session =
 
 
 type alias TrackId =
-    String
+    Int
 
 
 type alias Track =
-    { trackID : TrackId
-    , clientID : ClientId
+    { trackId : TrackId
+    , clientId : ClientId
     , grid : List (List Int)
+    }
+
+
+type alias Cell =
+    { trackId : TrackId
+    , column : Int
+    , row : Int
+    , action : Int
     }
 
 

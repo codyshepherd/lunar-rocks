@@ -83,23 +83,24 @@ page model =
                 ([ paragraph None
                     [ paddingBottom 10 ]
                     [ text ("~SESSION " ++ id ++ "~") ]
-                 , textLayout None
-                    []
-                    (List.map viewMessage model.session.messages)
-                 , Input.text MessageInput
-                    []
-                    { label =
-                        Input.placeholder
-                            { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
-                            , text = "message"
-                            }
-                    , onChange = UserInput
-                    , options = []
-                    , value = ""
-                    }
-                 , button None [ onClick Send ] (text "Send")
                  ]
                     ++ (viewBoard model.session.board)
+                    ++ [ textLayout None
+                            []
+                            (List.map viewMessage model.session.messages)
+                       , Input.text MessageInput
+                            []
+                            { label =
+                                Input.placeholder
+                                    { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
+                                    , text = "message"
+                                    }
+                            , onChange = UserInput
+                            , options = []
+                            , value = ""
+                            }
+                       , button None [ onClick Send ] (text "Send")
+                       ]
                 )
             ]
 
@@ -127,12 +128,12 @@ viewTrack track =
         { columns = List.repeat 8 (px 97)
         , rows = List.repeat 13 (px 25)
         , cells =
-            viewGrid (.grid track)
+            viewGrid (.trackId track) (.grid track)
         }
 
 
-viewGrid : List (List Int) -> List (OnGrid (Element Styles variation Msg))
-viewGrid grid =
+viewGrid : TrackId -> List (List Int) -> List (OnGrid (Element Styles variation Msg))
+viewGrid trackId grid =
     let
         rows =
             List.map (List.indexedMap (,)) grid
@@ -140,16 +141,16 @@ viewGrid grid =
         tupleGrid =
             List.indexedMap (,) rows
     in
-        List.concatMap viewRow tupleGrid
+        List.concatMap (\r -> viewRow trackId r) tupleGrid
 
 
-viewRow : ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
-viewRow row =
-    List.map (\c -> viewCell (Tuple.first row) c) (Tuple.second row)
+viewRow : TrackId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
+viewRow trackId row =
+    List.map (\c -> viewCell trackId (Tuple.first row) c) (Tuple.second row)
 
 
-viewCell : Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
-viewCell row c =
+viewCell : TrackId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
+viewCell trackId row c =
     let
         col =
             Tuple.first c
@@ -171,7 +172,11 @@ viewCell row c =
                             _ ->
                                 Play
                 in
-                    (el act [ onClick (UpdateBoard ( col, row )) ] (text (toString action)))
+                    (el act
+                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = action }) ]
+                        -- (text (toString action))
+                        (text (""))
+                    )
             }
 
 
