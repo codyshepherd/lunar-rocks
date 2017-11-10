@@ -12,7 +12,7 @@ sbt compile
 
 Compile the client from the `elm` directory.
 ```
-elm-make src/Main.elm --output index.html
+elm-make src/Main.elm --output=main.js
 ```
 
 ## Run
