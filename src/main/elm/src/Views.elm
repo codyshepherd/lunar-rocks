@@ -27,8 +27,12 @@ stylesheet =
             ]
         , style Container
             [ Color.background Color.darkCharcoal ]
-        , style Play
+        , style PlayBlue
             [ Color.background Color.darkBlue
+            , Color.text Color.white
+            ]
+        , style PlayRed
+            [ Color.background Color.darkRed
             , Color.text Color.white
             ]
         , style Rest
@@ -49,6 +53,7 @@ view model =
             ]
 
 
+navigation : Element Styles variation Msg
 navigation =
     row Navigation
         [ center
@@ -58,6 +63,7 @@ navigation =
         [ h1 None [] (text "Music") ]
 
 
+page : Model -> List (Element Styles variation Msg)
 page model =
     case model.route of
         Home ->
@@ -108,28 +114,34 @@ page model =
             [ textLayout None [] [ text "Not found" ] ]
 
 
+viewSessionEntry : SessionId -> Element Styles variation Msg
 viewSessionEntry sessionId =
     paragraph None
         []
         [ link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)) ]
 
 
+viewMessage : String -> Element Styles variation Msg
 viewMessage msg =
     paragraph None [] [ text msg ]
 
 
+viewBoard : List Track -> List (Element Styles variation Msg)
 viewBoard board =
-    List.map viewTrack board
+    List.concatMap viewTrack board
 
 
+viewTrack : Track -> List (Element Styles variation Msg)
 viewTrack track =
-    grid Container
+    [ grid Container
         [ spacing 3 ]
         { columns = List.repeat 8 (px 97)
-        , rows = List.repeat 13 (px 25)
+        , rows = List.repeat 13 (px 12)
         , cells =
             viewGrid (.trackId track) (.grid track)
         }
+    , paragraph None [] [ empty ]
+    ]
 
 
 viewGrid : TrackId -> List (List Int) -> List (OnGrid (Element Styles variation Msg))
@@ -170,12 +182,16 @@ viewCell trackId row c =
                                 Rest
 
                             _ ->
-                                Play
+                                case trackId of
+                                    0 ->
+                                        PlayRed
+
+                                    _ ->
+                                        PlayBlue
                 in
                     (el act
-                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = action }) ]
-                        -- (text (toString action))
-                        (text (""))
+                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = (action + 1) % 2 }) ]
+                        empty
                     )
             }
 

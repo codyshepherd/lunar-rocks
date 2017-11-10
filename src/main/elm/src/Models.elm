@@ -12,15 +12,15 @@ type alias Model =
 
 initialModel : Route -> Model
 initialModel route =
-    { clientId = ""
-    , serverId = ""
+    { clientId = 0
+    , serverId = 0
     , session =
         Session ""
             0
             []
             [ Track
                 0
-                ""
+                0
                 [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
                 , List.repeat 8 1
                 , List.repeat 8 0
@@ -31,6 +31,23 @@ initialModel route =
                 , List.repeat 8 0
                 , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
                 , [ 1, 0, 0, 0, 1, 0, 0, 0 ]
+                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
+                , List.repeat 8 0
+                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
+                ]
+            , Track
+                1
+                1
+                [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
+                , List.repeat 8 1
+                , List.repeat 8 0
+                , List.repeat 8 0
+                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
+                , List.repeat 8 0
+                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
+                , List.repeat 8 0
+                , [ 1, 0, 0, 0, 1, 0, 0, 0 ]
+                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
                 , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
                 , List.repeat 8 0
                 , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
@@ -50,22 +67,27 @@ type Route
 
 
 type alias SessionId =
+    -- change to Int
     String
 
 
 type alias ClientId =
-    String
+    Int
 
 
 type alias ServerId =
-    String
+    Int
+
+
+type alias Board =
+    List Track
 
 
 type alias Session =
     { id : SessionId
     , tempo : Int
     , clients : List ClientId
-    , board : List Track
+    , board : Board
     , input : String
     , messages : List String
     }
@@ -95,6 +117,7 @@ type Styles
     | Main
     | Navigation
     | Container
-    | Play
+    | PlayBlue
+    | PlayRed
     | Rest
     | MessageInput
