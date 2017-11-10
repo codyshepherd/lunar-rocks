@@ -4,6 +4,7 @@ import Models exposing (Model, SessionId, initialModel)
 import Msgs exposing (..)
 import Navigation exposing (Location)
 import Routing exposing (parseLocation)
+import Time exposing (every, second)
 import Views exposing (view)
 import Update exposing (update)
 import WebSocket
@@ -34,4 +35,7 @@ init location =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    WebSocket.listen "ws://localhost:8080/lobby" IncomingMessage
+    Sub.batch
+        [ WebSocket.listen "ws://localhost:8080/lobby" IncomingMessage
+        , every second Tick
+        ]

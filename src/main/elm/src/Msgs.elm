@@ -2,6 +2,7 @@ module Msgs exposing (..)
 
 import Navigation exposing (Location)
 import Models exposing (Cell, SessionId)
+import Time exposing (Time)
 
 
 type Msg
@@ -10,4 +11,5 @@ type Msg
     | UpdateBoard Cell
     | UserInput String
     | Send
+    | Tick Time
     | IncomingMessage String

@@ -1,16 +1,65 @@
 <!doctype HTML>
 <html>
-    <head>
-      <title>minima</title>
-      <meta charset="utf-8" />
-    </head>
-
-    <body>
+  <head>
+    <title>λ</title>
+    <meta charset="utf-8" />
+  </head>
+     <body>
         <div id="main"></div>
         <script type="text/javascript" src="main.js"></script>
         <script>
          "use strict"
          var app = Elm.Main.fullscreen();
+
+         var context = new (window.AudioContext || window.webkitAudioContext)();
+
+         var waveform = 'sine',
+             filterType = 'lowpass',
+             cutoff = 3000,
+             gain = 0.2;
+
+         var filter = context.createBiquadFilter();
+         filter.type = filterType;
+         filter.frequency.value = cutoff;
+         filter.connect(context.destination);
+
+         function getFrequency(trackId, tone) {
+           console.log((trackId + 1) * (tone + 1) * 220)
+           return (trackId + 1) * (tone + 1) * 220;
+         }
+
+         function playNote (trackId, tone) {
+
+           // intstantiate and initialize nodes
+           var osc = context.createOscillator();
+           var amp = context.createGain();
+           osc.type = waveform;
+           /* osc.frequency.value = frequency;*/
+           osc.frequency.value = getFrequency(trackId, tone);
+           amp.gain.value = gain;
+
+           // routing
+           osc.connect(amp);
+           amp.connect(filter);
+
+           // set timing and amp envelope
+           var now = context.currentTime;
+           amp.gain.cancelScheduledValues(now);
+           amp.gain.linearRampToValueAtTime(gain + 0.05, now + 0.03);  // attack
+           amp.gain.setTargetAtTime(gain, now + 0.03, 0.01);  // decay
+           amp.gain.setValueAtTime(gain, now + 0.03);  // set mark for release
+           /* amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);  // release*/
+           amp.gain.exponentialRampToValueAtTime(0.0001, now + 1);  // release
+
+           osc.start();
+           /* osc.stop(now + duration);*/
+           osc.stop(now + 1);
+         };
+
+         app.ports.play.subscribe(function (args) {
+           // args.beat and args.duration also available
+           playNote(args.trackId, args.tone);
+         });
 
         </script>
     </body>

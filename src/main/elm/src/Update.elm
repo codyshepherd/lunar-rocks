@@ -1,8 +1,9 @@
 module Update exposing (..)
 
 import List.Extra exposing ((!!))
-import Models exposing (Board, Cell, Model, SessionId, Track)
+import Models exposing (Board, Cell, Model, Note, SessionId, Score, Track)
 import Msgs exposing (..)
+import Ports exposing (play)
 import Routing exposing (parseLocation)
 import WebSocket
 
@@ -16,35 +17,20 @@ update msg model =
                     parseLocation location
 
                 session =
+                    model.session
+
+                newSession =
                     case newRoute of
                         Models.SessionRoute id ->
-                            Models.Session
-                                id
-                                model.session.tempo
-                                model.session.clients
-                                model.session.board
-                                ""
-                                []
+                            { session | id = id, input = "", messages = [] }
 
                         Models.Home ->
-                            Models.Session
-                                "home"
-                                model.session.tempo
-                                model.session.clients
-                                model.session.board
-                                ""
-                                []
+                            { session | id = "home", input = "", messages = [] }
 
                         Models.NotFoundRoute ->
-                            Models.Session
-                                ""
-                                model.session.tempo
-                                model.session.clients
-                                model.session.board
-                                ""
-                                []
+                            { session | id = "", input = "", messages = [] }
             in
-                ( { model | route = newRoute, session = session }
+                ( { model | route = newRoute, session = newSession }
                 , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ session.id)
                 )
 
@@ -55,30 +41,41 @@ update msg model =
 
         UpdateBoard cell ->
             let
+                score =
+                    case cell.action of
+                        0 ->
+                            (removeNote cell model.score)
+
+                        _ ->
+                            let
+                                note =
+                                    Note
+                                        cell.trackId
+                                        (cell.column + 1)
+                                        1
+                                        (model.session.tones - cell.row)
+                            in
+                                note :: model.score
+
                 session =
-                    Models.Session
-                        model.session.id
-                        model.session.tempo
-                        model.session.clients
-                        (updateBoard model.session.board cell)
-                        model.session.input
-                        -- (model.session.messages ++ [ (toString cell) ])
-                        model.session.messages
+                    model.session
+
+                newSession =
+                    { session
+                        | board = (updateBoard model.session.board cell)
+                    }
             in
-                ( { model | session = session }, Cmd.none )
+                ( { model | session = newSession, score = score }, Cmd.none )
 
         UserInput newInput ->
             let
                 session =
-                    Models.Session
-                        model.session.id
-                        model.session.tempo
-                        model.session.clients
-                        model.session.board
-                        newInput
-                        model.session.messages
+                    model.session
+
+                newSession =
+                    { session | input = newInput }
             in
-                ( { model | session = session }, Cmd.none )
+                ( { model | session = newSession }, Cmd.none )
 
         Send ->
             let
@@ -87,18 +84,33 @@ update msg model =
             in
                 ( model, WebSocket.send "ws://localhost:8080/lobby" session.input )
 
+        Tick time ->
+            let
+                session =
+                    model.session
+
+                newSession =
+                    { session
+                        | clock = increment session.clock session.beats
+
+                        -- , messages = ((toString model.score) :: model.session.messages)
+                        , messages = [ toString model.score ]
+                    }
+            in
+                { model
+                    | session = newSession
+                }
+                    ! [ Cmd.batch (playNotes model.session.clock model.score) ]
+
         IncomingMessage str ->
             let
                 session =
-                    Models.Session
-                        model.session.id
-                        model.session.tempo
-                        model.session.clients
-                        model.session.board
-                        model.session.input
-                        (model.session.messages ++ [ str ])
+                    model.session
+
+                newSession =
+                    { session | messages = (model.session.messages ++ [ str ]) }
             in
-                ( { model | session = session }, Cmd.none )
+                ( { model | session = newSession }, Cmd.none )
 
 
 updateBoard : Board -> Cell -> Board
@@ -141,3 +153,30 @@ updateRow row cell =
 
             Nothing ->
                 []
+
+
+increment : Int -> Int -> Int
+increment clock beats =
+    case clock of
+        0 ->
+            0
+
+        _ ->
+            (clock % beats) + 1
+
+
+playNotes : Int -> Score -> List (Cmd msg)
+playNotes clock score =
+    List.filter (\n -> .beat n == clock) score
+        |> List.map play
+
+
+removeNote : Cell -> Score -> Score
+removeNote cell score =
+    List.filter
+        (\n ->
+            (.trackId n /= .trackId cell)
+                || (.beat n - 1 /= .column cell)
+                || (13 - .tone n /= .row cell)
+        )
+        score
