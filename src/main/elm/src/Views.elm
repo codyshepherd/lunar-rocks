@@ -1,65 +1,199 @@
 module Views exposing (..)
 
-import Html exposing (Html, div, text, input, a, button, h2, hr)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Json.Decode as Json
+import Color
+import Element exposing (..)
+import Element.Attributes exposing (..)
+import Element.Events exposing (..)
+import Element.Input as Input
+import Html
 import Models exposing (..)
 import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
+import Style exposing (..)
+import Style.Border as Border
+import Style.Color as Color
+import Style.Font as Font
 
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ h2 [] [ text "MUSIC" ]
-        , hr [] []
-        , page model
+stylesheet : StyleSheet Styles variation
+stylesheet =
+    Style.styleSheet
+        [ style None []
+        , style Main []
+        , style Navigation
+            [ Font.size 36
+            , Color.text Color.white
+            , Color.background Color.darkCharcoal
+            ]
+        , style Container
+            [ Color.background Color.darkCharcoal ]
+        , style PlayBlue
+            [ Color.background Color.darkBlue
+            , Color.text Color.white
+            ]
+        , style PlayRed
+            [ Color.background Color.darkRed
+            , Color.text Color.white
+            ]
+        , style Rest
+            [ Color.text Color.white ]
+        , style MessageInput
+            [ Border.all 1 ]
         ]
 
 
-page : Model -> Html Msg
+view : Model -> Html.Html Msg
+view model =
+    Element.layout stylesheet <|
+        column None
+            []
+            [ navigation
+            , el None [ center, width (px 797) ] <|
+                column Main [ paddingTop 20, paddingBottom 50 ] (page model)
+            ]
+
+
+navigation : Element Styles variation Msg
+navigation =
+    row Navigation
+        [ center
+        , paddingTop 20
+        , paddingBottom 20
+        ]
+        [ h1 None [] (text "Music") ]
+
+
+page : Model -> List (Element Styles variation Msg)
 page model =
     case model.route of
         Home ->
-            div []
-                [ div [ style [ ( "fontWeight", "bold" ), ( "paddingBottom", "10px" ) ] ] [ text "~HOME~" ]
-                , div [] (List.map viewSessionEntry model.sessions)
-                , div [ style [ ( "paddingTop", "10px" ) ] ]
-                    [ button [ onClick (AddSession (newId model.sessions)) ] [ text "Add Session" ] ]
+            [ textLayout None
+                [ spacingXY 25 25
+                , padding 50
                 ]
+                [ paragraph None
+                    [ paddingBottom 10 ]
+                    [ text "~HOME~" ]
+                , textLayout None
+                    []
+                    (List.map viewSessionEntry model.sessions)
+                , paragraph None
+                    [ paddingTop 10 ]
+                    [ button None [ onClick (AddSession (newId model.sessions)) ] (text "Add Session") ]
+                ]
+            ]
 
         SessionRoute id ->
-            div []
-                [ div [ style [ ( "fontWeight", "bold" ), ( "paddingBottom", "10px" ) ] ]
+            [ textLayout None
+                [ spacingXY 25 25 ]
+                ([ paragraph None
+                    [ paddingBottom 10 ]
                     [ text ("~SESSION " ++ id ++ "~") ]
-                , div []
-                    (List.map viewMessage model.session.messages)
-                , input [ onInput Input, onEnter Send, style [ ( "marginTop", "10px" ) ] ] []
-                , div [ style [ ( "paddingTop", "10px" ) ] ]
-                    [ a [ href sessionsPath ] [ text "<- HOME" ] ]
-                ]
+                 ]
+                    ++ (viewBoard model.session.board)
+                    ++ [ textLayout None
+                            []
+                            (List.map viewMessage model.session.messages)
+                       , Input.text MessageInput
+                            []
+                            { label =
+                                Input.placeholder
+                                    { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
+                                    , text = "message"
+                                    }
+                            , onChange = UserInput
+                            , options = []
+                            , value = ""
+                            }
+                       , button None [ onClick Send ] (text "Send")
+                       ]
+                )
+            ]
 
         NotFoundRoute ->
-            notFoundView
+            [ textLayout None [] [ text "Not found" ] ]
 
 
-viewSessionEntry : String -> Html msg
+viewSessionEntry : SessionId -> Element Styles variation Msg
 viewSessionEntry sessionId =
-    div []
-        [ a [ href (sessionPath sessionId) ] [ text ("Session " ++ sessionId) ] ]
+    paragraph None
+        []
+        [ link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)) ]
 
 
-viewMessage : String -> Html msg
+viewMessage : String -> Element Styles variation Msg
 viewMessage msg =
-    div [] [ text msg ]
+    paragraph None [] [ text msg ]
 
 
-notFoundView : Html msg
-notFoundView =
-    div []
-        [ text "Not found"
-        ]
+viewBoard : List Track -> List (Element Styles variation Msg)
+viewBoard board =
+    List.concatMap viewTrack board
+
+
+viewTrack : Track -> List (Element Styles variation Msg)
+viewTrack track =
+    [ grid Container
+        [ spacing 3 ]
+        { columns = List.repeat 8 (px 97)
+        , rows = List.repeat 13 (px 12)
+        , cells =
+            viewGrid (.trackId track) (.grid track)
+        }
+    , paragraph None [] [ empty ]
+    ]
+
+
+viewGrid : TrackId -> List (List Int) -> List (OnGrid (Element Styles variation Msg))
+viewGrid trackId grid =
+    let
+        rows =
+            List.map (List.indexedMap (,)) grid
+
+        tupleGrid =
+            List.indexedMap (,) rows
+    in
+        List.concatMap (\r -> viewRow trackId r) tupleGrid
+
+
+viewRow : TrackId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
+viewRow trackId row =
+    List.map (\c -> viewCell trackId (Tuple.first row) c) (Tuple.second row)
+
+
+viewCell : TrackId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
+viewCell trackId row c =
+    let
+        col =
+            Tuple.first c
+
+        action =
+            Tuple.second c
+    in
+        cell
+            { start = ( col, row )
+            , width = 1
+            , height = 1
+            , content =
+                let
+                    act =
+                        case action of
+                            0 ->
+                                Rest
+
+                            _ ->
+                                case trackId of
+                                    0 ->
+                                        PlayRed
+
+                                    _ ->
+                                        PlayBlue
+                in
+                    (el act
+                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = (action + 1) % 2 }) ]
+                        empty
+                    )
+            }
 
 
 newId : List SessionId -> SessionId
@@ -70,15 +204,3 @@ newId sessions =
 
         Nothing ->
             "1"
-
-
-onEnter : Msg -> Html.Attribute Msg
-onEnter msg =
-    let
-        isEnter keycode =
-            if keycode == 13 then
-                Json.succeed msg
-            else
-                Json.fail "not ENTER"
-    in
-        on "keydown" (Json.andThen isEnter keyCode)
