@@ -90,7 +90,7 @@ page model =
                     [ paddingBottom 10 ]
                     [ text ("~SESSION " ++ id ++ "~") ]
                  ]
-                    ++ (viewBoard model.session.board)
+                    ++ (viewBoard model.session.board model.session.beats model.session.tones)
                     ++ [ textLayout None
                             []
                             (List.map viewMessage model.session.messages)
@@ -126,17 +126,17 @@ viewMessage msg =
     paragraph None [] [ text msg ]
 
 
-viewBoard : List Track -> List (Element Styles variation Msg)
-viewBoard board =
-    List.concatMap viewTrack board
+viewBoard : List Track -> Int -> Int -> List (Element Styles variation Msg)
+viewBoard board beats tones =
+    List.concatMap (\t -> viewTrack t beats tones) board
 
 
-viewTrack : Track -> List (Element Styles variation Msg)
-viewTrack track =
+viewTrack : Track -> Int -> Int -> List (Element Styles variation Msg)
+viewTrack track beats tones =
     [ grid Container
         [ spacing 3 ]
-        { columns = List.repeat 8 (px 97)
-        , rows = List.repeat 13 (px 12)
+        { columns = List.repeat beats (px 97)
+        , rows = List.repeat tones (px 12)
         , cells =
             viewGrid (.trackId track) (.grid track)
         }

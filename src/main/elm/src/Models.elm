@@ -7,6 +7,7 @@ type alias Model =
     , session : Session
     , sessions : List SessionId
     , route : Route
+    , score : Score
     }
 
 
@@ -16,47 +17,19 @@ initialModel route =
     , serverId = 0
     , session =
         Session ""
-            0
+            8
+            13
+            1
+            120
             []
-            [ Track
-                0
-                0
-                [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
-                , List.repeat 8 1
-                , List.repeat 8 0
-                , List.repeat 8 0
-                , List.repeat 8 0
-                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
-                , List.repeat 8 0
-                , List.repeat 8 0
-                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
-                , [ 1, 0, 0, 0, 1, 0, 0, 0 ]
-                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
-                , List.repeat 8 0
-                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
-                ]
-            , Track
-                1
-                1
-                [ [ 1, 0, 0, 0, 1, 0, 0, 0 ]
-                , List.repeat 8 1
-                , List.repeat 8 0
-                , List.repeat 8 0
-                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
-                , List.repeat 8 0
-                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
-                , List.repeat 8 0
-                , [ 1, 0, 0, 0, 1, 0, 0, 0 ]
-                , [ 0, 1, 0, 1, 0, 1, 0, 1 ]
-                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
-                , List.repeat 8 0
-                , [ 1, 0, 1, 0, 1, 0, 1, 0 ]
-                ]
+            [ Track 0 0 (List.repeat 13 (List.repeat 8 0))
+            , Track 1 1 (List.repeat 13 (List.repeat 8 0))
             ]
             ""
             []
     , sessions = [ "1", "2", "3" ]
     , route = route
+    , score = []
     }
 
 
@@ -85,6 +58,9 @@ type alias Board =
 
 type alias Session =
     { id : SessionId
+    , beats : Int
+    , tones : Int
+    , clock : Int
     , tempo : Int
     , clients : List ClientId
     , board : Board
@@ -109,6 +85,18 @@ type alias Cell =
     , column : Int
     , row : Int
     , action : Int
+    }
+
+
+type alias Score =
+    List Note
+
+
+type alias Note =
+    { trackId : TrackId
+    , beat : Int
+    , duration : Int
+    , tone : Int
     }
 
 
