@@ -1,7 +1,7 @@
 module Update exposing (..)
 
 import List.Extra exposing ((!!))
-import Models exposing (Board, Cell, Model, Note, SessionId, Score, Track)
+import Models exposing (..)
 import Msgs exposing (..)
 import Ports exposing (play)
 import Routing exposing (parseLocation)
@@ -77,12 +77,53 @@ update msg model =
             in
                 ( { model | session = newSession }, Cmd.none )
 
-        Send ->
+        ReleaseTrack trackId clientId ->
+            --TODO: Break this up!!
             let
+                newTrack =
+                    updateTrackUser trackId clientId "" model.session.board
+
+                newBoard =
+                    List.take trackId model.session.board
+                        ++ newTrack
+                        :: List.drop (trackId + 1) model.session.board
+
                 session =
                     model.session
+
+                newSession =
+                    { session | board = newBoard }
             in
-                ( model, WebSocket.send "ws://localhost:8080/lobby" session.input )
+                ( { model | session = newSession }, Cmd.none )
+
+        RequestTrack trackId clientId ->
+            --TODO: Break this up!!
+            let
+                newTrack =
+                    updateTrackUser trackId clientId model.username model.session.board
+
+                newBoard =
+                    List.take trackId model.session.board
+                        ++ newTrack
+                        :: List.drop (trackId + 1) model.session.board
+
+                session =
+                    model.session
+
+                newSession =
+                    { session | board = newBoard }
+            in
+                ( { model | session = newSession }, Cmd.none )
+
+        Send ->
+            ( model, WebSocket.send "ws://localhost:8080/lobby" model.session.input )
+
+        SelectName ->
+            let
+                input =
+                    model.session.input
+            in
+                ( { model | username = input }, Cmd.none )
 
         Tick time ->
             let
@@ -112,6 +153,9 @@ update msg model =
             in
                 ( { model | session = newSession }, Cmd.none )
 
+        WindowResize size ->
+            ( { model | windowSize = size }, Cmd.none )
+
 
 updateBoard : Board -> Cell -> Board
 updateBoard board cell =
@@ -138,7 +182,7 @@ updateTrack track cell =
                 }
 
             Nothing ->
-                Track -1 -1 []
+                Track -1 -1 "" "404s" []
 
 
 updateRow : Maybe (List Int) -> Cell -> List Int
@@ -153,6 +197,20 @@ updateRow row cell =
 
             Nothing ->
                 []
+
+
+updateTrackUser : TrackId -> ClientId -> String -> Board -> Track
+updateTrackUser trackId clientId username board =
+    let
+        track =
+            List.head (List.filter (\t -> t.trackId == trackId) board)
+    in
+        case track of
+            Just t ->
+                { t | clientId = clientId, username = username }
+
+            Nothing ->
+                Track -1 -1 "" "404s" []
 
 
 increment : Int -> Int -> Int

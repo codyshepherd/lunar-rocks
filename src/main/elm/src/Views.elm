@@ -15,42 +15,99 @@ import Style.Color as Color
 import Style.Font as Font
 
 
+serif =
+    [ Font.importUrl
+        { url = "https://fonts.googleapis.com/css?family=Cinzel"
+        , name = "Cinzel"
+        }
+    , Font.font "times new roman"
+    , Font.font "times"
+    , Font.font "serif"
+    ]
+
+
+sansSerif =
+    [ Font.importUrl
+        { url = "https://fonts.googleapis.com/css?family=Quattrocento+Sans"
+        , name = "Quattrocento Sans"
+        }
+    , Font.font "helvetica"
+    , Font.font "arial"
+    , Font.font "sans-serif"
+    ]
+
+
 stylesheet : StyleSheet Styles variation
 stylesheet =
     Style.styleSheet
         [ style None []
-        , style Main []
+        , style Main
+            [ Color.background (Color.rgb 40 40 40)
+            , Color.text Color.white
+            , Font.typeface sansSerif
+            ]
+        , style InstrumentLabel [ Font.size 20 ]
+        , style Text [ Font.size 18 ]
         , style Navigation
-            [ Font.size 36
-            , Color.text Color.white
-            , Color.background Color.darkCharcoal
-            ]
-        , style Container
-            [ Color.background Color.darkCharcoal ]
-        , style PlayBlue
-            [ Color.background Color.darkBlue
+            [ Border.bottom 1
+            , Color.background (Color.rgb 39 39 39)
+            , Color.border (Color.rgb 28 31 36)
             , Color.text Color.white
             ]
-        , style PlayRed
-            [ Color.background Color.darkRed
+        , style Heading
+            [ Font.typeface serif
+            , Font.size 48
+            ]
+        , style SubHeading
+            [ Font.typeface serif
+            , Font.size 24
+            ]
+        , style GridBlock
+            [ Color.background (Color.rgb 120 120 120) ]
+        , style PlayPurple
+            [ Color.background (Color.rgb 91 96 115)
+            , Color.text Color.white
+            ]
+        , style PlayOrange
+            [ Color.background (Color.rgb 215 88 19)
             , Color.text Color.white
             ]
         , style Rest
-            [ Color.text Color.white ]
+            [ Color.background (Color.rgb 150 150 150)
+            , Color.text Color.white
+            ]
         , style MessageInput
-            [ Border.all 1 ]
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 75 79 94)
+            , Color.text Color.white
+            ]
+        , style SessionListing
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 91 96 115)
+            , Color.text Color.white
+            ]
         ]
+
+
+
+-- Color.rgb 28 31 36
+-- Color.rgb 171 0 0
 
 
 view : Model -> Html.Html Msg
 view model =
-    Element.layout stylesheet <|
-        column None
-            []
-            [ navigation
-            , el None [ center, width (px 797) ] <|
-                column Main [ paddingTop 20, paddingBottom 50 ] (page model)
-            ]
+    Element.viewport stylesheet <|
+        el Main [ minHeight (px (toFloat model.windowSize.height)) ] <|
+            column Main
+                []
+                [ navigation
+                , el None [ center, width (px 799) ] <|
+                    column Main [ paddingTop 20, paddingBottom 50 ] (page model)
+                ]
 
 
 navigation : Element Styles variation Msg
@@ -59,53 +116,93 @@ navigation =
         [ center
         , paddingTop 20
         , paddingBottom 20
+        , spacing 5
         ]
-        [ h1 None [] (text "Music") ]
+        [ h1 Heading [] (text "Music") ]
 
 
 page : Model -> List (Element Styles variation Msg)
 page model =
     case model.route of
         Home ->
-            [ textLayout None
+            [ h3 SubHeading
+                [ paddingLeft 25 ]
+                (text "MAKE MUSIC ACROSS THE WEB")
+            , paragraph Text [ padding 25 ] [ text "Some general info and instructions." ]
+            , textLayout None
                 [ spacingXY 25 25
-                , padding 50
+                , padding 25
                 ]
-                [ paragraph None
-                    [ paddingBottom 10 ]
-                    [ text "~HOME~" ]
-                , textLayout None
-                    []
-                    (List.map viewSessionEntry model.sessions)
-                , paragraph None
-                    [ paddingTop 10 ]
-                    [ button None [ onClick (AddSession (newId model.sessions)) ] (text "Add Session") ]
-                ]
+                (case model.username of
+                    "" ->
+                        [ h3 SubHeading
+                            [ paddingTop 10 ]
+                            (text "SELECT A NICKNAME")
+                        , column None
+                            [ width (px 200) ]
+                            [ row None
+                                [ spacing 1 ]
+                                [ Input.text MessageInput
+                                    [ paddingLeft 2 ]
+                                    { label =
+                                        Input.placeholder
+                                            { label = Input.hiddenLabel "Nickname"
+                                            , text = "nickname"
+                                            }
+                                    , onChange = UserInput
+                                    , options = []
+                                    , value = ""
+                                    }
+                                , spacer 5
+                                , button SessionListing [ paddingXY 7 0, onClick SelectName ] (text "->")
+                                ]
+                            ]
+                        ]
+
+                    _ ->
+                        [ h3 SubHeading
+                            [ paddingTop 10 ]
+                            (text "SESSIONS")
+                        , paragraph Text
+                            []
+                            [ text
+                                ("Greetings " ++ model.username ++ "! Select a session below or start a new one.")
+                            ]
+                        , textLayout None [] (List.map viewSessionEntry model.sessions)
+                        , paragraph None
+                            []
+                            [ button SessionListing
+                                [ paddingXY 10 5, onClick (AddSession (newId model.sessions)) ]
+                                (text "New Session")
+                            ]
+                        ]
+                )
             ]
 
         SessionRoute id ->
             [ textLayout None
-                [ spacingXY 25 25 ]
-                ([ paragraph None
-                    [ paddingBottom 10 ]
-                    [ text ("~SESSION " ++ id ++ "~") ]
+                [ spacing 1 ]
+                ([ h3 SubHeading
+                    [ paddingTop 20, paddingBottom 20 ]
+                    (text ("SESSION " ++ id))
                  ]
-                    ++ (viewBoard model.session.board model.session.beats model.session.tones)
+                    ++ (viewBoard model.session.board model.session.beats model.session.tones model.clientId)
                     ++ [ textLayout None
-                            []
+                            [ paddingBottom 10 ]
                             (List.map viewMessage model.session.messages)
                        , Input.text MessageInput
                             []
                             { label =
                                 Input.placeholder
-                                    { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
+                                    { label = Input.labelLeft (el None [ verticalCenter ] empty)
                                     , text = "message"
                                     }
                             , onChange = UserInput
                             , options = []
                             , value = ""
                             }
-                       , button None [ onClick Send ] (text "Send")
+                       , spacer 10
+                       , button SessionListing [ paddingXY 10 5, onClick Send ] (text "Send")
                        ]
                 )
             ]
@@ -116,9 +213,9 @@ page model =
 
 viewSessionEntry : SessionId -> Element Styles variation Msg
 viewSessionEntry sessionId =
-    paragraph None
-        []
-        [ link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)) ]
+    button SessionListing
+        [ paddingXY 10 5, spacingXY 0 10 ]
+        (link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)))
 
 
 viewMessage : String -> Element Styles variation Msg
@@ -126,21 +223,40 @@ viewMessage msg =
     paragraph None [] [ text msg ]
 
 
-viewBoard : List Track -> Int -> Int -> List (Element Styles variation Msg)
-viewBoard board beats tones =
-    List.concatMap (\t -> viewTrack t beats tones) board
+viewBoard : List Track -> Int -> Int -> Int -> List (Element Styles variation Msg)
+viewBoard board beats tones clientId =
+    List.concatMap (\t -> viewTrack t beats tones clientId) board
 
 
-viewTrack : Track -> Int -> Int -> List (Element Styles variation Msg)
-viewTrack track beats tones =
-    [ grid Container
-        [ spacing 3 ]
-        { columns = List.repeat beats (px 97)
+viewTrack : Track -> Int -> Int -> Int -> List (Element Styles variation Msg)
+viewTrack track beats tones clientId =
+    [ grid GridBlock
+        [ spacing 1 ]
+        { columns = List.repeat beats (px 99)
         , rows = List.repeat tones (px 12)
         , cells =
             viewGrid (.trackId track) (.grid track)
         }
-    , paragraph None [] [ empty ]
+    , paragraph None
+        [ paddingTop 8, paddingBottom 30 ]
+        (case track.username of
+            "" ->
+                [ el InstrumentLabel [] (text track.instrument)
+                , button SessionListing
+                    [ paddingXY 10 2, alignRight, onClick (RequestTrack track.trackId clientId) ]
+                    (text "Request Track")
+                ]
+
+            _ ->
+                [ el InstrumentLabel [] (text (track.username ++ " on " ++ track.instrument))
+                , when
+                    (clientId == track.clientId)
+                    (button SessionListing
+                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack track.trackId 0) ]
+                        (text "Release Track")
+                    )
+                ]
+        )
     ]
 
 
@@ -184,13 +300,21 @@ viewCell trackId row c =
                             _ ->
                                 case trackId of
                                     0 ->
-                                        PlayRed
+                                        PlayOrange
 
                                     _ ->
-                                        PlayBlue
+                                        PlayPurple
                 in
                     (el act
-                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = (action + 1) % 2 }) ]
+                        [ onClick
+                            (UpdateBoard
+                                { trackId = trackId
+                                , column = col
+                                , row = row
+                                , action = (action + 1) % 2
+                                }
+                            )
+                        ]
                         empty
                     )
             }
