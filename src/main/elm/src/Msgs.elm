@@ -18,3 +18,5 @@ type Msg
     | SelectName
     | RequestTrack TrackId ClientId
     | ReleaseTrack TrackId ClientId
+    | ToggleSessionButton SessionId
+    | Broadcast (List SessionId)

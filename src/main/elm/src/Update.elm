@@ -16,28 +16,42 @@ update msg model =
                 newRoute =
                     parseLocation location
 
+                clock =
+                    model.session.clock
+
                 session =
                     model.session
 
                 newSession =
                     case newRoute of
                         Models.SessionRoute id ->
-                            { session | id = id, input = "", messages = [] }
+                            { session | id = id, clock = 1, input = "", messages = [] }
 
                         Models.Home ->
-                            { session | id = "home", input = "", messages = [] }
+                            { session | id = 0, clock = 0, input = "", messages = [] }
 
                         Models.NotFoundRoute ->
-                            { session | id = "", input = "", messages = [] }
+                            { session | id = 0, clock = 0, input = "", messages = [] }
             in
                 ( { model | route = newRoute, session = newSession }
-                , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ session.id)
+                , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
                 )
 
         AddSession newId ->
-            ( { model | sessions = (model.sessions ++ [ newId ]) }
-            , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ newId)
-            )
+            let
+                sessions =
+                    model.sessions
+
+                newSessions =
+                    { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
+            in
+                ( { model | sessions = newSessions }
+                , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+                )
+
+        Broadcast selectedSessions ->
+            -- TODO: Broadcast to server
+            ( model, Cmd.none )
 
         UpdateBoard cell ->
             let
@@ -78,7 +92,7 @@ update msg model =
                 ( { model | session = newSession }, Cmd.none )
 
         ReleaseTrack trackId clientId ->
-            --TODO: Break this up!!
+            --TODO: Send WS message
             let
                 newTrack =
                     updateTrackUser trackId clientId "" model.session.board
@@ -93,11 +107,23 @@ update msg model =
 
                 newSession =
                     { session | board = newBoard }
+
+                sessions =
+                    model.sessions
+
+                newClientSessions =
+                    List.filter (\cs -> cs /= session.id) sessions.clientSessions
+
+                newSelectedSessions =
+                    List.filter (\cs -> cs /= session.id) sessions.selectedSessions
+
+                newSessions =
+                    { sessions | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
             in
-                ( { model | session = newSession }, Cmd.none )
+                ( { model | session = newSession, sessions = newSessions }, Cmd.none )
 
         RequestTrack trackId clientId ->
-            --TODO: Break this up!!
+            --TODO: This will be a WS message only
             let
                 newTrack =
                     updateTrackUser trackId clientId model.username model.session.board
@@ -112,8 +138,22 @@ update msg model =
 
                 newSession =
                     { session | board = newBoard }
+
+                sessions =
+                    model.sessions
+
+                newClientSessions =
+                    case List.member session.id sessions.clientSessions of
+                        True ->
+                            sessions.clientSessions
+
+                        False ->
+                            List.sort (session.id :: sessions.clientSessions)
+
+                newSessions =
+                    { sessions | clientSessions = newClientSessions }
             in
-                ( { model | session = newSession }, Cmd.none )
+                ( { model | session = newSession, sessions = newSessions }, Cmd.none )
 
         Send ->
             ( model, WebSocket.send "ws://localhost:8080/lobby" model.session.input )
@@ -142,6 +182,27 @@ update msg model =
                     | session = newSession
                 }
                     ! [ Cmd.batch (playNotes model.session.clock model.score) ]
+
+        ToggleSessionButton sessionId ->
+            let
+                sessions =
+                    model.sessions
+
+                selectedSessions =
+                    sessions.selectedSessions
+
+                newSelectedSessions =
+                    case List.member sessionId selectedSessions of
+                        True ->
+                            List.filter (\s -> s /= sessionId) selectedSessions
+
+                        False ->
+                            List.sort (sessionId :: selectedSessions)
+
+                newSessions =
+                    { sessions | selectedSessions = newSelectedSessions }
+            in
+                ( { model | sessions = newSessions }, Cmd.none )
 
         IncomingMessage str ->
             let

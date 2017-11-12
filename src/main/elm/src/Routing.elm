@@ -9,7 +9,7 @@ matchers : Parser (Route -> a) a
 matchers =
     oneOf
         [ map Home top
-        , map SessionRoute (s "sessions" </> string)
+        , map SessionRoute (s "sessions" </> int)
         , map Home (s "sessions")
         ]
 
@@ -31,4 +31,4 @@ sessionsPath =
 
 sessionPath : SessionId -> String
 sessionPath id =
-    "#sessions/" ++ id
+    "#sessions/" ++ (toString id)

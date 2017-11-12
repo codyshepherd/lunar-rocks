@@ -9,47 +9,11 @@ type alias Model =
     , trackId : TrackId
     , serverId : ServerId
     , session : Session
-    , sessions : List SessionId
+    , sessions : Sessions
     , route : Route
     , score : Score
     , windowSize : Size
     }
-
-
-initialModel : Route -> Model
-initialModel route =
-    { clientId = 0
-    , username = ""
-    , trackId = 0
-    , serverId = 0
-    , session =
-        Session ""
-            8
-            13
-            1
-            120
-            []
-            [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
-            , Track 1 0 "" "Drums" (List.repeat 13 (List.repeat 8 0))
-            ]
-            ""
-            []
-    , sessions = [ "1", "2", "3" ]
-    , route = route
-    , score = []
-    , windowSize = { width = 0, height = 0 }
-    }
-
-
-type Route
-    = Home
-    | SessionRoute SessionId
-    | NotFoundRoute
-
-
-type alias SessionId =
-    -- TODO: change to Int
-    String
 
 
 type alias ClientId =
@@ -61,8 +25,19 @@ type alias ServerId =
     Int
 
 
-type alias Board =
-    List Track
+
+-- SESSION
+
+
+type alias SessionId =
+    Int
+
+
+type alias Sessions =
+    { sessions : List SessionId
+    , clientSessions : List SessionId
+    , selectedSessions : List SessionId
+    }
 
 
 type alias Session =
@@ -76,6 +51,14 @@ type alias Session =
     , input : String
     , messages : List String
     }
+
+
+
+-- BOARD
+
+
+type alias Board =
+    List Track
 
 
 type alias TrackId =
@@ -99,6 +82,10 @@ type alias Cell =
     }
 
 
+
+-- AUDIO
+
+
 type alias Score =
     List Note
 
@@ -111,17 +98,44 @@ type alias Note =
     }
 
 
-type Styles
-    = None
-    | Main
-    | InstrumentLabel
-    | Text
-    | Navigation
-    | Heading
-    | SubHeading
-    | GridBlock
-    | PlayPurple
-    | PlayOrange
-    | Rest
-    | MessageInput
-    | SessionListing
+
+-- ROUTING
+
+
+type Route
+    = Home
+    | SessionRoute SessionId
+    | NotFoundRoute
+
+
+
+-- INIT
+
+
+initialModel : Route -> Model
+initialModel route =
+    { clientId = 1
+    , username = ""
+    , trackId = 0
+    , serverId = 0
+    , session =
+        Session 0
+            8
+            13
+            1
+            120
+            []
+            [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
+            , Track 1 0 "Bob" "Drums" (List.repeat 13 (List.repeat 8 0))
+            ]
+            ""
+            []
+    , sessions =
+        { sessions = [ 1, 2, 3 ]
+        , clientSessions = []
+        , selectedSessions = []
+        }
+    , route = route
+    , score = []
+    , windowSize = { width = 0, height = 0 }
+    }
