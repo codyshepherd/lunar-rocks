@@ -181,7 +181,7 @@ update msg model =
                 input =
                     model.session.input
             in
-                ( { model | username = input }, Cmd.none )
+                ( { model | username = input }, WebSocket.send "ws://localhost:8080/connect" model.session.input )
 
         Tick time ->
             let
