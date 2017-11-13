@@ -98,13 +98,27 @@ page model =
                 ([ h3 SubHeading
                     [ paddingTop 20, paddingBottom 20 ]
                     (text ("SESSION " ++ toString (id)))
-                 ]
-                    ++ (viewBoard
+
+                 -- ]
+                 , row None
+                    [ spacing 2 ]
+                    -- ++ (viewBoard
+                    --         model.session.board
+                    --         model.clientId
+                    --         model.session.beats
+                    --         model.session.tones
+                    --    )
+                    [ column None [ spacing 1 ] (viewLabels model.session.board model.session.tones)
+                    , column None
+                        []
+                        (viewBoard
                             model.session.board
                             model.clientId
                             model.session.beats
                             model.session.tones
-                       )
+                        )
+                    ]
+                 ]
                     ++ [ -- when ((List.length model.sessions.clientSessions) > 0)
                          --       (h3 SubHeading
                          --           [ paddingTop 20, paddingBottom 20 ]
@@ -198,6 +212,37 @@ viewMessage msg =
     paragraph None [] [ text msg ]
 
 
+viewLabels : Board -> Int -> List (Element Styles variation Msg)
+viewLabels board tones =
+    List.concatMap (\t -> viewTrackLabels t tones) board
+
+
+viewTrackLabels : Track -> Int -> List (Element Styles variation Msg)
+viewTrackLabels track tones =
+    let
+        labels =
+            (List.indexedMap (,)) track.rowLabels
+    in
+        [ grid GridBlock
+            []
+            { columns = [ px 16 ]
+            , rows = List.repeat tones (px 14)
+            , cells = List.map viewLabelCell labels
+            }
+        , paragraph None [ paddingBottom 62 ] []
+        ]
+
+
+viewLabelCell : ( Int, String ) -> OnGrid (Element Styles variation Msg)
+viewLabelCell label =
+    cell
+        { start = ( 0, Tuple.first label )
+        , width = 1
+        , height = 1
+        , content = el RowLabel [ paddingTop 1 ] (text (Tuple.second label))
+        }
+
+
 viewBoard : Board -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
 viewBoard board clientId beats tones =
     List.concatMap (\t -> viewTrack t clientId beats tones) board
@@ -208,7 +253,7 @@ viewTrack track clientId beats tones =
     [ grid GridBlock
         [ spacing 1 ]
         { columns = List.repeat beats (px 99)
-        , rows = List.repeat tones (px 12)
+        , rows = List.repeat tones (px 13)
         , cells =
             viewGrid track clientId
         }

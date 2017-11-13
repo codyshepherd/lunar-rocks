@@ -71,6 +71,7 @@ type alias Track =
     , username : String
     , instrument : String
     , grid : List (List Int)
+    , rowLabels : List String
     }
 
 
@@ -125,8 +126,18 @@ initialModel route =
             1
             120
             []
-            [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
-            , Track 1 0 "" "Drums" (List.repeat 13 (List.repeat 8 0))
+            [ Track 0
+                0
+                ""
+                "Synth"
+                (List.repeat 13 (List.repeat 8 0))
+                [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+            , Track 1
+                0
+                ""
+                "Drums"
+                (List.repeat 13 (List.repeat 8 0))
+                [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
             ]
             ""
             []

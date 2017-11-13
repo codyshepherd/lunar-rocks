@@ -20,8 +20,18 @@ update msg model =
                     model.session.board
 
                 newBoard =
-                    [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
-                    , Track 1 0 "" "Drums" (List.repeat 13 (List.repeat 8 0))
+                    [ Track 0
+                        0
+                        ""
+                        "Synth"
+                        (List.repeat 13 (List.repeat 8 0))
+                        [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+                    , Track 1
+                        0
+                        ""
+                        "Drums"
+                        (List.repeat 13 (List.repeat 8 0))
+                        [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
                     ]
 
                 clock =
@@ -251,7 +261,7 @@ updateTrack track cell =
                 }
 
             Nothing ->
-                Track -1 -1 "" "404s" []
+                Track -1 -1 "" "404s" [] []
 
 
 updateRow : Maybe (List Int) -> Cell -> List Int
@@ -279,7 +289,7 @@ updateTrackUser trackId clientId username board =
                 { t | clientId = clientId, username = username }
 
             Nothing ->
-                Track -1 -1 "" "404s" []
+                Track -1 -1 "" "404s" [] []
 
 
 increment : Int -> Int -> Int

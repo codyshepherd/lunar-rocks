@@ -12,6 +12,7 @@ type Styles
     | Main
     | InstrumentLabel
     | Text
+    | RowLabel
     | Navigation
     | Heading
     | SubHeading
@@ -58,6 +59,11 @@ stylesheet =
             ]
         , style InstrumentLabel [ Font.size 20 ]
         , style Text [ Font.size 18 ]
+        , style RowLabel
+            [ Color.background (Color.rgb 40 40 40)
+            , Color.text (Color.rgb 160 160 160)
+            , Font.size 10
+            ]
         , style Navigation
             [ Border.bottom 1
             , Color.background (Color.rgb 39 39 39)
