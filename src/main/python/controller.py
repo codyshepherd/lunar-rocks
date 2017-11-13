@@ -5,6 +5,7 @@ import uuid
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
 MAX_CLIENTS = 1000
+DEFAULT_TEMPO = 8
 
 class Track:
 
@@ -16,8 +17,8 @@ class Track:
     def export(self):
         return {
             "trackID": self.trackID,
-            "clientID", self.client,
-            "grid", self.grid
+            "clientID": self.client,
+            "grid": self.grid
         }
 
 class Session:

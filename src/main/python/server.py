@@ -4,6 +4,8 @@ import json
 import controller
 import logging
 import uuid
+from flask import Flask
+app = Flask(__name__, static_url_path='')
 
 SERVER_ID = str(uuid.uuid1())
 
@@ -14,7 +16,15 @@ DISPATCH_TABLE = {
     101: lambda x: handle_101(x)
 }
 
-CTRL = Controller()
+CTRL = controller.Controller()
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
+
+@app.route('/main.js')
+def main_js():
+    return app.send_static_file('main.js')
 
 async def handle(websocket, path):
     async for message in websocket:
@@ -49,3 +59,10 @@ def handle_101(msg):
         msg = make_msg(srcID, 102, CTRL.get_session(sessID))
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
+
+"""
+if __name__ == "__main__":
+    asyncio.get_event_loop().run_until_complete(
+        websockets.serve(handle, 'localhost', 8765))
+    asyncio.get_event_loop().run_forever()
+"""
