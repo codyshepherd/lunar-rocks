@@ -4,10 +4,12 @@ import Models exposing (Model, SessionId, initialModel)
 import Msgs exposing (..)
 import Navigation exposing (Location)
 import Routing exposing (parseLocation)
+import Task exposing (perform)
 import Time exposing (every, second)
 import Views exposing (view)
 import Update exposing (update)
 import WebSocket
+import Window exposing (size)
 
 
 main : Program Never Model Msg
@@ -26,7 +28,7 @@ init location =
         currentRoute =
             Routing.parseLocation location
     in
-        ( initialModel currentRoute, Cmd.none )
+        ( initialModel currentRoute, Task.perform WindowResize Window.size )
 
 
 
@@ -38,4 +40,5 @@ subscriptions model =
     Sub.batch
         [ WebSocket.listen "ws://localhost:8080/lobby" IncomingMessage
         , every second Tick
+        , Window.resizes (\{ width, height } -> WindowResize { width = width, height = width })
         ]

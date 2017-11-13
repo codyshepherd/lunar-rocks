@@ -1,6 +1,5 @@
 module Views exposing (..)
 
-import Color
 import Element exposing (..)
 import Element.Attributes exposing (..)
 import Element.Events exposing (..)
@@ -9,48 +8,19 @@ import Html
 import Models exposing (..)
 import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
-import Style exposing (..)
-import Style.Border as Border
-import Style.Color as Color
-import Style.Font as Font
-
-
-stylesheet : StyleSheet Styles variation
-stylesheet =
-    Style.styleSheet
-        [ style None []
-        , style Main []
-        , style Navigation
-            [ Font.size 36
-            , Color.text Color.white
-            , Color.background Color.darkCharcoal
-            ]
-        , style Container
-            [ Color.background Color.darkCharcoal ]
-        , style PlayBlue
-            [ Color.background Color.darkBlue
-            , Color.text Color.white
-            ]
-        , style PlayRed
-            [ Color.background Color.darkRed
-            , Color.text Color.white
-            ]
-        , style Rest
-            [ Color.text Color.white ]
-        , style MessageInput
-            [ Border.all 1 ]
-        ]
+import Styles exposing (..)
 
 
 view : Model -> Html.Html Msg
 view model =
-    Element.layout stylesheet <|
-        column None
-            []
-            [ navigation
-            , el None [ center, width (px 797) ] <|
-                column Main [ paddingTop 20, paddingBottom 50 ] (page model)
-            ]
+    Element.viewport stylesheet <|
+        el Main [ minHeight (px (toFloat model.windowSize.height)) ] <|
+            column Main
+                []
+                [ navigation
+                , el None [ center, width (px 799) ] <|
+                    column Main [ paddingTop 20, paddingBottom 50 ] (page model)
+                ]
 
 
 navigation : Element Styles variation Msg
@@ -59,54 +29,154 @@ navigation =
         [ center
         , paddingTop 20
         , paddingBottom 20
+        , spacing 5
         ]
-        [ h1 None [] (text "Music") ]
+        [ h1 Heading [] (text "Music") ]
 
 
 page : Model -> List (Element Styles variation Msg)
 page model =
     case model.route of
         Home ->
-            [ textLayout None
+            [ h3 SubHeading
+                [ paddingLeft 25 ]
+                (text "MAKE MUSIC ACROSS THE WEB")
+            , paragraph Text [ padding 25 ] [ text "Some general info and instructions." ]
+            , textLayout None
                 [ spacingXY 25 25
-                , padding 50
+                , padding 25
                 ]
-                [ paragraph None
-                    [ paddingBottom 10 ]
-                    [ text "~HOME~" ]
-                , textLayout None
-                    []
-                    (List.map viewSessionEntry model.sessions)
-                , paragraph None
-                    [ paddingTop 10 ]
-                    [ button None [ onClick (AddSession (newId model.sessions)) ] (text "Add Session") ]
-                ]
+                (case model.username of
+                    "" ->
+                        [ h3 SubHeading
+                            [ paddingTop 10 ]
+                            (text "CHOOSE A NICKNAME")
+                        , column None
+                            [ width (px 200) ]
+                            [ row None
+                                [ spacing 1 ]
+                                [ Input.text MessageInput
+                                    [ paddingXY 2 3 ]
+                                    { label =
+                                        Input.placeholder
+                                            { label = Input.hiddenLabel "Nickname"
+                                            , text = "nickname"
+                                            }
+                                    , onChange = UserInput
+                                    , options = []
+                                    , value = ""
+                                    }
+                                , spacer 5
+                                , button Button [ paddingXY 7 3, onClick SelectName ] (text "->")
+                                ]
+                            ]
+                        ]
+
+                    _ ->
+                        [ h3 SubHeading
+                            [ paddingTop 10 ]
+                            (text "SESSIONS")
+                        , paragraph Text
+                            []
+                            [ text
+                                ("Greetings " ++ model.username ++ "! Select a session below or start a new one.")
+                            ]
+                        , textLayout None [] (List.map viewSessionEntry model.sessions.sessions)
+                        , paragraph None
+                            []
+                            [ button Button
+                                [ paddingXY 10 5, onClick (AddSession (newId model.sessions.sessions)) ]
+                                (text "New Session")
+                            ]
+                        ]
+                )
             ]
 
         SessionRoute id ->
             [ textLayout None
-                [ spacingXY 25 25 ]
-                ([ paragraph None
-                    [ paddingBottom 10 ]
-                    [ text ("~SESSION " ++ id ++ "~") ]
+                [ spacing 1 ]
+                ([ h3 SubHeading
+                    [ paddingTop 20, paddingBottom 20 ]
+                    (text ("SESSION " ++ toString (id)))
+
+                 -- ]
+                 , row None
+                    [ spacing 2 ]
+                    -- ++ (viewBoard
+                    --         model.session.board
+                    --         model.clientId
+                    --         model.session.beats
+                    --         model.session.tones
+                    --    )
+                    [ column None [ spacing 1 ] (viewLabels model.session.board model.session.tones)
+                    , column None
+                        []
+                        (viewBoard
+                            model.session.board
+                            model.clientId
+                            model.session.beats
+                            model.session.tones
+                        )
+                    ]
                  ]
-                    ++ (viewBoard model.session.board model.session.beats model.session.tones)
-                    ++ [ textLayout None
-                            []
-                            (List.map viewMessage model.session.messages)
-                       , Input.text MessageInput
-                            []
-                            { label =
-                                Input.placeholder
-                                    { label = Input.labelLeft (el None [ verticalCenter ] (text ""))
-                                    , text = "message"
-                                    }
-                            , onChange = UserInput
-                            , options = []
-                            , value = ""
-                            }
-                       , button None [ onClick Send ] (text "Send")
+                    ++ [ -- when ((List.length model.sessions.clientSessions) > 0)
+                         --       (h3 SubHeading
+                         --           [ paddingTop 20, paddingBottom 20 ]
+                         --           (text "YOUR SESSIONS")
+                         --       )
+                         paragraph None
+                            [ spacing 7 ]
+                            (List.map
+                                (\cs ->
+                                    viewSessionButton
+                                        cs
+                                        model.sessions.selectedSessions
+                                )
+                                model.sessions.clientSessions
+                            )
+                       , spacer 10
+                       , (let
+                            selectedSessions =
+                                model.sessions.selectedSessions
+                          in
+                            paragraph None
+                                [ spacing 3 ]
+                                [ when ((List.length selectedSessions) >= 1)
+                                    (button
+                                        Button
+                                        [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
+                                        (text "Broadcast")
+                                    )
+                                , when ((List.length selectedSessions) == 1)
+                                    (button
+                                        Button
+                                        [ paddingXY 10 2 ]
+                                        (link
+                                            (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
+                                         <|
+                                            el None [] (text "Goto")
+                                        )
+                                    )
+                                ]
+                         )
                        ]
+                 -- ++ [ textLayout None
+                 --         [ paddingBottom 10 ]
+                 --         (List.map viewMessage model.session.messages)
+                 --    , Input.text MessageInput
+                 --         []
+                 --         { label =
+                 --             Input.placeholder
+                 --                 { label = Input.labelLeft (el None [ verticalCenter ] empty)
+                 --                 , text = "message"
+                 --                 }
+                 --         , onChange = UserInput
+                 --         , options = []
+                 --         , value = ""
+                 --         }
+                 --    , spacer 10
+                 --    , button SessionListing [ paddingXY 10 5, onClick Send ] (text "Send")
+                 --    ]
                 )
             ]
 
@@ -116,9 +186,25 @@ page model =
 
 viewSessionEntry : SessionId -> Element Styles variation Msg
 viewSessionEntry sessionId =
-    paragraph None
-        []
-        [ link (sessionPath sessionId) <| el None [] (text ("Session " ++ sessionId)) ]
+    button Button
+        [ paddingXY 10 5, spacingXY 0 10 ]
+        (link (sessionPath sessionId) <| el None [] (text ("Session " ++ toString (sessionId))))
+
+
+viewSessionButton : SessionId -> List SessionId -> Element Styles variation Msg
+viewSessionButton sessionId selectedSessions =
+    let
+        style =
+            case List.member sessionId selectedSessions of
+                True ->
+                    SelectedSessionButton
+
+                False ->
+                    SessionButton
+    in
+        button style
+            [ paddingXY 10 5, onClick (ToggleSessionButton sessionId) ]
+            (text (toString sessionId))
 
 
 viewMessage : String -> Element Styles variation Msg
@@ -126,43 +212,93 @@ viewMessage msg =
     paragraph None [] [ text msg ]
 
 
-viewBoard : List Track -> Int -> Int -> List (Element Styles variation Msg)
-viewBoard board beats tones =
-    List.concatMap (\t -> viewTrack t beats tones) board
+viewLabels : Board -> Int -> List (Element Styles variation Msg)
+viewLabels board tones =
+    List.concatMap (\t -> viewTrackLabels t tones) board
 
 
-viewTrack : Track -> Int -> Int -> List (Element Styles variation Msg)
-viewTrack track beats tones =
-    [ grid Container
-        [ spacing 3 ]
-        { columns = List.repeat beats (px 97)
-        , rows = List.repeat tones (px 12)
-        , cells =
-            viewGrid (.trackId track) (.grid track)
+viewTrackLabels : Track -> Int -> List (Element Styles variation Msg)
+viewTrackLabels track tones =
+    let
+        labels =
+            (List.indexedMap (,)) track.rowLabels
+    in
+        [ grid GridBlock
+            []
+            { columns = [ px 16 ]
+            , rows = List.repeat tones (px 14)
+            , cells = List.map viewLabelCell labels
+            }
+        , paragraph None [ paddingBottom 62 ] []
+        ]
+
+
+viewLabelCell : ( Int, String ) -> OnGrid (Element Styles variation Msg)
+viewLabelCell label =
+    cell
+        { start = ( 0, Tuple.first label )
+        , width = 1
+        , height = 1
+        , content = el RowLabel [ paddingTop 1 ] (text (Tuple.second label))
         }
-    , paragraph None [] [ empty ]
+
+
+viewBoard : Board -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
+viewBoard board clientId beats tones =
+    List.concatMap (\t -> viewTrack t clientId beats tones) board
+
+
+viewTrack : Track -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
+viewTrack track clientId beats tones =
+    [ grid GridBlock
+        [ spacing 1 ]
+        { columns = List.repeat beats (px 99)
+        , rows = List.repeat tones (px 13)
+        , cells =
+            viewGrid track clientId
+        }
+    , paragraph None
+        [ paddingTop 8, paddingBottom 30 ]
+        (case track.username of
+            "" ->
+                [ el InstrumentLabel [] (text track.instrument)
+                , button Button
+                    [ paddingXY 10 2, alignRight, onClick (RequestTrack track.trackId clientId) ]
+                    (text "Request Track")
+                ]
+
+            _ ->
+                [ el InstrumentLabel [] (text (track.username ++ " on " ++ track.instrument))
+                , when
+                    (clientId == track.clientId)
+                    (button Button
+                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack track.trackId 0) ]
+                        (text "Release Track")
+                    )
+                ]
+        )
     ]
 
 
-viewGrid : TrackId -> List (List Int) -> List (OnGrid (Element Styles variation Msg))
-viewGrid trackId grid =
+viewGrid : Track -> ClientId -> List (OnGrid (Element Styles variation Msg))
+viewGrid track clientId =
     let
         rows =
-            List.map (List.indexedMap (,)) grid
+            List.map (List.indexedMap (,)) track.grid
 
         tupleGrid =
             List.indexedMap (,) rows
     in
-        List.concatMap (\r -> viewRow trackId r) tupleGrid
+        List.concatMap (\r -> viewRow track clientId r) tupleGrid
 
 
-viewRow : TrackId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
-viewRow trackId row =
-    List.map (\c -> viewCell trackId (Tuple.first row) c) (Tuple.second row)
+viewRow : Track -> ClientId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
+viewRow track clientId row =
+    List.map (\c -> viewCell track clientId (Tuple.first row) c) (Tuple.second row)
 
 
-viewCell : TrackId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
-viewCell trackId row c =
+viewCell : Track -> ClientId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
+viewCell track clientId row c =
     let
         col =
             Tuple.first c
@@ -182,17 +318,29 @@ viewCell trackId row c =
                                 Rest
 
                             _ ->
-                                case trackId of
+                                case track.trackId of
                                     0 ->
-                                        PlayRed
+                                        PlayOrange
 
                                     _ ->
-                                        PlayBlue
+                                        PlayPurple
                 in
-                    (el act
-                        [ onClick (UpdateBoard { trackId = trackId, column = col, row = row, action = (action + 1) % 2 }) ]
-                        empty
-                    )
+                    case clientId == track.clientId of
+                        True ->
+                            el act
+                                [ onClick
+                                    (UpdateBoard
+                                        { trackId = track.trackId
+                                        , column = col
+                                        , row = row
+                                        , action = (action + 1) % 2
+                                        }
+                                    )
+                                ]
+                                empty
+
+                        False ->
+                            el act [] empty
             }
 
 
@@ -200,7 +348,7 @@ newId : List SessionId -> SessionId
 newId sessions =
     case List.head (List.reverse sessions) of
         Just head ->
-            toString (Result.withDefault -1 (String.toInt head) + 1)
+            head + 1
 
         Nothing ->
-            "1"
+            -1
