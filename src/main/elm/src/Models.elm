@@ -126,7 +126,7 @@ initialModel route =
             120
             []
             [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
-            , Track 1 0 "Bob" "Drums" (List.repeat 13 (List.repeat 8 0))
+            , Track 1 0 "" "Drums" (List.repeat 13 (List.repeat 8 0))
             ]
             ""
             []

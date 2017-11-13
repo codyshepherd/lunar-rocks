@@ -16,6 +16,14 @@ update msg model =
                 newRoute =
                     parseLocation location
 
+                board =
+                    model.session.board
+
+                newBoard =
+                    [ Track 0 0 "" "Synth" (List.repeat 13 (List.repeat 8 0))
+                    , Track 1 0 "" "Drums" (List.repeat 13 (List.repeat 8 0))
+                    ]
+
                 clock =
                     model.session.clock
 
@@ -25,15 +33,15 @@ update msg model =
                 newSession =
                     case newRoute of
                         Models.SessionRoute id ->
-                            { session | id = id, clock = 1, input = "", messages = [] }
+                            { session | id = id, clock = 1, board = newBoard, input = "", messages = [] }
 
                         Models.Home ->
-                            { session | id = 0, clock = 0, input = "", messages = [] }
+                            { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
 
                         Models.NotFoundRoute ->
-                            { session | id = 0, clock = 0, input = "", messages = [] }
+                            { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
             in
-                ( { model | route = newRoute, session = newSession }
+                ( { model | route = newRoute, session = newSession, score = [] }
                 , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
                 )
 

@@ -5,64 +5,63 @@
     <meta charset="utf-8" />
     <link href="https://fonts.googleapis.com/css?family=Cinzel|Quattrocento+Sans" rel="stylesheet">
   </head>
-     <body>
-        <div id="main"></div>
-        <script type="text/javascript" src="main.js"></script>
-        <script>
-         "use strict"
-         var app = Elm.Main.fullscreen();
+  <body>
+    <div id="main"></div>
+    <script type="text/javascript" src="main.js"></script>
 
-         var context = new (window.AudioContext || window.webkitAudioContext)();
 
-         var waveform = 'sine',
-             filterType = 'lowpass',
-             cutoff = 3000,
-             gain = 0.2;
+    <script src='https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js'></script>
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0842_FluidR3_GM_sf2_file.js'></script>
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0390_FluidR3_GM_sf2_file.js'></script>
+    <script>
+     "use strict"
+     var app = Elm.Main.fullscreen();
 
-         var filter = context.createBiquadFilter();
-         filter.type = filterType;
-         filter.frequency.value = cutoff;
-         filter.connect(context.destination);
+     var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
+		 var audioContext = new AudioContextFunc();
+     var player=new WebAudioFontPlayer();
+     player.loader.decodeAfterLoading(audioContext, '_tone_0842_FluidR3_GM_sf2_file');
+     player.loader.decodeAfterLoading(audioContext, '_tone_0390_FluidR3_GM_sf2_file');
 
-         function getFrequency(trackId, tone) {
-           console.log((trackId + 1) * (tone + 1) * 220)
-           return (trackId + 1) * (tone + 1) * 220;
-         }
+     var compressor = audioContext.createDynamicsCompressor();
+     compressor.threshold.value = -50;
+     compressor.knee.value = 40;
+     compressor.ratio.value = 12;
+     compressor.attack.value = 0;
+     compressor.release.value = 0.25;
+     compressor.connect(audioContext.destination);
 
-         function playNote (trackId, tone) {
+     var highpassFilter = audioContext.createBiquadFilter();
+     highpassFilter.type = 'highpass';
+     highpassFilter.frequency.value = 50;
+     highpassFilter.connect(compressor);
 
-           // intstantiate and initialize nodes
-           var osc = context.createOscillator();
-           var amp = context.createGain();
-           osc.type = waveform;
-           /* osc.frequency.value = frequency;*/
-           osc.frequency.value = getFrequency(trackId, tone);
-           amp.gain.value = gain;
+     var lowpassFilter = audioContext.createBiquadFilter();
+     lowpassFilter.type = 'lowpass';
+     lowpassFilter.frequency.value = 3000;
+     lowpassFilter.connect(highpassFilter);
 
-           // routing
-           osc.connect(amp);
-           amp.connect(filter);
 
-           // set timing and amp envelope
-           var now = context.currentTime;
-           amp.gain.cancelScheduledValues(now);
-           amp.gain.linearRampToValueAtTime(gain + 0.05, now + 0.03);  // attack
-           amp.gain.setTargetAtTime(gain, now + 0.03, 0.01);  // decay
-           amp.gain.setValueAtTime(gain, now + 0.03);  // set mark for release
-           /* amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);  // release*/
-           amp.gain.exponentialRampToValueAtTime(0.0001, now + 1);  // release
+     function playNote(trackId, tone){
+       if (trackId === 0) {
+         /* Lead 5: Charang*/
+         player.queueWaveTable(audioContext, lowpassFilter
+                             , _tone_0842_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.4);
+       }
+       else {
+         /* Synth Bass 2*/
+         player.queueWaveTable(audioContext, lowpassFilter
+                             , _tone_0390_FluidR3_GM_sf2_file , 0, (12*3+tone), 1, 0.2);
+       }
+	     return false;
+     }
 
-           osc.start();
-           /* osc.stop(now + duration);*/
-           osc.stop(now + 1);
-         };
+     app.ports.play.subscribe(function (args) {
+       // args.beat and args.duration also available
+       playNote(args.trackId, args.tone);
+     });
+    </script>
 
-         app.ports.play.subscribe(function (args) {
-           // args.beat and args.duration also available
-           playNote(args.trackId, args.tone);
-         });
-
-        </script>
-    </body>
+  </body>
 
 </html>
