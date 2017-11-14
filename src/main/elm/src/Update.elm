@@ -1,5 +1,6 @@
 module Update exposing (..)
 
+import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import List.Extra exposing ((!!))
 import Models exposing (..)
 import Msgs exposing (..)
@@ -180,8 +181,11 @@ update msg model =
             let
                 input =
                     model.session.input
+
+                message =
+                    encodeMessage model.clientId 101 model.session.input
             in
-                ( { model | username = input }, WebSocket.send "ws://localhost:8795" model.session.input )
+                ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
 
         Tick time ->
             let
@@ -317,3 +321,15 @@ removeNote cell score =
                 || (13 - .tone n /= .row cell)
         )
         score
+
+
+encodeMessage : Int -> Int -> String -> String
+encodeMessage clientId messageId payload =
+    let
+        message =
+            object
+                [ ( "name", string "Tom" )
+                , ( "agie", int 42 )
+                ]
+    in
+        encode 0 message
