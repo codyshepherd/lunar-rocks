@@ -10,14 +10,14 @@ DEFAULT_TEMPO = 8
 class Track:
 
     def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO):
-        self.trackID = trackID
-        self.client = ""    #UUID
+        self.trackID = trackID              # String
+        self.clientID = ""                  # UUID
         self.grid = np.zeros(dimensions)
 
     def export(self):
         return {
             "trackID": self.trackID,
-            "clientID": self.client,
+            "clientID": self.clientID,
             "grid": self.grid
         }
 
@@ -26,7 +26,7 @@ class Session:
     def __init__(self, sessionID):
         self.clientlist = []
         self.sessionID = sessionID
-        self.tracks = [Track(), Track()]
+        self.tracks = [Track(str(sessionID) + 'a'), Track(str(sessionID) + 'b')]
 
     def add_client(self, id):
         if id in self.clientlist:
@@ -34,8 +34,8 @@ class Session:
         self.clientlist.append(id)
 
         for track in self.tracks:
-            if track.client == "":
-                track.client = id
+            if track.clientID == "":
+                track.clientID = id
                 break
 
         return True
@@ -46,8 +46,8 @@ class Session:
 
         self.clientlist = filter(lambda x: x != id, self.clientlist)
         for track in self.tracks:
-            if track.client == id:
-                track.client = ""
+            if track.clientID == id:
+                track.clientID = ""
                 #TODO: let the next "waiting" client into this track
         return True
 
@@ -89,7 +89,7 @@ class Controller:
         """
         id = 0
         while id in self.sessions.keys():
-            id = random.randint(MAX_CLIENTS)
+            id = random.randint(0, MAX_CLIENTS)
         
         self.sessions[id] = Session(id)
         return id
@@ -138,7 +138,7 @@ class Controller:
 
         sess.add_client(cid)
         self.client_sessions[cid].append(sess)
-        return true
+        return True
 
     def client_leave(self, cid, sid):
         """

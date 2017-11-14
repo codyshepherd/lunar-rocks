@@ -4,13 +4,17 @@ import json
 import controller
 import logging
 import uuid
-from flask import Flask
-app = Flask(__name__, static_url_path='')
+import os
+
+
 
 SERVER_ID = str(uuid.uuid1())
 
 LOG_NAME = "server.log"
+os.remove(LOG_NAME)
+
 LOGGER = logging.getLogger(LOG_NAME)
+logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 DISPATCH_TABLE = {
     101: lambda x: handle_101(x)
@@ -18,21 +22,18 @@ DISPATCH_TABLE = {
 
 CTRL = controller.Controller()
 
-@app.route('/')
-def index():
-    return app.send_static_file('index.html')
-
-@app.route('/main.js')
-def main_js():
-    return app.send_static_file('main.js')
-
 async def handle(websocket, path):
+    LOGGER.info("handle called")
     async for message in websocket:
+        LOGGER.info("Message received: " + str(message))
+        #await websocket.send(message)
         obj = json.loads(message)
         msgID = obj.get("messageID")
-        if not msgID:
+        if not (obj or msgID):
+            LOGGER.info("Error sent")
             await websocket.send("ERROR: messageID must be provided")
         else:
+            LOGGER.info("Dispatch table called")
             await websocket.send(DISPATCH_TABLE[msgID](obj))
 
 def make_msg(srcID, msgID, payload):
@@ -60,9 +61,7 @@ def handle_101(msg):
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
 
-"""
-if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(
-        websockets.serve(handle, 'localhost', 8765))
-    asyncio.get_event_loop().run_forever()
-"""
+LOGGER.info("websocket server started")
+asyncio.get_event_loop().run_until_complete(
+    websockets.serve(handle, 'localhost', 8795))
+asyncio.get_event_loop().run_forever()
