@@ -8,10 +8,10 @@ DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
 MAX_CLIENTS = 1000
 DEFAULT_TEMPO = 8
-LOG_NAME = "controller.log"
+LOG_NAME = "server.log"
 
-if os.path.isfile(LOG_NAME):
-    os.remove(LOG_NAME)
+#if os.path.isfile(LOG_NAME):
+#   os.remove(LOG_NAME)
 
 
 LOGGER = logging.getLogger(LOG_NAME)
