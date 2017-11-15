@@ -2,6 +2,12 @@
 elm-stuff/
 main.js
 
-# scala
+# python
+__pycache__/
+venv/
+controller.log
+server.log
+
+
 project/
 target/
