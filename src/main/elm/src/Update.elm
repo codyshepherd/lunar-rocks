@@ -116,7 +116,10 @@ update msg model =
                 newSessions =
                     newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
             in
-                ( { model | sessions = newSessions }, Cmd.none )
+                ( { model | sessions = newSessions }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 101 (encodeSession newSession))
+                )
 
         UserInput newInput ->
             ( { model | input = newInput }, Cmd.none )
@@ -160,7 +163,10 @@ update msg model =
                 newSessionLists =
                     { sessionLists | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
             in
-                ( { model | sessions = newSessions, sessionLists = newSessionLists }, Cmd.none )
+                ( { model | sessions = newSessions, sessionLists = newSessionLists }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 110 (encodeTrackRequest sessionId trackId))
+                )
 
         RequestTrack sessionId trackId clientId ->
             --TODO: This will be a WS message only
@@ -198,7 +204,10 @@ update msg model =
                 newSessionLists =
                     { sessionLists | clientSessions = newClientSessions }
             in
-                ( { model | sessions = newSessions, sessionLists = newSessionLists }, Cmd.none )
+                ( { model | sessions = newSessions, sessionLists = newSessionLists }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
+                )
 
         -- Send ->
         --     ( model, WebSocket.send "ws://localhost:8080/lobby" session.input )
