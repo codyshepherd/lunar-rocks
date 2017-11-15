@@ -17,7 +17,9 @@ LOGGER = logging.getLogger(LOG_NAME)
 logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 DISPATCH_TABLE = {
-    101: lambda x: handle_101(x)
+    100: lambda x: handle_100(x),
+    101: lambda x: handle_101(x),
+    112: lambda x: handle_112(x)
 }
 
 CTRL = controller.Controller()
@@ -44,22 +46,66 @@ def make_msg(srcID, msgID, payload):
     })
     return msg
 
+def error_msg(txt):
+    msg = json.dumps({
+        "sourceID": SERVER_ID,
+        "messageID": 114,
+        "payload": txt
+    })
+    return msg
+
+def handle_100(msg):
+    """
+    Handler for msg code 101: Update Session
+
+    returns a json-serialized object
+    """
+    pass #TODO
+
+
 def handle_101(msg):
     """
     Handler for msg code 101: Create session
 
     Returns an appropriate json-serialized object
     """
+    LOGGER.info("handle_101(): Create Session started")
     src_client = msg.get("sourceID")
     if not src_client:
-        return "Error: sourceID must be provided"
+        LOGGER.error("Client did not provide sourceID")
+        return error_msg("Error: sourceID must be provided")
 
     sessID = CTRL.new_session()
     if CTRL.client_join(src_client, sessID):
         LOGGER.info("Client " + src_client + " joined session " + str(sessID))
-        msg = make_msg(srcID, 102, CTRL.get_session(sessID))
+        msg = make_msg(SERVER_ID, 102, CTRL.get_session(sessID))
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
+        msg = error_msg("Error: Could not join session.")
+
+    return msg
+
+def handle_112(msg):
+    """
+    Handler for msgID 112: Client Connect
+    
+    returns an appropriate json-serialized object
+    """
+    LOGGER.info("handle_112():Client Connect started")
+
+    # No check for sourceID in this function b/c a new Client will not yet have one
+    nick = msg.get("payload")
+    if not nick:
+        LOGGER.error("Client did not provide nickname")
+        return error_msg("Error: Nickname not provided")
+
+    clientID = CTRL.new_client(nick)
+    LOGGER.info("New client ID: " + clientID)
+
+    return make_msg(SERVER_ID, 113, clientID)
+
+
+
 
 LOGGER.info("websocket server started")
 asyncio.get_event_loop().run_until_complete(
