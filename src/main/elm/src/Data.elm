@@ -9,8 +9,8 @@ encodeMessage clientId messageId payload =
     let
         message =
             object
-                [ ( "sourceId", string clientId )
-                , ( "messageId", int messageId )
+                [ ( "sourceID", string clientId )
+                , ( "messageID", int messageId )
                 , ( "payload", payload )
                 ]
     in
@@ -30,15 +30,15 @@ encodeError error =
 encodeTrackRequest : Int -> Int -> Value
 encodeTrackRequest sessionId trackId =
     object
-        [ ( "sessionId", int sessionId )
-        , ( "trackId", int trackId )
+        [ ( "sessionID", int sessionId )
+        , ( "trackID", int trackId )
         ]
 
 
 encodeSession : Session -> Value
 encodeSession session =
     object
-        [ ( "sessionId", int session.id )
+        [ ( "sessionID", int session.id )
         , ( "clients", object [] )
         , ( "tempo", int session.tempo )
         , ( "board", encodeBoard session.board )
@@ -53,8 +53,8 @@ encodeBoard board =
 encodeTrack : Track -> Value
 encodeTrack track =
     object
-        [ ( "trackId", int track.trackId )
-        , ( "clientId", string track.clientId )
+        [ ( "trackID", int track.trackId )
+        , ( "clientID", string track.clientId )
         , ( "grid", list (List.map (\r -> encodeRow r) track.grid) )
         ]
 
