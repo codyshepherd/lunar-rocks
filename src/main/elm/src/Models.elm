@@ -7,18 +7,18 @@ type alias Model =
     { clientId : ClientId
     , username : String
     , trackId : TrackId
+    , sessionId : SessionId
     , serverId : ServerId
-    , session : Session
-    , sessions : Sessions
+    , sessions : List Session
+    , sessionLists : SessionLists
     , route : Route
-    , score : Score
+    , input : String
     , windowSize : Size
     }
 
 
 type alias ClientId =
-    -- TODO: will be UUID
-    Int
+    String
 
 
 type alias ServerId =
@@ -33,7 +33,8 @@ type alias SessionId =
     Int
 
 
-type alias Sessions =
+type alias SessionLists =
+    -- TODO: rename this as allSessions
     { sessions : List SessionId
     , clientSessions : List SessionId
     , selectedSessions : List SessionId
@@ -48,7 +49,7 @@ type alias Session =
     , tempo : Int
     , clients : List ClientId
     , board : Board
-    , input : String
+    , score : Score
     , messages : List String
     }
 
@@ -76,7 +77,8 @@ type alias Track =
 
 
 type alias Cell =
-    { trackId : TrackId
+    { sessionId : SessionId
+    , trackId : TrackId
     , column : Int
     , row : Int
     , action : Int
@@ -115,38 +117,48 @@ type Route
 
 initialModel : Route -> Model
 initialModel route =
-    { clientId = 1
+    { clientId = "clown shoes"
     , username = ""
     , trackId = 0
+    , sessionId = 0
     , serverId = 0
-    , session =
-        Session 0
-            8
-            13
-            1
-            120
-            []
-            [ Track 0
-                0
-                ""
-                "Synth"
-                (List.repeat 13 (List.repeat 8 0))
-                [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
-            , Track 1
-                0
-                ""
-                "Drums"
-                (List.repeat 13 (List.repeat 8 0))
-                [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
-            ]
-            ""
-            []
     , sessions =
-        { sessions = [ 1, 2, 3 ]
+        [ emptySession 0
+        , emptySession 1
+        , emptySession 2
+        , emptySession 3
+        ]
+    , sessionLists =
+        { sessions = [ 0, 1, 2, 3 ]
         , clientSessions = []
         , selectedSessions = []
         }
     , route = route
-    , score = []
+    , input = ""
     , windowSize = { width = 0, height = 0 }
     }
+
+
+emptySession : Int -> Session
+emptySession id =
+    Session id
+        8
+        13
+        1
+        120
+        []
+        [ Track 0
+            ""
+            ""
+            "Synth"
+            (List.repeat 13 (List.repeat 8 0))
+            [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+        , Track 1
+            ""
+            ""
+            "Drums"
+            (List.repeat 13 (List.repeat 8 0))
+            [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+        ]
+        []
+        []

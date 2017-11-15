@@ -1,17 +1,17 @@
 # Message Checklist
 
 #### 100: Update Session
-- [ ] Client
+- [x] Client
 - [ ] Server
 
 #### 101: Create Session
-- [ ] Client
+- [x] Client
 
 #### 102: Session Created
 - [ ] Server
 
 #### 103: Join Session
-- [ ] Client
+- [x] Client
 
 #### 104: Leave Session
 - [ ] Client
@@ -29,16 +29,16 @@
 - [ ] Client
 
 #### 109: Request Track
-- [ ] Client
+- [x] Client
 
-#### 110: Relinquish Trrack
-- [ ] Client
+#### 110: Relinquish Track
+- [x] Client
 
 #### 111: Track Request Response 
 - [ ] Server
 
 #### 112: Client Connect
-- [ ] Client
+- [x] Client
 
 #### 113: Client Connected
 - [ ] Server

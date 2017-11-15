@@ -81,11 +81,15 @@ page model =
                             [ text
                                 ("Greetings " ++ model.username ++ "! Select a session below or start a new one.")
                             ]
-                        , textLayout None [] (List.map viewSessionEntry model.sessions.sessions)
+                        , textLayout None
+                            []
+                            (List.map viewSessionEntry
+                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
+                            )
                         , paragraph None
                             []
                             [ button Button
-                                [ paddingXY 10 5, onClick (AddSession (newId model.sessions.sessions)) ]
+                                [ paddingXY 10 5, onClick (AddSession (newId model.sessionLists.sessions)) ]
                                 (text "New Session")
                             ]
                         ]
@@ -93,92 +97,83 @@ page model =
             ]
 
         SessionRoute id ->
-            [ textLayout None
-                [ spacing 1 ]
-                ([ h3 SubHeading
-                    [ paddingTop 20, paddingBottom 20 ]
-                    (text ("SESSION " ++ toString (id)))
+            let
+                session =
+                    case List.head (List.filter (\s -> s.id == id) model.sessions) of
+                        Just session ->
+                            session
 
-                 -- ]
-                 , row None
-                    [ spacing 2 ]
-                    -- ++ (viewBoard
-                    --         model.session.board
-                    --         model.clientId
-                    --         model.session.beats
-                    --         model.session.tones
-                    --    )
-                    [ column None [ spacing 1 ] (viewLabels model.session.board model.session.tones)
-                    , column None
-                        []
-                        (viewBoard
-                            model.session.board
-                            model.clientId
-                            model.session.beats
-                            model.session.tones
-                        )
-                    ]
-                 ]
-                    ++ [ -- when ((List.length model.sessions.clientSessions) > 0)
-                         --       (h3 SubHeading
-                         --           [ paddingTop 20, paddingBottom 20 ]
-                         --           (text "YOUR SESSIONS")
-                         --       )
-                         paragraph None
-                            [ spacing 7 ]
-                            (List.map
-                                (\cs ->
-                                    viewSessionButton
-                                        cs
-                                        model.sessions.selectedSessions
-                                )
-                                model.sessions.clientSessions
+                        Nothing ->
+                            emptySession 0
+            in
+                [ textLayout None
+                    [ spacing 1 ]
+                    ([ h3 SubHeading
+                        [ paddingTop 20, paddingBottom 20 ]
+                        (text ("SESSION " ++ toString (id)))
+
+                     -- ]
+                     , row None
+                        [ spacing 2 ]
+                        [ column None [ spacing 1 ] (viewLabels session.board session.tones)
+                        , column None
+                            []
+                            (viewBoard
+                                model.sessionId
+                                session.board
+                                model.clientId
+                                session.beats
+                                session.tones
                             )
-                       , spacer 10
-                       , (let
-                            selectedSessions =
-                                model.sessions.selectedSessions
-                          in
-                            paragraph None
-                                [ spacing 3 ]
-                                [ when ((List.length selectedSessions) >= 1)
-                                    (button
-                                        Button
-                                        [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
-                                        (text "Broadcast")
+                        ]
+                     ]
+                        ++ [ -- when ((List.length model.sessions.clientSessions) > 0)
+                             --       (h3 SubHeading
+                             --           [ paddingTop 20, paddingBottom 20 ]
+                             --           (text "YOUR SESSIONS")
+                             --       )
+                             paragraph None
+                                [ spacing 7 ]
+                                (List.map
+                                    (\cs ->
+                                        viewSessionButton
+                                            cs
+                                            model.sessionLists.selectedSessions
                                     )
-                                , when ((List.length selectedSessions) == 1)
-                                    (button
-                                        Button
-                                        [ paddingXY 10 2 ]
-                                        (link
-                                            (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
-                                         <|
-                                            el None [] (text "Goto")
+                                    model.sessionLists.clientSessions
+                                )
+                           , spacer 10
+                           , (let
+                                selectedSessions =
+                                    model.sessionLists.selectedSessions
+                              in
+                                paragraph None
+                                    [ spacing 3 ]
+                                    [ when ((List.length selectedSessions) >= 1)
+                                        (button
+                                            Button
+                                            [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
+                                            (text "Broadcast")
                                         )
-                                    )
-                                ]
-                         )
-                       ]
-                 -- ++ [ textLayout None
-                 --         [ paddingBottom 10 ]
-                 --         (List.map viewMessage model.session.messages)
-                 --    , Input.text MessageInput
-                 --         []
-                 --         { label =
-                 --             Input.placeholder
-                 --                 { label = Input.labelLeft (el None [ verticalCenter ] empty)
-                 --                 , text = "message"
-                 --                 }
-                 --         , onChange = UserInput
-                 --         , options = []
-                 --         , value = ""
-                 --         }
-                 --    , spacer 10
-                 --    , button SessionListing [ paddingXY 10 5, onClick Send ] (text "Send")
-                 --    ]
-                )
-            ]
+                                    , when ((List.length selectedSessions) == 1)
+                                        (button
+                                            Button
+                                            [ paddingXY 10 2 ]
+                                            (link
+                                                (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
+                                             <|
+                                                el None [] (text "Goto")
+                                            )
+                                        )
+                                    ]
+                             )
+                           ]
+                        ++ [ textLayout None
+                                [ paddingBottom 10 ]
+                                (List.map viewMessage session.messages)
+                           ]
+                    )
+                ]
 
         NotFoundRoute ->
             [ textLayout None [] [ text "Not found" ] ]
@@ -243,19 +238,19 @@ viewLabelCell label =
         }
 
 
-viewBoard : Board -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
-viewBoard board clientId beats tones =
-    List.concatMap (\t -> viewTrack t clientId beats tones) board
+viewBoard : SessionId -> Board -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
+viewBoard sessionId board clientId beats tones =
+    List.concatMap (\t -> viewTrack sessionId t clientId beats tones) board
 
 
-viewTrack : Track -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
-viewTrack track clientId beats tones =
+viewTrack : SessionId -> Track -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
+viewTrack sessionId track clientId beats tones =
     [ grid GridBlock
         [ spacing 1 ]
         { columns = List.repeat beats (px 99)
         , rows = List.repeat tones (px 13)
         , cells =
-            viewGrid track clientId
+            viewGrid sessionId track clientId
         }
     , paragraph None
         [ paddingTop 8, paddingBottom 30 ]
@@ -263,7 +258,7 @@ viewTrack track clientId beats tones =
             "" ->
                 [ el InstrumentLabel [] (text track.instrument)
                 , button Button
-                    [ paddingXY 10 2, alignRight, onClick (RequestTrack track.trackId clientId) ]
+                    [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
                     (text "Request Track")
                 ]
 
@@ -272,7 +267,7 @@ viewTrack track clientId beats tones =
                 , when
                     (clientId == track.clientId)
                     (button Button
-                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack track.trackId 0) ]
+                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
                         (text "Release Track")
                     )
                 ]
@@ -280,8 +275,8 @@ viewTrack track clientId beats tones =
     ]
 
 
-viewGrid : Track -> ClientId -> List (OnGrid (Element Styles variation Msg))
-viewGrid track clientId =
+viewGrid : SessionId -> Track -> ClientId -> List (OnGrid (Element Styles variation Msg))
+viewGrid sessionId track clientId =
     let
         rows =
             List.map (List.indexedMap (,)) track.grid
@@ -289,16 +284,16 @@ viewGrid track clientId =
         tupleGrid =
             List.indexedMap (,) rows
     in
-        List.concatMap (\r -> viewRow track clientId r) tupleGrid
+        List.concatMap (\r -> viewRow sessionId track clientId r) tupleGrid
 
 
-viewRow : Track -> ClientId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
-viewRow track clientId row =
-    List.map (\c -> viewCell track clientId (Tuple.first row) c) (Tuple.second row)
+viewRow : SessionId -> Track -> ClientId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
+viewRow sessionId track clientId row =
+    List.map (\c -> viewCell sessionId track clientId (Tuple.first row) c) (Tuple.second row)
 
 
-viewCell : Track -> ClientId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
-viewCell track clientId row c =
+viewCell : SessionId -> Track -> ClientId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
+viewCell sessionId track clientId row c =
     let
         col =
             Tuple.first c
@@ -330,7 +325,8 @@ viewCell track clientId row c =
                             el act
                                 [ onClick
                                     (UpdateBoard
-                                        { trackId = track.trackId
+                                        { sessionId = sessionId
+                                        , trackId = track.trackId
                                         , column = col
                                         , row = row
                                         , action = (action + 1) % 2

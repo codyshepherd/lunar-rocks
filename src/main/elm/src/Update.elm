@@ -1,5 +1,7 @@
 module Update exposing (..)
 
+import Data exposing (..)
+import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import List.Extra exposing ((!!))
 import Models exposing (..)
 import Msgs exposing (..)
@@ -16,56 +18,67 @@ update msg model =
                 newRoute =
                     parseLocation location
 
-                board =
-                    model.session.board
-
-                newBoard =
-                    [ Track 0
-                        0
-                        ""
-                        "Synth"
-                        (List.repeat 13 (List.repeat 8 0))
-                        [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
-                    , Track 1
-                        0
-                        ""
-                        "Drums"
-                        (List.repeat 13 (List.repeat 8 0))
-                        [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
-                    ]
-
-                clock =
-                    model.session.clock
-
-                session =
-                    model.session
-
-                newSession =
-                    case newRoute of
-                        Models.SessionRoute id ->
-                            { session | id = id, clock = 1, board = newBoard, input = "", messages = [] }
-
-                        Models.Home ->
-                            { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
-
-                        Models.NotFoundRoute ->
-                            { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
-            in
-                ( { model | route = newRoute, session = newSession, score = [] }
-                , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
-                )
-
-        AddSession newId ->
-            let
                 sessions =
                     model.sessions
 
+                session =
+                    case newRoute of
+                        SessionRoute id ->
+                            Maybe.withDefault
+                                (emptySession id)
+                                (List.head (List.filter (\s -> s.id == id) sessions))
+
+                        Home ->
+                            emptySession 0
+
+                        NotFoundRoute ->
+                            emptySession 0
+
                 newSessions =
-                    { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
+                    session :: (List.filter (\s -> s.id /= session.id) sessions)
+
+                newSessionId =
+                    case newRoute of
+                        SessionRoute id ->
+                            id
+
+                        Home ->
+                            0
+
+                        NotFoundRoute ->
+                            0
+
+                websocketMessage =
+                    case newRoute of
+                        SessionRoute id ->
+                            WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 103 (int id))
+
+                        Home ->
+                            -- TODO: Routing for home, get last session id
+                            -- WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 104 (int id))
+                            WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (newSessionId))
+
+                        NotFoundRoute ->
+                            WebSocket.send "ws://localhost:8080/lobby"
+                                (encodeMessage model.clientId 114 (encodeError "Route not found"))
             in
-                ( { model | sessions = newSessions }
-                , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+                ( { model | route = newRoute, sessionId = newSessionId, sessions = newSessions }
+                  -- , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
+                , websocketMessage
                 )
+
+        AddSession newId ->
+            -- let
+            --     sessions =
+            --         model.sessions
+            --     newSessions =
+            --         { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
+            -- in
+            -- ( { model | sessions = newSessions }
+            -- , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+            ( model
+            , WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 101 (object []))
+            )
 
         Broadcast selectedSessions ->
             -- TODO: Broadcast to server
@@ -73,10 +86,15 @@ update msg model =
 
         UpdateBoard cell ->
             let
-                score =
+                session =
+                    Maybe.withDefault
+                        (emptySession cell.sessionId)
+                        (List.head (List.filter (\s -> s.id == cell.sessionId) model.sessions))
+
+                newScore =
                     case cell.action of
                         0 ->
-                            (removeNote cell model.score)
+                            (removeNote cell session.score)
 
                         _ ->
                             let
@@ -85,129 +103,157 @@ update msg model =
                                         cell.trackId
                                         (cell.column + 1)
                                         1
-                                        (model.session.tones - cell.row)
+                                        (session.tones - cell.row)
                             in
-                                note :: model.score
-
-                session =
-                    model.session
+                                note :: session.score
 
                 newSession =
                     { session
-                        | board = (updateBoard model.session.board cell)
+                        | board = (updateBoard session.board cell)
+                        , score = newScore
                     }
+
+                newSessions =
+                    newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
             in
-                ( { model | session = newSession, score = score }, Cmd.none )
+                ( { model | sessions = newSessions }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 101 (encodeSession newSession))
+                )
 
         UserInput newInput ->
-            let
-                session =
-                    model.session
+            ( { model | input = newInput }, Cmd.none )
 
-                newSession =
-                    { session | input = newInput }
-            in
-                ( { model | session = newSession }, Cmd.none )
-
-        ReleaseTrack trackId clientId ->
+        ReleaseTrack sessionId trackId clientId ->
             --TODO: Send WS message
             let
+                session =
+                    Maybe.withDefault
+                        (emptySession sessionId)
+                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+
                 newTrack =
-                    updateTrackUser trackId clientId "" model.session.board
+                    updateTrackUser trackId clientId "" session.board
 
                 newBoard =
-                    List.take trackId model.session.board
+                    List.take trackId session.board
                         ++ newTrack
-                        :: List.drop (trackId + 1) model.session.board
-
-                session =
-                    model.session
+                        :: List.drop (trackId + 1) session.board
 
                 newSession =
                     { session | board = newBoard }
 
-                sessions =
-                    model.sessions
+                newSessions =
+                    newSession :: model.sessions
+
+                sessionLists =
+                    model.sessionLists
 
                 newClientSessions =
-                    List.filter (\cs -> cs /= session.id) sessions.clientSessions
+                    case List.filter (\t -> t.clientId == model.clientId) newBoard of
+                        [] ->
+                            List.filter (\cs -> cs /= session.id) sessionLists.clientSessions
+
+                        _ ->
+                            sessionLists.clientSessions
 
                 newSelectedSessions =
-                    List.filter (\cs -> cs /= session.id) sessions.selectedSessions
+                    List.filter (\cs -> cs /= session.id) sessionLists.selectedSessions
 
-                newSessions =
-                    { sessions | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
+                newSessionLists =
+                    { sessionLists | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
             in
-                ( { model | session = newSession, sessions = newSessions }, Cmd.none )
+                ( { model | sessions = newSessions, sessionLists = newSessionLists }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 110 (encodeTrackRequest sessionId trackId))
+                )
 
-        RequestTrack trackId clientId ->
+        RequestTrack sessionId trackId clientId ->
             --TODO: This will be a WS message only
             let
+                session =
+                    Maybe.withDefault
+                        (emptySession sessionId)
+                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+
                 newTrack =
-                    updateTrackUser trackId clientId model.username model.session.board
+                    updateTrackUser trackId clientId model.username session.board
 
                 newBoard =
-                    List.take trackId model.session.board
+                    List.take trackId session.board
                         ++ newTrack
-                        :: List.drop (trackId + 1) model.session.board
-
-                session =
-                    model.session
+                        :: List.drop (trackId + 1) session.board
 
                 newSession =
                     { session | board = newBoard }
 
-                sessions =
-                    model.sessions
+                newSessions =
+                    newSession :: model.sessions
+
+                sessionLists =
+                    model.sessionLists
 
                 newClientSessions =
-                    case List.member session.id sessions.clientSessions of
+                    case List.member session.id sessionLists.clientSessions of
                         True ->
-                            sessions.clientSessions
+                            sessionLists.clientSessions
 
                         False ->
-                            List.sort (session.id :: sessions.clientSessions)
+                            List.sort (session.id :: sessionLists.clientSessions)
 
-                newSessions =
-                    { sessions | clientSessions = newClientSessions }
+                newSessionLists =
+                    { sessionLists | clientSessions = newClientSessions }
             in
-                ( { model | session = newSession, sessions = newSessions }, Cmd.none )
+                ( { model | sessions = newSessions, sessionLists = newSessionLists }
+                , WebSocket.send "ws://localhost:8080/lobby"
+                    (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
+                )
 
-        Send ->
-            ( model, WebSocket.send "ws://localhost:8080/lobby" model.session.input )
-
+        -- Send ->
+        --     ( model, WebSocket.send "ws://localhost:8080/lobby" session.input )
         SelectName ->
             let
                 input =
-                    model.session.input
+                    model.input
+
+                message =
+                    encodeMessage model.clientId 112 (encodeNickname input)
             in
-                ( { model | username = input }, WebSocket.send "ws://localhost:8795" model.session.input )
+                -- ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+                ( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
 
         Tick time ->
             let
+                sessionId =
+                    model.sessionId
+
                 session =
-                    model.session
+                    Maybe.withDefault
+                        (emptySession sessionId)
+                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
 
                 newSession =
                     { session
                         | clock = increment session.clock session.beats
 
-                        -- , messages = ((toString model.score) :: model.session.messages)
-                        , messages = [ toString model.score ]
+                        -- , messages = [ toString sessionId ]
                     }
+
+                newSessions =
+                    newSession :: model.sessions
             in
                 { model
-                    | session = newSession
+                    | sessions = newSessions
                 }
-                    ! [ Cmd.batch (playNotes model.session.clock model.score) ]
+                    ! [ Cmd.batch (playNotes newSession.clock session.score) ]
 
         ToggleSessionButton sessionId ->
             let
-                sessions =
-                    model.sessions
+                sessionLists =
+                    model.sessionLists
 
                 selectedSessions =
-                    sessions.selectedSessions
+                    sessionLists.selectedSessions
 
                 newSelectedSessions =
                     case List.member sessionId selectedSessions of
@@ -217,20 +263,26 @@ update msg model =
                         False ->
                             List.sort (sessionId :: selectedSessions)
 
-                newSessions =
-                    { sessions | selectedSessions = newSelectedSessions }
+                newSessionLists =
+                    { sessionLists | selectedSessions = newSelectedSessions }
             in
-                ( { model | sessions = newSessions }, Cmd.none )
+                ( { model | sessionLists = newSessionLists }, Cmd.none )
 
         IncomingMessage str ->
-            let
-                session =
-                    model.session
-
-                newSession =
-                    { session | messages = (model.session.messages ++ [ str ]) }
-            in
-                ( { model | session = newSession }, Cmd.none )
+            -- let
+            --     session =
+            --         case List.head (List.filter (\s -> s.id == sessionId) model.sessions) of
+            --             Just session ->
+            --                 session
+            --             Nothing ->
+            --                 emptySession 0
+            --     newSession =
+            --         { session | messages = (session.messages ++ [ str ]) }
+            --     newSessions =
+            --         newSession :: model.sessions
+            -- in
+            --     ( { model | sessions = newSessions }, Cmd.none )
+            ( model, Cmd.none )
 
         WindowResize size ->
             ( { model | windowSize = size }, Cmd.none )
@@ -261,7 +313,7 @@ updateTrack track cell =
                 }
 
             Nothing ->
-                Track -1 -1 "" "404s" [] []
+                Track -1 "" "" "404s" [] []
 
 
 updateRow : Maybe (List Int) -> Cell -> List Int
@@ -289,7 +341,7 @@ updateTrackUser trackId clientId username board =
                 { t | clientId = clientId, username = username }
 
             Nothing ->
-                Track -1 -1 "" "404s" [] []
+                Track -1 "" "" "404s" [] []
 
 
 increment : Int -> Int -> Int
