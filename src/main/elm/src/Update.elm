@@ -147,7 +147,12 @@ update msg model =
                     model.sessionLists
 
                 newClientSessions =
-                    List.filter (\cs -> cs /= session.id) sessionLists.clientSessions
+                    case List.filter (\t -> t.clientId == model.clientId) newBoard of
+                        [] ->
+                            List.filter (\cs -> cs /= session.id) sessionLists.clientSessions
+
+                        _ ->
+                            sessionLists.clientSessions
 
                 newSelectedSessions =
                     List.filter (\cs -> cs /= session.id) sessionLists.selectedSessions
