@@ -93,6 +93,11 @@ page model =
             ]
 
         SessionRoute id ->
+            -- TODO: Filter for current session - fix below
+            -- let
+            --     session =
+            --         get session from sessions
+            -- in
             [ textLayout None
                 [ spacing 1 ]
                 ([ h3 SubHeading
@@ -272,7 +277,7 @@ viewTrack track clientId beats tones =
                 , when
                     (clientId == track.clientId)
                     (button Button
-                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack track.trackId 0) ]
+                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack track.trackId "") ]
                         (text "Release Track")
                     )
                 ]

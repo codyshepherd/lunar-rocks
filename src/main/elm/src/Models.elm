@@ -8,8 +8,8 @@ type alias Model =
     , username : String
     , trackId : TrackId
     , serverId : ServerId
-    , session : Session
-    , sessions : Sessions
+    , session : Session -- TODO: make a list of Session
+    , sessions : Sessions -- TODO: SessionLists
     , route : Route
     , score : Score
     , windowSize : Size
@@ -17,8 +17,7 @@ type alias Model =
 
 
 type alias ClientId =
-    -- TODO: will be UUID
-    Int
+    String
 
 
 type alias ServerId =
@@ -34,6 +33,7 @@ type alias SessionId =
 
 
 type alias Sessions =
+    -- TODO: rename this as SessionLists
     { sessions : List SessionId
     , clientSessions : List SessionId
     , selectedSessions : List SessionId
@@ -115,7 +115,7 @@ type Route
 
 initialModel : Route -> Model
 initialModel route =
-    { clientId = 1
+    { clientId = "clown shoes"
     , username = ""
     , trackId = 0
     , serverId = 0
@@ -127,13 +127,13 @@ initialModel route =
             120
             []
             [ Track 0
-                0
+                ""
                 ""
                 "Synth"
                 (List.repeat 13 (List.repeat 8 0))
                 [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
             , Track 1
-                0
+                ""
                 ""
                 "Drums"
                 (List.repeat 13 (List.repeat 8 0))

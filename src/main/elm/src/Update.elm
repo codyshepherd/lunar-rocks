@@ -1,5 +1,6 @@
 module Update exposing (..)
 
+import Data exposing (..)
 import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import List.Extra exposing ((!!))
 import Models exposing (..)
@@ -22,13 +23,13 @@ update msg model =
 
                 newBoard =
                     [ Track 0
-                        0
+                        ""
                         ""
                         "Synth"
                         (List.repeat 13 (List.repeat 8 0))
                         [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
                     , Track 1
-                        0
+                        ""
                         ""
                         "Drums"
                         (List.repeat 13 (List.repeat 8 0))
@@ -43,17 +44,29 @@ update msg model =
 
                 newSession =
                     case newRoute of
-                        Models.SessionRoute id ->
+                        SessionRoute id ->
                             { session | id = id, clock = 1, board = newBoard, input = "", messages = [] }
 
-                        Models.Home ->
+                        Home ->
                             { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
 
-                        Models.NotFoundRoute ->
+                        NotFoundRoute ->
                             { session | id = 0, clock = 0, board = newBoard, input = "", messages = [] }
             in
                 ( { model | route = newRoute, session = newSession, score = [] }
-                , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
+                  -- , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
+                , case newRoute of
+                    SessionRoute id ->
+                        WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 103 (int id))
+
+                    Home ->
+                        -- TODO: Routing for home, get last session id
+                        -- WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 104 (int id))
+                        WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
+
+                    NotFoundRoute ->
+                        WebSocket.send "ws://localhost:8080/lobby"
+                            (encodeMessage model.clientId 114 (encodeError "Route not found"))
                 )
 
         AddSession newId ->
@@ -65,7 +78,8 @@ update msg model =
                     { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
             in
                 ( { model | sessions = newSessions }
-                , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+                  -- , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+                , WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 101 (object []))
                 )
 
         Broadcast selectedSessions ->
@@ -183,9 +197,10 @@ update msg model =
                     model.session.input
 
                 message =
-                    encodeMessage model.clientId 101 model.session.input
+                    encodeMessage model.clientId 112 (encodeNickname model.session.input)
             in
-                ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+                -- ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+                ( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
 
         Tick time ->
             let
@@ -265,7 +280,7 @@ updateTrack track cell =
                 }
 
             Nothing ->
-                Track -1 -1 "" "404s" [] []
+                Track -1 "" "" "404s" [] []
 
 
 updateRow : Maybe (List Int) -> Cell -> List Int
@@ -293,7 +308,7 @@ updateTrackUser trackId clientId username board =
                 { t | clientId = clientId, username = username }
 
             Nothing ->
-                Track -1 -1 "" "404s" [] []
+                Track -1 "" "" "404s" [] []
 
 
 increment : Int -> Int -> Int
@@ -321,15 +336,3 @@ removeNote cell score =
                 || (13 - .tone n /= .row cell)
         )
         score
-
-
-encodeMessage : Int -> Int -> String -> String
-encodeMessage clientId messageId payload =
-    let
-        message =
-            object
-                [ ( "name", string "Tom" )
-                , ( "agie", int 42 )
-                ]
-    in
-        encode 0 message

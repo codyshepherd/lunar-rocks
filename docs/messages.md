@@ -5,13 +5,13 @@
 - [ ] Server
 
 #### 101: Create Session
-- [ ] Client
+- [x] Client
 
 #### 102: Session Created
 - [ ] Server
 
 #### 103: Join Session
-- [ ] Client
+- [x] Client
 
 #### 104: Leave Session
 - [ ] Client
@@ -38,7 +38,7 @@
 - [ ] Server
 
 #### 112: Client Connect
-- [ ] Client
+- [x] Client
 
 #### 113: Client Connected
 - [ ] Server
