@@ -1,8 +1,6 @@
 # Music Application RFC Specificaiton
 
-### Brian Ginsburg
-
-### Cody Shepherd
+A collaborative music webApp by _Brian Ginsburg_ and _Cody Shepherd_
 
 ## 1. Intro & Concepts
 
@@ -202,3 +200,33 @@ Message IDs and descriptions are detailed in the following table:
 | 112| Client Connect     | Client | Nickname (string) | The Client sends this message when first connecting with the server over websocket |
 | 113| Client Connected   | Server | ClientID | The Server responds to msgID: 112 with the Client's ClientID |
 | 114| Error              | Either | Error Description (string) | This message is for general debugging |
+
+### Payload Object Key-Value Pairs
+
+Every payload is some kind of `{}` object, even if it is empy. Following are the descriptions of what key, value pairs belong in the payload object for a given messageID.
+Wherever two keys/values are listed, they should be interpreted respectively. E.g. keys 'a', 'b' and values c, d indicate a payload object that looks like:
+```
+{
+    'a':c,
+    'b':d
+}
+```
+
+| messageID | Payload | Key | Value |
+|-----|---------|-----|-------|
+| 100 | Session | 'session' | session object |
+| 101 | None (`{}`) | | |
+| 102 | SessionID | 'session' | session object |
+| 103 | SessionID | 'sessionID' | Int |
+| 104 | SessionID | 'sessionID' | Int |
+| 105 | [SessionID] | 'sessionIDs' | [Int] |
+| 106 | None | | |
+| 107 | None | | |
+| 108 | (Session, [SessionID]) | 'session', 'sessionIDs' | session object, [Int] |
+| 109 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
+| 110 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
+| 111 | Boolean {True, False} | 'status' | Boolean {True, False} |
+| 112 | String | 'nickname' | String |
+| 113 | ClientID (UUID String) | 'clientID' | String |
+| 114 | String | 'error' | String |
+

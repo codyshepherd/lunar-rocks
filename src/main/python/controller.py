@@ -9,7 +9,10 @@ DEFAULT_BEATS = 8
 MAX_CLIENTS = 1000
 DEFAULT_TEMPO = 8
 LOG_NAME = "controller.log"
-os.remove(LOG_NAME)
+
+if os.path.isfile(LOG_NAME):
+    os.remove(LOG_NAME)
+
 
 LOGGER = logging.getLogger(LOG_NAME)
 logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
