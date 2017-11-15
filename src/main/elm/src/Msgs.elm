@@ -11,12 +11,12 @@ type Msg
     | AddSession SessionId
     | UpdateBoard Cell
     | UserInput String
-    | Send
+      -- | Send
     | Tick Time
     | IncomingMessage String
     | WindowResize Size
     | SelectName
-    | RequestTrack TrackId ClientId
-    | ReleaseTrack TrackId ClientId
+    | RequestTrack SessionId TrackId ClientId
+    | ReleaseTrack SessionId TrackId ClientId
     | ToggleSessionButton SessionId
     | Broadcast (List SessionId)
