@@ -11,8 +11,10 @@ import os
 SERVER_ID = str(uuid.uuid1())
 
 LOG_NAME = "server.log"
+
 if os.path.isfile(LOG_NAME):
     os.remove(LOG_NAME)
+
 
 LOGGER = logging.getLogger(LOG_NAME)
 logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
@@ -52,6 +54,7 @@ def error_msg(txt):
         "sourceID": SERVER_ID,
         "messageID": 114,
         "payload": {'error': txt}
+
     })
     return msg
 
@@ -80,6 +83,7 @@ def handle_101(msg):
     if CTRL.client_join(src_client, sessID):
         LOGGER.info("Client " + src_client + " joined session " + str(sessID))
         msg = make_msg(SERVER_ID, 102, {'session': CTRL.get_session(sessID)})
+
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
         msg = error_msg("Error: Could not join session.")
@@ -96,6 +100,7 @@ def handle_112(msg):
 
     # No check for sourceID in this function b/c a new Client will not yet have one
     nick = msg.get("payload").get('nickname')
+
     if not nick:
         LOGGER.error("Client did not provide nickname")
         return error_msg("Error: Nickname not provided")
@@ -104,6 +109,7 @@ def handle_112(msg):
     LOGGER.info("New client ID: " + clientID)
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID})
+
 
 
 

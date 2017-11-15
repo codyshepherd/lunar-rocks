@@ -1,12 +1,22 @@
 module Msgs exposing (..)
 
 import Navigation exposing (Location)
-import Models exposing (SessionId)
+import Models exposing (Cell, ClientId, SessionId, TrackId)
+import Time exposing (Time)
+import Window exposing (Size)
 
 
 type Msg
     = OnLocationChange Location
     | AddSession SessionId
-    | Input String
-    | Send
+    | UpdateBoard Cell
+    | UserInput String
+      -- | Send
+    | Tick Time
     | IncomingMessage String
+    | WindowResize Size
+    | SelectName
+    | RequestTrack SessionId TrackId ClientId
+    | ReleaseTrack SessionId TrackId ClientId
+    | ToggleSessionButton SessionId
+    | Broadcast (List SessionId)

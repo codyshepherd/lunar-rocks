@@ -1,0 +1,67 @@
+<!doctype HTML>
+<html>
+  <head>
+    <title>λ</title>
+    <meta charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css?family=Cinzel|Quattrocento+Sans" rel="stylesheet">
+  </head>
+  <body>
+    <div id="main"></div>
+    <script type="text/javascript" src="main.js"></script>
+
+
+    <script src='https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js'></script>
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0842_FluidR3_GM_sf2_file.js'></script>
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0390_FluidR3_GM_sf2_file.js'></script>
+    <script>
+     "use strict"
+     var app = Elm.Main.fullscreen();
+
+     var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
+		 var audioContext = new AudioContextFunc();
+     var player=new WebAudioFontPlayer();
+     player.loader.decodeAfterLoading(audioContext, '_tone_0842_FluidR3_GM_sf2_file');
+     player.loader.decodeAfterLoading(audioContext, '_tone_0390_FluidR3_GM_sf2_file');
+
+     var compressor = audioContext.createDynamicsCompressor();
+     compressor.threshold.value = -50;
+     compressor.knee.value = 40;
+     compressor.ratio.value = 12;
+     compressor.attack.value = 0;
+     compressor.release.value = 0.25;
+     compressor.connect(audioContext.destination);
+
+     var highpassFilter = audioContext.createBiquadFilter();
+     highpassFilter.type = 'highpass';
+     highpassFilter.frequency.value = 50;
+     highpassFilter.connect(compressor);
+
+     var lowpassFilter = audioContext.createBiquadFilter();
+     lowpassFilter.type = 'lowpass';
+     lowpassFilter.frequency.value = 3000;
+     lowpassFilter.connect(highpassFilter);
+
+
+     function playNote(trackId, tone){
+       if (trackId === 0) {
+         /* Lead 5: Charang*/
+         player.queueWaveTable(audioContext, lowpassFilter
+                             , _tone_0842_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.4);
+       }
+       else {
+         /* Synth Bass 2*/
+         player.queueWaveTable(audioContext, lowpassFilter
+                             , _tone_0390_FluidR3_GM_sf2_file , 0, (12*3+tone), 1, 0.2);
+       }
+	     return false;
+     }
+
+     app.ports.play.subscribe(function (args) {
+       // args.beat and args.duration also available
+       playNote(args.trackId, args.tone);
+     });
+    </script>
+
+  </body>
+
+</html>

@@ -197,8 +197,6 @@ Message IDs and descriptions are detailed in the following table:
 | 109| Request Track      | Client | (SessionID, TrackID)   | Used when a Client wants to select a Track in a Session |
 | 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
 | 111| Track Request Response | Server | Boolean | Server notifies Client as to the status of its Track Request |
-<<<<<<< Updated upstream
-=======
 | 112| Client Connect     | Client | Nickname (string) | The Client sends this message when first connecting with the server over websocket |
 | 113| Client Connected   | Server | ClientID | The Server responds to msgID: 112 with the Client's ClientID |
 | 114| Error              | Either | Error Description (string) | This message is for general debugging |
@@ -231,4 +229,4 @@ Wherever two keys/values are listed, they should be interpreted respectively. E.
 | 112 | String | 'nickname' | String |
 | 113 | ClientID (UUID String) | 'clientID' | String |
 | 114 | String | 'error' | String |
->>>>>>> Stashed changes
+

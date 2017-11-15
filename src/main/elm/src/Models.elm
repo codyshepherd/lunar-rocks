@@ -1,23 +1,108 @@
 module Models exposing (..)
 
+import Window exposing (Size)
+
 
 type alias Model =
     { clientId : ClientId
+    , username : String
+    , trackId : TrackId
+    , sessionId : SessionId
     , serverId : ServerId
-    , session : Session
-    , sessions : List SessionId
+    , sessions : List Session
+    , sessionLists : SessionLists
     , route : Route
+    , input : String
+    , windowSize : Size
     }
 
 
-initialModel : Route -> Model
-initialModel route =
-    { clientId = ""
-    , serverId = ""
-    , session = Session "" 0 [] [] "" []
-    , sessions = [ "1", "2", "3" ]
-    , route = route
+type alias ClientId =
+    String
+
+
+type alias ServerId =
+    Int
+
+
+
+-- SESSION
+
+
+type alias SessionId =
+    Int
+
+
+type alias SessionLists =
+    -- TODO: rename this as allSessions
+    { sessions : List SessionId
+    , clientSessions : List SessionId
+    , selectedSessions : List SessionId
     }
+
+
+type alias Session =
+    { id : SessionId
+    , beats : Int
+    , tones : Int
+    , clock : Int
+    , tempo : Int
+    , clients : List ClientId
+    , board : Board
+    , score : Score
+    , messages : List String
+    }
+
+
+
+-- BOARD
+
+
+type alias Board =
+    List Track
+
+
+type alias TrackId =
+    Int
+
+
+type alias Track =
+    { trackId : TrackId
+    , clientId : ClientId
+    , username : String
+    , instrument : String
+    , grid : List (List Int)
+    , rowLabels : List String
+    }
+
+
+type alias Cell =
+    { sessionId : SessionId
+    , trackId : TrackId
+    , column : Int
+    , row : Int
+    , action : Int
+    }
+
+
+
+-- AUDIO
+
+
+type alias Score =
+    List Note
+
+
+type alias Note =
+    { trackId : TrackId
+    , beat : Int
+    , duration : Int
+    , tone : Int
+    }
+
+
+
+-- ROUTING
 
 
 type Route
@@ -26,34 +111,54 @@ type Route
     | NotFoundRoute
 
 
-type alias SessionId =
-    String
+
+-- INIT
 
 
-type alias ClientId =
-    String
-
-
-type alias ServerId =
-    String
-
-
-type alias Session =
-    { id : SessionId
-    , tempo : Int
-    , clients : List ClientId
-    , board : List Track
-    , input : String
-    , messages : List String
+initialModel : Route -> Model
+initialModel route =
+    { clientId = "clown shoes"
+    , username = ""
+    , trackId = 0
+    , sessionId = 0
+    , serverId = 0
+    , sessions =
+        [ emptySession 0
+        , emptySession 1
+        , emptySession 2
+        , emptySession 3
+        ]
+    , sessionLists =
+        { sessions = [ 0, 1, 2, 3 ]
+        , clientSessions = []
+        , selectedSessions = []
+        }
+    , route = route
+    , input = ""
+    , windowSize = { width = 0, height = 0 }
     }
 
 
-type alias TrackId =
-    String
-
-
-type alias Track =
-    { trackID : TrackId
-    , clientID : ClientId
-    , grid : List (List Int)
-    }
+emptySession : Int -> Session
+emptySession id =
+    Session id
+        8
+        13
+        1
+        120
+        []
+        [ Track 0
+            ""
+            ""
+            "Synth"
+            (List.repeat 13 (List.repeat 8 0))
+            [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+        , Track 1
+            ""
+            ""
+            "Drums"
+            (List.repeat 13 (List.repeat 8 0))
+            [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
+        ]
+        []
+        []
