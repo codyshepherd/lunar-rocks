@@ -219,8 +219,8 @@ update msg model =
                 message =
                     encodeMessage model.clientId 112 (encodeNickname input)
             in
-                -- ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
-                ( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
+                ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+                --( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
 
         Tick time ->
             let

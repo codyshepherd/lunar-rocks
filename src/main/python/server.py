@@ -6,14 +6,12 @@ import logging
 import uuid
 import os
 
-
-
 SERVER_ID = str(uuid.uuid1())
 
 LOG_NAME = "server.log"
 
-if os.path.isfile(LOG_NAME):
-    os.remove(LOG_NAME)
+#if os.path.isfile(LOG_NAME):
+#    os.remove(LOG_NAME)
 
 
 LOGGER = logging.getLogger(LOG_NAME)
@@ -34,9 +32,10 @@ async def handle(websocket, path):
         #await websocket.send(message)
         obj = json.loads(message)
         msgID = obj.get("messageID")
-        if not (obj or msgID):
+        LOGGER.info("Type of msgID: " + str(type(msgID)))
+        if not (obj and msgID):
             LOGGER.info("Error sent")
-            await websocket.send("ERROR: messageID must be provided")
+            await websocket.send(error_msg("ERROR: messageID must be provided"))
         else:
             LOGGER.info("Dispatch table called")
             await websocket.send(DISPATCH_TABLE[msgID](obj))
