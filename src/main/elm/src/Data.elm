@@ -17,24 +17,6 @@ encodeMessage clientId messageId payload =
         encode 0 message
 
 
-encodeNickname : String -> Value
-encodeNickname nickname =
-    object [ ( "nickname", string nickname ) ]
-
-
-encodeError : String -> Value
-encodeError error =
-    object [ ( "error", string error ) ]
-
-
-encodeTrackRequest : Int -> Int -> Value
-encodeTrackRequest sessionId trackId =
-    object
-        [ ( "sessionID", int sessionId )
-        , ( "trackID", int trackId )
-        ]
-
-
 encodeSession : Session -> Value
 encodeSession session =
     object
@@ -62,3 +44,29 @@ encodeTrack track =
 encodeRow : List Int -> Value
 encodeRow row =
     list (List.map (\cell -> int cell) row)
+
+
+encodeNickname : String -> Value
+encodeNickname nickname =
+    object [ ( "nickname", string nickname ) ]
+
+
+encodeError : String -> Value
+encodeError error =
+    object [ ( "error", string error ) ]
+
+
+encodeTrackRequest : Int -> Int -> Value
+encodeTrackRequest sessionId trackId =
+    object
+        [ ( "sessionID", int sessionId )
+        , ( "trackID", int trackId )
+        ]
+
+
+encodeBroadcast : List Int -> Value -> Value
+encodeBroadcast selectedSessions track =
+    object
+        [ ( "track", track )
+        , ( "sessionIDs", list (List.map (\id -> int id) selectedSessions) )
+        ]

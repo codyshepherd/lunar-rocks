@@ -124,6 +124,7 @@ page model =
                                 model.clientId
                                 session.beats
                                 session.tones
+                                model.sessionLists.selectedSessions
                             )
                         ]
                      ]
@@ -149,13 +150,13 @@ page model =
                               in
                                 paragraph None
                                     [ spacing 3 ]
-                                    [ when ((List.length selectedSessions) >= 1)
-                                        (button
-                                            Button
-                                            [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
-                                            (text "Broadcast")
-                                        )
-                                    , when ((List.length selectedSessions) == 1)
+                                    -- [ when ((List.length selectedSessions) >= 1)
+                                    --     (button
+                                    --         Button
+                                    --         [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
+                                    --         (text "Broadcast")
+                                    --     )
+                                    [ when ((List.length selectedSessions) == 1)
                                         (button
                                             Button
                                             [ paddingXY 10 2 ]
@@ -238,13 +239,13 @@ viewLabelCell label =
         }
 
 
-viewBoard : SessionId -> Board -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
-viewBoard sessionId board clientId beats tones =
-    List.concatMap (\t -> viewTrack sessionId t clientId beats tones) board
+viewBoard : SessionId -> Board -> ClientId -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
+viewBoard sessionId board clientId beats tones selectedSessions =
+    List.concatMap (\t -> viewTrack sessionId t clientId beats tones selectedSessions) board
 
 
-viewTrack : SessionId -> Track -> ClientId -> Int -> Int -> List (Element Styles variation Msg)
-viewTrack sessionId track clientId beats tones =
+viewTrack : SessionId -> Track -> ClientId -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
+viewTrack sessionId track clientId beats tones selectedSessions =
     [ grid GridBlock
         [ spacing 1 ]
         { columns = List.repeat beats (px 99)
@@ -253,7 +254,7 @@ viewTrack sessionId track clientId beats tones =
             viewGrid sessionId track clientId
         }
     , paragraph None
-        [ paddingTop 8, paddingBottom 30 ]
+        [ paddingTop 8, paddingBottom 30, spacing 5 ]
         (case track.username of
             "" ->
                 [ el InstrumentLabel [] (text track.instrument)
@@ -269,6 +270,13 @@ viewTrack sessionId track clientId beats tones =
                     (button Button
                         [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
                         (text "Release Track")
+                    )
+                , when
+                    ((List.length selectedSessions) >= 1)
+                    (button
+                        Button
+                        [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
+                        (text "Broadcast")
                     )
                 ]
         )

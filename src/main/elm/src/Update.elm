@@ -80,9 +80,12 @@ update msg model =
             , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
             )
 
-        Broadcast selectedSessions ->
+        Broadcast selectedSessions track ->
             -- TODO: Broadcast to server
-            ( model, Cmd.none )
+            ( model
+            , WebSocket.send "ws://localhost:8795"
+                (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
+            )
 
         UpdateBoard cell ->
             let
