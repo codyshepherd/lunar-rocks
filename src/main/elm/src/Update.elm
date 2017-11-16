@@ -51,7 +51,7 @@ update msg model =
                 websocketMessage =
                     case newRoute of
                         SessionRoute id ->
-                            WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 103 (int id))
+                            WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 103 (int id))
 
                         Home ->
                             -- TODO: Routing for home, get last session id
@@ -77,7 +77,7 @@ update msg model =
             -- ( { model | sessions = newSessions }
             -- , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
             ( model
-            , WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 101 (object []))
+            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
             )
 
         Broadcast selectedSessions ->
@@ -117,7 +117,7 @@ update msg model =
                     newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
             in
                 ( { model | sessions = newSessions }
-                , WebSocket.send "ws://localhost:8080/lobby"
+                , WebSocket.send "ws://localhost:8795"
                     (encodeMessage model.clientId 101 (encodeSession newSession))
                 )
 
@@ -164,7 +164,7 @@ update msg model =
                     { sessionLists | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
             in
                 ( { model | sessions = newSessions, sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8080/lobby"
+                , WebSocket.send "ws://localhost:8795"
                     (encodeMessage model.clientId 110 (encodeTrackRequest sessionId trackId))
                 )
 
@@ -205,7 +205,7 @@ update msg model =
                     { sessionLists | clientSessions = newClientSessions }
             in
                 ( { model | sessions = newSessions, sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8080/lobby"
+                , WebSocket.send "ws://localhost:8795"
                     (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
                 )
 
@@ -220,8 +220,8 @@ update msg model =
                     encodeMessage model.clientId 112 (encodeNickname input)
             in
                 ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
-                --( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
 
+        --( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
         Tick time ->
             let
                 sessionId =
