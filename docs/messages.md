@@ -1,7 +1,7 @@
 # Message Checklist
 
 | ID | Description | Client Send | Client Handle | Server Send | Server Handle |
-|----|-------------|----------|---------|-------------------------------------|
+|:--:|:-----------:|:-----------:|:-------------:|:-----------:|:-------------:|
 | 100| Update Session     | x | | | | 
 | 101| Create Session     | x | - | - | | 
 | 102| Session Created    | - | | | - | 
