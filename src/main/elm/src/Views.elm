@@ -156,7 +156,10 @@ page model =
                                     --         [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
                                     --         (text "Broadcast")
                                     --     )
-                                    [ when ((List.length selectedSessions) == 1)
+                                    [ when
+                                        ((List.length selectedSessions == 1)
+                                            && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
+                                        )
                                         (button
                                             Button
                                             [ paddingXY 10 2 ]
@@ -272,6 +275,7 @@ viewTrack sessionId track clientId beats tones selectedSessions =
                         (text "Release Track")
                     )
                 , when
+                    -- TODO: don't display if only current session selected
                     ((List.length selectedSessions) >= 1)
                     (button
                         Button
