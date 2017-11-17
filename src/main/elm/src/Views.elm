@@ -17,21 +17,43 @@ view model =
         el Main [ minHeight (px (toFloat model.windowSize.height)) ] <|
             column Main
                 []
-                [ navigation
+                [ navigation model.route model.sessionId
                 , el None [ center, width (px 799) ] <|
                     column Main [ paddingTop 20, paddingBottom 50 ] (page model)
                 ]
 
 
-navigation : Element Styles variation Msg
-navigation =
-    row Navigation
-        [ center
-        , paddingTop 20
-        , paddingBottom 20
-        , spacing 5
+navigation : Route -> SessionId -> Element Styles variation Msg
+navigation route sessionId =
+    row Navigation [ center ] <|
+        [ el None [ width (px 799) ] <|
+            row Navigation
+                [ spread, paddingXY 0 10, width (px 799) ]
+                [ el Logo [] (text "Lunar Rocks")
+                , case route of
+                    Home ->
+                        row None
+                            [ spacing 20, alignBottom ]
+                            [ link "https://github.com/codyshepherd/music" <|
+                                el NavOption [] (text "Disconnect")
+                            ]
+
+                    SessionRoute id ->
+                        row None
+                            [ spacing 20, alignBottom ]
+                            [ link sessionsPath <| el NavOption [] (text "Sessions")
+
+                            -- , el NavOption [] (text "Leave Session")
+                            , link sessionsPath <|
+                                el NavOption [ onClick (LeaveSession sessionId) ] (text "Leave Session")
+                            ]
+
+                    NotFoundRoute ->
+                        row None
+                            [ spacing 20, alignBottom ]
+                            [ link sessionsPath <| el NavOption [] (text "Sessions") ]
+                ]
         ]
-        [ h1 Heading [] (text "Music") ]
 
 
 page : Model -> List (Element Styles variation Msg)
@@ -39,18 +61,14 @@ page model =
     case model.route of
         Home ->
             [ h3 SubHeading
-                [ paddingLeft 25 ]
+                [ paddingBottom 25 ]
                 (text "MAKE MUSIC ACROSS THE WEB")
-            , paragraph Text [ padding 25 ] [ text "Some general info and instructions." ]
+            , paragraph Text [ paddingBottom 25 ] [ text "Some general info and instructions." ]
             , textLayout None
-                [ spacingXY 25 25
-                , padding 25
-                ]
+                [ spacingXY 25 25 ]
                 (case model.username of
                     "" ->
-                        [ h3 SubHeading
-                            [ paddingTop 10 ]
-                            (text "CHOOSE A NICKNAME")
+                        [ paragraph Text [] [ text "Choose a nickname to get started." ]
                         , column None
                             [ width (px 200) ]
                             [ row None
@@ -73,25 +91,22 @@ page model =
                         ]
 
                     _ ->
-                        [ h3 SubHeading
-                            [ paddingTop 10 ]
-                            (text "SESSIONS")
-                        , paragraph Text
+                        [ paragraph Text
                             []
                             [ text
                                 ("Greetings " ++ model.username ++ "! Select a session below or start a new one.")
                             ]
-                        , textLayout None
-                            []
-                            (List.map viewSessionEntry
-                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
-                            )
                         , paragraph None
                             []
                             [ button Button
                                 [ paddingXY 10 5, onClick (AddSession (newId model.sessionLists.sessions)) ]
                                 (text "New Session")
                             ]
+                        , textLayout None
+                            []
+                            (List.map viewSessionEntry
+                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
+                            )
                         ]
                 )
             ]
@@ -228,7 +243,7 @@ viewTrackLabels track tones =
             , rows = List.repeat tones (px 14)
             , cells = List.map viewLabelCell labels
             }
-        , paragraph None [ paddingBottom 62 ] []
+        , paragraph None [ paddingBottom 72 ] []
         ]
 
 

@@ -19,3 +19,4 @@ type Msg
     | ReleaseTrack SessionId TrackId ClientId
     | ToggleSessionButton SessionId
     | Broadcast (List SessionId) Track
+    | LeaveSession SessionId

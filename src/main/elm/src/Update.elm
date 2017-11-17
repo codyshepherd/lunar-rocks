@@ -81,11 +81,28 @@ update msg model =
             )
 
         Broadcast selectedSessions track ->
-            -- TODO: Broadcast to server
+            -- TODO: Broadcast to server, update on checklist
             ( model
             , WebSocket.send "ws://localhost:8795"
                 (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
             )
+
+        LeaveSession sessionId ->
+            let
+                sessionLists =
+                    model.sessionLists
+
+                newSelectedSessions =
+                    List.filter (\id -> id /= sessionId) sessionLists.selectedSessions
+
+                newSessionLists =
+                    { sessionLists | selectedSessions = newSelectedSessions }
+
+                -- TODO: remove client from any tracks they hold
+            in
+                ( { model | sessionLists = newSessionLists }
+                , Cmd.none
+                )
 
         UpdateBoard cell ->
             let

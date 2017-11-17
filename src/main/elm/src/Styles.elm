@@ -5,6 +5,8 @@ import Style exposing (..)
 import Style.Border as Border
 import Style.Color as Color
 import Style.Font as Font
+import Style.Shadow as Shadow
+import Style.Transition as Transition
 
 
 type Styles
@@ -14,7 +16,8 @@ type Styles
     | Text
     | RowLabel
     | Navigation
-    | Heading
+    | NavOption
+    | Logo
     | SubHeading
     | GridBlock
     | PlayPurple
@@ -70,9 +73,15 @@ stylesheet =
             , Color.border (Color.rgb 28 31 36)
             , Color.text Color.white
             ]
-        , style Heading
+        , style NavOption
+            [ Font.typeface sansSerif
+            , Font.size 18
+            , hover [ Color.text (Color.rgb 200 200 200) ]
+            , Transition.all
+            ]
+        , style Logo
             [ Font.typeface serif
-            , Font.size 48
+            , Font.size 36
             ]
         , style SubHeading
             [ Font.typeface serif
@@ -104,7 +113,9 @@ stylesheet =
             , Border.rounded 3
             , Color.background (Color.rgb 40 40 40)
             , Color.border (Color.rgb 91 96 115)
+            , hover [ Color.border (Color.rgb 112 118 143) ]
             , Color.text Color.white
+            , Transition.all
             ]
         , style SessionButton
             [ Border.all 2
@@ -112,6 +123,7 @@ stylesheet =
             , Color.background (Color.rgb 66 69 82)
             , Color.border (Color.rgb 66 69 82)
             , Color.text Color.white
+            , Transition.all
             ]
         , style SelectedSessionButton
             [ Border.all 2
@@ -119,6 +131,7 @@ stylesheet =
             , Color.background (Color.rgb 192 78 17)
             , Color.border (Color.rgb 192 78 17)
             , Color.text Color.white
+            , Transition.all
             ]
         ]
 
