@@ -39,7 +39,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ WebSocket.listen "ws://localhost:8795" IncomingMessage
-        --[ WebSocket.listen "ws://localhost:8080/lobby" IncomingMessage
+        , WebSocket.keepAlive "ws://localhost:8795"
         , every second Tick
         , Window.resizes (\{ width, height } -> WindowResize { width = width, height = width })
         ]

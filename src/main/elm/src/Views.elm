@@ -35,7 +35,7 @@ navigation route sessionId =
                         row None
                             [ spacing 20, alignBottom ]
                             [ link "https://github.com/codyshepherd/music" <|
-                                el NavOption [] (text "Disconnect")
+                                el NavOption [ onClick Disconnect ] (text "Disconnect")
                             ]
 
                     SessionRoute id ->
@@ -290,8 +290,9 @@ viewTrack sessionId track clientId beats tones selectedSessions =
                         (text "Release Track")
                     )
                 , when
-                    -- TODO: don't display if only current session selected
-                    ((List.length selectedSessions) >= 1)
+                    ((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
+                        || ((List.length selectedSessions) > 1)
+                    )
                     (button
                         Button
                         [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]

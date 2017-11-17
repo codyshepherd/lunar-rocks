@@ -17,6 +17,11 @@ encodeMessage clientId messageId payload =
         encode 0 message
 
 
+encodeSessionId : Int -> Value
+encodeSessionId sessionId =
+    object [ ( "sessionID", int sessionId ) ]
+
+
 encodeSession : Session -> Value
 encodeSession session =
     object

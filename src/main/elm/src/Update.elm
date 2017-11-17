@@ -51,19 +51,21 @@ update msg model =
                 websocketMessage =
                     case newRoute of
                         SessionRoute id ->
-                            WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 103 (int id))
+                            WebSocket.send "ws://localhost:8795"
+                                (encodeMessage model.clientId 103 (encodeSessionId id))
 
                         Home ->
-                            -- TODO: Routing for home, get last session id
-                            -- WebSocket.send "ws://localhost:8080/lobby" (encodeMessage model.clientId 104 (int id))
-                            WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (newSessionId))
+                            -- TODO: sufficient to use the same message, but 0 for home?
+                            -- or is this implicit when LeaveSession
+                            WebSocket.send "ws://localhost:8795"
+                                (encodeMessage model.clientId 103 (encodeSessionId 0))
 
                         NotFoundRoute ->
-                            WebSocket.send "ws://localhost:8080/lobby"
+                            WebSocket.send "ws://localhost:8795"
                                 (encodeMessage model.clientId 114 (encodeError "Route not found"))
             in
                 ( { model | route = newRoute, sessionId = newSessionId, sessions = newSessions }
-                  -- , WebSocket.send "ws://localhost:8080/lobby" ("Requesting " ++ toString (session.id))
+                  -- , WebSocket.send "ws://localhost:8795" ("Requesting " ++ toString (session.id))
                 , websocketMessage
                 )
 
@@ -75,7 +77,7 @@ update msg model =
             --         { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
             -- in
             -- ( { model | sessions = newSessions }
-            -- , WebSocket.send "ws://localhost:8080/lobby" ("Adding " ++ (toString newId))
+            -- , WebSocket.send "ws://localhost:8795" ("Adding " ++ (toString newId))
             ( model
             , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
             )
@@ -85,6 +87,12 @@ update msg model =
             ( model
             , WebSocket.send "ws://localhost:8795"
                 (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
+            )
+
+        Disconnect ->
+            -- TODO: Does this send a message before navigating away?
+            ( model
+            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 106 (object []))
             )
 
         LeaveSession sessionId ->
@@ -98,10 +106,11 @@ update msg model =
                 newSessionLists =
                     { sessionLists | selectedSessions = newSelectedSessions }
 
-                -- TODO: remove client from any tracks they hold
+                -- TODO: remove client from any tracks they hold? Or on response from server?
             in
                 ( { model | sessionLists = newSessionLists }
-                , Cmd.none
+                , WebSocket.send "ws://localhost:8795"
+                    (encodeMessage model.clientId 104 (encodeSessionId sessionId))
                 )
 
         UpdateBoard cell ->
@@ -230,7 +239,7 @@ update msg model =
                 )
 
         -- Send ->
-        --     ( model, WebSocket.send "ws://localhost:8080/lobby" session.input )
+        --     ( model, WebSocket.send "ws://localhost:8795" session.input )
         SelectName ->
             let
                 input =
@@ -241,7 +250,7 @@ update msg model =
             in
                 ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
 
-        --( { model | username = input }, WebSocket.send "ws://localhost:8080/lobby" message )
+        --( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
         Tick time ->
             let
                 sessionId =

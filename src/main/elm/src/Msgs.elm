@@ -20,3 +20,4 @@ type Msg
     | ToggleSessionButton SessionId
     | Broadcast (List SessionId) Track
     | LeaveSession SessionId
+    | Disconnect
