@@ -7,17 +7,18 @@ import Window exposing (Size)
 
 
 type Msg
-    = OnLocationChange Location
-    | AddSession SessionId
+    = AddSession SessionId
+    | Broadcast (List SessionId) Track
+    | Disconnect
+    | IncomingMessage String
+    | LeaveSession SessionId
+    | OnLocationChange Location
+    | ReleaseTrack SessionId TrackId ClientId
+    | RequestTrack SessionId TrackId ClientId
+    | SelectName
+    | Send SessionId
+    | Tick Time
+    | ToggleSessionButton SessionId
     | UpdateBoard Cell
     | UserInput String
-    | Tick Time
-    | IncomingMessage String
     | WindowResize Size
-    | SelectName
-    | RequestTrack SessionId TrackId ClientId
-    | ReleaseTrack SessionId TrackId ClientId
-    | ToggleSessionButton SessionId
-    | Broadcast (List SessionId) Track
-    | LeaveSession SessionId
-    | Disconnect

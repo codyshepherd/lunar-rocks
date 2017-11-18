@@ -9,23 +9,23 @@ import Style.Transition as Transition
 
 
 type Styles
-    = None
-    | Main
+    = Button
+    | GridBlock
     | InstrumentLabel
-    | Text
-    | RowLabel
+    | Logo
+    | Main
+    | MessageInput
     | Navigation
     | NavOption
-    | Logo
-    | SubHeading
-    | GridBlock
-    | PlayPurple
+    | None
     | PlayOrange
+    | PlayPurple
     | Rest
-    | MessageInput
-    | Button
-    | SessionButton
+    | RowLabel
     | SelectedSessionButton
+    | SessionButton
+    | SubHeading
+    | Text
 
 
 serif =
@@ -53,18 +53,33 @@ sansSerif =
 stylesheet : StyleSheet Styles variation
 stylesheet =
     Style.styleSheet
-        [ style None []
+        [ style Button
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 91 96 115)
+            , hover [ Color.border (Color.rgb 112 118 143) ]
+            , Color.text Color.white
+            , Transition.all
+            ]
+        , style GridBlock
+            [ Color.background (Color.rgb 120 120 120) ]
+        , style InstrumentLabel [ Font.size 20 ]
+        , style Logo
+            [ Font.typeface serif
+            , Font.size 36
+            ]
         , style Main
             [ Color.background (Color.rgb 40 40 40)
             , Color.text Color.white
             , Font.typeface sansSerif
             ]
-        , style InstrumentLabel [ Font.size 20 ]
-        , style Text [ Font.size 18 ]
-        , style RowLabel
-            [ Color.background (Color.rgb 40 40 40)
-            , Color.text (Color.rgb 160 160 160)
-            , Font.size 10
+        , style MessageInput
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 75 79 94)
+            , Color.text Color.white
             ]
         , style Navigation
             [ Border.bottom 1
@@ -78,41 +93,29 @@ stylesheet =
             , hover [ Color.text (Color.rgb 200 200 200) ]
             , Transition.all
             ]
-        , style Logo
-            [ Font.typeface serif
-            , Font.size 36
-            ]
-        , style SubHeading
-            [ Font.typeface serif
-            , Font.size 24
-            ]
-        , style GridBlock
-            [ Color.background (Color.rgb 120 120 120) ]
-        , style PlayPurple
-            [ Color.background (Color.rgb 91 96 115)
-            , Color.text Color.white
-            ]
+        , style None []
         , style PlayOrange
             [ Color.background (Color.rgb 215 88 19)
+            , Color.text Color.white
+            ]
+        , style PlayPurple
+            [ Color.background (Color.rgb 91 96 115)
             , Color.text Color.white
             ]
         , style Rest
             [ Color.background (Color.rgb 150 150 150)
             , Color.text Color.white
             ]
-        , style MessageInput
-            [ Border.all 2
-            , Border.rounded 3
-            , Color.background (Color.rgb 40 40 40)
-            , Color.border (Color.rgb 75 79 94)
-            , Color.text Color.white
+        , style RowLabel
+            [ Color.background (Color.rgb 40 40 40)
+            , Color.text (Color.rgb 160 160 160)
+            , Font.size 10
             ]
-        , style Button
+        , style SelectedSessionButton
             [ Border.all 2
             , Border.rounded 3
-            , Color.background (Color.rgb 40 40 40)
-            , Color.border (Color.rgb 91 96 115)
-            , hover [ Color.border (Color.rgb 112 118 143) ]
+            , Color.background (Color.rgb 192 78 17)
+            , Color.border (Color.rgb 192 78 17)
             , Color.text Color.white
             , Transition.all
             ]
@@ -124,14 +127,11 @@ stylesheet =
             , Color.text Color.white
             , Transition.all
             ]
-        , style SelectedSessionButton
-            [ Border.all 2
-            , Border.rounded 3
-            , Color.background (Color.rgb 192 78 17)
-            , Color.border (Color.rgb 192 78 17)
-            , Color.text Color.white
-            , Transition.all
+        , style SubHeading
+            [ Font.typeface serif
+            , Font.size 24
             ]
+        , style Text [ Font.size 18 ]
         ]
 
 

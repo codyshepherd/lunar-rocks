@@ -290,6 +290,12 @@ viewTrack sessionId track clientId beats tones selectedSessions =
                         (text "Release Track")
                     )
                 , when
+                    (clientId == track.clientId)
+                    (button Button
+                        [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
+                        (text "Send")
+                    )
+                , when
                     ((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
                         || ((List.length selectedSessions) > 1)
                     )

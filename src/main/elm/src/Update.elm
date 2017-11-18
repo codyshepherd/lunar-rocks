@@ -13,6 +13,66 @@ import WebSocket
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        AddSession newId ->
+            -- let
+            --     sessions =
+            --         model.sessions
+            --     newSessions =
+            --         { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
+            -- in
+            -- ( { model | sessions = newSessions }
+            -- , WebSocket.send "ws://localhost:8795" ("Adding " ++ (toString newId))
+            ( model
+            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
+            )
+
+        Broadcast selectedSessions track ->
+            -- TODO: Broadcast to server, update on checklist
+            ( model
+            , WebSocket.send "ws://localhost:8795"
+                (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
+            )
+
+        Disconnect ->
+            -- TODO: Does this send a message before navigating away?
+            ( model
+            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 106 (object []))
+            )
+
+        IncomingMessage str ->
+            -- let
+            --     session =
+            --         case List.head (List.filter (\s -> s.id == sessionId) model.sessions) of
+            --             Just session ->
+            --                 session
+            --             Nothing ->
+            --                 emptySession 0
+            --     newSession =
+            --         { session | messages = (session.messages ++ [ str ]) }
+            --     newSessions =
+            --         newSession :: model.sessions
+            -- in
+            --     ( { model | sessions = newSessions }, Cmd.none )
+            ( model, Cmd.none )
+
+        LeaveSession sessionId ->
+            let
+                sessionLists =
+                    model.sessionLists
+
+                newSelectedSessions =
+                    List.filter (\id -> id /= sessionId) sessionLists.selectedSessions
+
+                newSessionLists =
+                    { sessionLists | selectedSessions = newSelectedSessions }
+
+                -- TODO: remove client from any tracks they hold? Or on response from server?
+            in
+                ( { model | sessionLists = newSessionLists }
+                , WebSocket.send "ws://localhost:8795"
+                    (encodeMessage model.clientId 104 (encodeSessionId sessionId))
+                )
+
         OnLocationChange location ->
             let
                 newRoute =
@@ -68,90 +128,6 @@ update msg model =
                   -- , WebSocket.send "ws://localhost:8795" ("Requesting " ++ toString (session.id))
                 , websocketMessage
                 )
-
-        AddSession newId ->
-            -- let
-            --     sessions =
-            --         model.sessions
-            --     newSessions =
-            --         { sessions | sessions = (model.sessions.sessions ++ [ newId ]) }
-            -- in
-            -- ( { model | sessions = newSessions }
-            -- , WebSocket.send "ws://localhost:8795" ("Adding " ++ (toString newId))
-            ( model
-            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
-            )
-
-        Broadcast selectedSessions track ->
-            -- TODO: Broadcast to server, update on checklist
-            ( model
-            , WebSocket.send "ws://localhost:8795"
-                (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
-            )
-
-        Disconnect ->
-            -- TODO: Does this send a message before navigating away?
-            ( model
-            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 106 (object []))
-            )
-
-        LeaveSession sessionId ->
-            let
-                sessionLists =
-                    model.sessionLists
-
-                newSelectedSessions =
-                    List.filter (\id -> id /= sessionId) sessionLists.selectedSessions
-
-                newSessionLists =
-                    { sessionLists | selectedSessions = newSelectedSessions }
-
-                -- TODO: remove client from any tracks they hold? Or on response from server?
-            in
-                ( { model | sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8795"
-                    (encodeMessage model.clientId 104 (encodeSessionId sessionId))
-                )
-
-        UpdateBoard cell ->
-            let
-                session =
-                    Maybe.withDefault
-                        (emptySession cell.sessionId)
-                        (List.head (List.filter (\s -> s.id == cell.sessionId) model.sessions))
-
-                newScore =
-                    case cell.action of
-                        0 ->
-                            (removeNote cell session.score)
-
-                        _ ->
-                            let
-                                note =
-                                    Note
-                                        cell.trackId
-                                        (cell.column + 1)
-                                        1
-                                        (session.tones - cell.row)
-                            in
-                                note :: session.score
-
-                newSession =
-                    { session
-                        | board = (updateBoard session.board cell)
-                        , score = newScore
-                    }
-
-                newSessions =
-                    newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
-            in
-                ( { model | sessions = newSessions }
-                , WebSocket.send "ws://localhost:8795"
-                    (encodeMessage model.clientId 101 (encodeSession newSession))
-                )
-
-        UserInput newInput ->
-            ( { model | input = newInput }, Cmd.none )
 
         ReleaseTrack sessionId trackId clientId ->
             --TODO: Send WS message
@@ -238,8 +214,6 @@ update msg model =
                     (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
                 )
 
-        -- Send ->
-        --     ( model, WebSocket.send "ws://localhost:8795" session.input )
         SelectName ->
             let
                 input =
@@ -250,7 +224,18 @@ update msg model =
             in
                 ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
 
-        --( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+        Send sessionId ->
+            let
+                session =
+                    Maybe.withDefault
+                        (emptySession 0)
+                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+            in
+                ( model
+                , WebSocket.send "ws://localhost:8795"
+                    (encodeMessage model.clientId 101 (encodeSession session))
+                )
+
         Tick time ->
             let
                 sessionId =
@@ -297,21 +282,46 @@ update msg model =
             in
                 ( { model | sessionLists = newSessionLists }, Cmd.none )
 
-        IncomingMessage str ->
-            -- let
-            --     session =
-            --         case List.head (List.filter (\s -> s.id == sessionId) model.sessions) of
-            --             Just session ->
-            --                 session
-            --             Nothing ->
-            --                 emptySession 0
-            --     newSession =
-            --         { session | messages = (session.messages ++ [ str ]) }
-            --     newSessions =
-            --         newSession :: model.sessions
-            -- in
-            --     ( { model | sessions = newSessions }, Cmd.none )
-            ( model, Cmd.none )
+        UpdateBoard cell ->
+            let
+                session =
+                    Maybe.withDefault
+                        (emptySession cell.sessionId)
+                        (List.head (List.filter (\s -> s.id == cell.sessionId) model.sessions))
+
+                newScore =
+                    case cell.action of
+                        0 ->
+                            (removeNote cell session.score)
+
+                        _ ->
+                            let
+                                note =
+                                    Note
+                                        cell.trackId
+                                        (cell.column + 1)
+                                        1
+                                        (session.tones - cell.row)
+                            in
+                                note :: session.score
+
+                newSession =
+                    { session
+                        | board = (updateBoard session.board cell)
+                        , score = newScore
+                    }
+
+                newSessions =
+                    newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
+            in
+                -- ( { model | sessions = newSessions }
+                -- , WebSocket.send "ws://localhost:8795"
+                --     (encodeMessage model.clientId 101 (encodeSession newSession))
+                -- )
+                ( { model | sessions = newSessions }, Cmd.none )
+
+        UserInput newInput ->
+            ( { model | input = newInput }, Cmd.none )
 
         WindowResize size ->
             ( { model | windowSize = size }, Cmd.none )
