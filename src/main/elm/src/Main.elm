@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Models exposing (Model, SessionId, initialModel)
+import Models exposing (Model, SessionId, initialModel, websocketServer)
 import Msgs exposing (..)
 import Navigation exposing (Location)
 import Routing exposing (parseLocation)
@@ -38,8 +38,8 @@ init location =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ WebSocket.listen "ws://localhost:8795" IncomingMessage
-        , WebSocket.keepAlive "ws://localhost:8795"
-        , every second Tick
+        [ WebSocket.listen websocketServer IncomingMessage
+        , WebSocket.keepAlive websocketServer
+        , every (second * 0.5) Tick
         , Window.resizes (\{ width, height } -> WindowResize { width = width, height = width })
         ]

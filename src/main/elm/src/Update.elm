@@ -17,19 +17,19 @@ update msg model =
     case msg of
         AddSession newId ->
             ( model
-            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 101 (object []))
+            , WebSocket.send websocketServer (encodeMessage model.clientId 101 (object []))
             )
 
         Broadcast selectedSessions track ->
             ( model
-            , WebSocket.send "ws://localhost:8795"
+            , WebSocket.send websocketServer
                 (encodeMessage model.clientId 108 (encodeBroadcast selectedSessions (encodeTrack track)))
             )
 
         Disconnect ->
             -- TODO: Does this send a message before navigating away?
             ( model
-            , WebSocket.send "ws://localhost:8795" (encodeMessage model.clientId 106 (object []))
+            , WebSocket.send websocketServer (encodeMessage model.clientId 106 (object []))
             )
 
         IncomingMessage rawMessage ->
@@ -61,7 +61,7 @@ update msg model =
                 -- TODO: remove client from any tracks they hold? Or on response from server?
             in
                 ( { model | sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8795"
+                , WebSocket.send websocketServer
                     (encodeMessage model.clientId 104 (encodeSessionId sessionId))
                 )
 
@@ -103,21 +103,21 @@ update msg model =
                 websocketMessage =
                     case newRoute of
                         SessionRoute id ->
-                            WebSocket.send "ws://localhost:8795"
+                            WebSocket.send websocketServer
                                 (encodeMessage model.clientId 103 (encodeSessionId id))
 
                         Home ->
                             -- TODO: sufficient to use the same message, but 0 for home?
                             -- or is this implicit when LeaveSession
-                            WebSocket.send "ws://localhost:8795"
+                            WebSocket.send websocketServer
                                 (encodeMessage model.clientId 103 (encodeSessionId 0))
 
                         NotFoundRoute ->
-                            WebSocket.send "ws://localhost:8795"
+                            WebSocket.send websocketServer
                                 (encodeMessage model.clientId 114 (encodeError "Route not found"))
             in
                 ( { model | route = newRoute, sessionId = newSessionId, sessions = newSessions }
-                  -- , WebSocket.send "ws://localhost:8795" ("Requesting " ++ toString (session.id))
+                  -- , WebSocket.send websocketServer ("Requesting " ++ toString (session.id))
                 , websocketMessage
                 )
 
@@ -161,7 +161,7 @@ update msg model =
                     { sessionLists | clientSessions = newClientSessions, selectedSessions = newSelectedSessions }
             in
                 ( { model | sessions = newSessions, sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8795"
+                , WebSocket.send websocketServer
                     (encodeMessage model.clientId 110 (encodeTrackRequest sessionId trackId))
                 )
 
@@ -202,7 +202,7 @@ update msg model =
                     { sessionLists | clientSessions = newClientSessions }
             in
                 ( { model | sessions = newSessions, sessionLists = newSessionLists }
-                , WebSocket.send "ws://localhost:8795"
+                , WebSocket.send websocketServer
                     (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
                 )
 
@@ -214,7 +214,7 @@ update msg model =
                 message =
                     encodeMessage model.clientId 112 (encodeNickname input)
             in
-                ( { model | username = input }, WebSocket.send "ws://localhost:8795" message )
+                ( { model | username = input }, WebSocket.send websocketServer message )
 
         Send sessionId ->
             let
@@ -224,7 +224,7 @@ update msg model =
                         (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
             in
                 ( model
-                , WebSocket.send "ws://localhost:8795"
+                , WebSocket.send websocketServer
                     (encodeMessage model.clientId 101 (encodeSession session))
                 )
 

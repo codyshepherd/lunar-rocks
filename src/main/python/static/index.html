@@ -11,8 +11,18 @@
 
 
     <script src='https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js'></script>
-    <script src='https://surikov.github.io/webaudiofontdata/sound/0842_FluidR3_GM_sf2_file.js'></script>
-    <script src='https://surikov.github.io/webaudiofontdata/sound/0390_FluidR3_GM_sf2_file.js'></script>
+    <!-- celesta -->
+    <!-- <script src='https://surikov.github.io/webaudiofontdata/sound/0080_FluidR3_GM_sf2_file.js'></script> -->
+    <!-- xylophone -->
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0130_FluidR3_GM_sf2_file.js'></script>
+    <!-- marimba -->
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0120_FluidR3_GM_sf2_file.js'></script>
+    <!-- vibraphone -->
+    <!-- <script src='https://surikov.github.io/webaudiofontdata/sound/0110_FluidR3_GM_sf2_file.js'></script> -->
+    <!-- charang -->
+    <!-- <script src='https://surikov.github.io/webaudiofontdata/sound/0842_FluidR3_GM_sf2_file.js'></script> -->
+    <!-- synth bass 2 -->
+    <!-- <script src='https://surikov.github.io/webaudiofontdata/sound/0390_FluidR3_GM_sf2_file.js'></script> -->
     <script>
      "use strict"
      var app = Elm.Main.fullscreen();
@@ -20,14 +30,26 @@
      var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
 		 var audioContext = new AudioContextFunc();
      var player=new WebAudioFontPlayer();
-     player.loader.decodeAfterLoading(audioContext, '_tone_0842_FluidR3_GM_sf2_file');
-     player.loader.decodeAfterLoading(audioContext, '_tone_0390_FluidR3_GM_sf2_file');
+
+
+     /* xylophone */
+     player.loader.decodeAfterLoading(audioContext, '_tone_0130_FluidR3_GM_sf2_file');
+     /* celesta*/
+     /* player.loader.decodeAfterLoading(audioContext, '_tone_0080_FluidR3_GM_sf2_file');*/
+     /* marimba*/
+     player.loader.decodeAfterLoading(audioContext, '_tone_0120_FluidR3_GM_sf2_file');
+     /* vibraphone*/
+     /* player.loader.decodeAfterLoading(audioContext, '_tone_0110_FluidR3_GM_sf2_file');*/
+     /* Lead 5: Charang*/
+     /* player.loader.decodeAfterLoading(audioContext, '_tone_0842_FluidR3_GM_sf2_file');*/
+     /* Synth Bass 2*/
+     /* player.loader.decodeAfterLoading(audioContext, '_tone_0390_FluidR3_GM_sf2_file');*/
 
      var compressor = audioContext.createDynamicsCompressor();
-     compressor.threshold.value = -50;
+     compressor.threshold.value = -30;
      compressor.knee.value = 40;
      compressor.ratio.value = 12;
-     compressor.attack.value = 0;
+     compressor.attack.value = 0.15;
      compressor.release.value = 0.25;
      compressor.connect(audioContext.destination);
 
@@ -38,20 +60,18 @@
 
      var lowpassFilter = audioContext.createBiquadFilter();
      lowpassFilter.type = 'lowpass';
-     lowpassFilter.frequency.value = 3000;
+     lowpassFilter.frequency.value = 8000;
      lowpassFilter.connect(highpassFilter);
 
 
      function playNote(trackId, tone){
        if (trackId === 0) {
-         /* Lead 5: Charang*/
          player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0842_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.4);
+                             , _tone_0130_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.4);
        }
        else {
-         /* Synth Bass 2*/
          player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0390_FluidR3_GM_sf2_file , 0, (12*3+tone), 1, 0.2);
+                             , _tone_0120_FluidR3_GM_sf2_file , 0, (12*4+tone), 1, 0.3);
        }
 	     return false;
      }

@@ -15,6 +15,6 @@
 |  110 | Relinquish Track       | x             | -               | -             |                 |
 |  111 | Track Request Response | -             |                 |               | -               |
 |  112 | Client Connect         | x             | -               | -             |                 |
-|  113 | Client Connected       | -             |                 |               | -               |
-|  114 | Error                  |               |                 |               |                 |
+|  113 | Client Connected       | -             | x               |               | -               |
+|  114 | Error                  |               | x               |               |                 |
 

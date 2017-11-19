@@ -116,6 +116,11 @@ type Route
 -- INIT
 
 
+websocketServer : String
+websocketServer =
+    "ws://localhost:8795"
+
+
 initialModel : Route -> Model
 initialModel route =
     { clientId = "clown shoes"
