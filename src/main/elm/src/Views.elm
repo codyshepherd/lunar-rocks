@@ -109,6 +109,7 @@ page model =
                             )
                         ]
                 )
+            , paragraph ErrorMessage [ paddingTop 20 ] [ (text model.errorMessage) ]
             ]
 
         SessionRoute id ->

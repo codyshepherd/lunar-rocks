@@ -1,4 +1,4 @@
-module Data exposing (..)
+module Encode exposing (..)
 
 import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import Models exposing (Board, Session, Track)

@@ -10,6 +10,7 @@ import Style.Transition as Transition
 
 type Styles
     = Button
+    | ErrorMessage
     | GridBlock
     | InstrumentLabel
     | Logo
@@ -61,6 +62,10 @@ stylesheet =
             , hover [ Color.border (Color.rgb 112 118 143) ]
             , Color.text Color.white
             , Transition.all
+            ]
+        , style ErrorMessage
+            [ Font.size 18
+            , Color.text (Color.rgb 240 0 0)
             ]
         , style GridBlock
             [ Color.background (Color.rgb 120 120 120) ]

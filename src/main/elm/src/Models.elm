@@ -14,6 +14,7 @@ type alias Model =
     , route : Route
     , input : String
     , windowSize : Size
+    , errorMessage : String
     }
 
 
@@ -136,6 +137,7 @@ initialModel route =
     , route = route
     , input = ""
     , windowSize = { width = 0, height = 0 }
+    , errorMessage = ""
     }
 
 
