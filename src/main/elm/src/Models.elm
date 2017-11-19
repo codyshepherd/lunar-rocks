@@ -14,6 +14,7 @@ type alias Model =
     , route : Route
     , input : String
     , windowSize : Size
+    , errorMessage : String
     }
 
 
@@ -115,6 +116,11 @@ type Route
 -- INIT
 
 
+websocketServer : String
+websocketServer =
+    "ws://localhost:8795"
+
+
 initialModel : Route -> Model
 initialModel route =
     { clientId = "clown shoes"
@@ -136,6 +142,7 @@ initialModel route =
     , route = route
     , input = ""
     , windowSize = { width = 0, height = 0 }
+    , errorMessage = ""
     }
 
 
@@ -146,7 +153,7 @@ emptySession id =
         13
         1
         120
-        []
+        [ "alan", "cody", "sergey" ]
         [ Track 0
             ""
             ""
