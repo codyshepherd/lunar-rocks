@@ -148,7 +148,7 @@ emptySession id =
         13
         1
         120
-        []
+        [ "alan", "cody", "sergey" ]
         [ Track 0
             ""
             ""

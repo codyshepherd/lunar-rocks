@@ -9,7 +9,8 @@ import Style.Transition as Transition
 
 
 type Styles
-    = Button
+    = ActiveButton
+    | Button
     | ErrorMessage
     | GridBlock
     | InstrumentLabel
@@ -25,6 +26,7 @@ type Styles
     | RowLabel
     | SelectedSessionButton
     | SessionButton
+    | SmallHeading
     | SubHeading
     | Text
 
@@ -54,7 +56,16 @@ sansSerif =
 stylesheet : StyleSheet Styles variation
 stylesheet =
     Style.styleSheet
-        [ style Button
+        [ style ActiveButton
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 192 78 17)
+            , hover [ Color.border (Color.rgb 230 93 20) ]
+            , Color.text Color.white
+            , Transition.all
+            ]
+        , style Button
             [ Border.all 2
             , Border.rounded 3
             , Color.background (Color.rgb 40 40 40)
@@ -131,6 +142,10 @@ stylesheet =
             , Color.border (Color.rgb 66 69 82)
             , Color.text Color.white
             , Transition.all
+            ]
+        , style SmallHeading
+            [ Font.typeface serif
+            , Font.size 18
             ]
         , style SubHeading
             [ Font.typeface serif

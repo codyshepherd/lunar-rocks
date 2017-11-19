@@ -29,28 +29,26 @@ navigation route sessionId =
         [ el None [ width (px 799) ] <|
             row Navigation
                 [ spread, paddingXY 0 10, width (px 799) ]
-                [ el Logo [] (text "Lunar Rocks")
+                [ link sessionsPath <| el Logo [] (text "Lunar Rocks")
                 , case route of
                     Home ->
                         row None
-                            [ spacing 20, alignBottom ]
+                            [ spacing 20, paddingBottom 5, alignBottom ]
                             [ link "https://github.com/codyshepherd/music" <|
-                                el NavOption [ onClick Disconnect ] (text "Disconnect")
+                                el NavOption [ onClick Disconnect ] (text "⇑ Eject")
                             ]
 
                     SessionRoute id ->
                         row None
-                            [ spacing 20, alignBottom ]
+                            [ spacing 20, paddingBottom 5, alignBottom ]
                             [ link sessionsPath <| el NavOption [] (text "Sessions")
-
-                            -- , el NavOption [] (text "Leave Session")
                             , link sessionsPath <|
                                 el NavOption [ onClick (LeaveSession sessionId) ] (text "Leave Session")
                             ]
 
                     NotFoundRoute ->
                         row None
-                            [ spacing 20, alignBottom ]
+                            [ spacing 20, paddingBottom 5, alignBottom ]
                             [ link sessionsPath <| el NavOption [] (text "Sessions") ]
                 ]
         ]
@@ -98,15 +96,15 @@ page model =
                             ]
                         , paragraph None
                             []
+                            (List.map (\s -> viewSessionEntry s model.sessionLists.clientSessions)
+                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
+                            )
+                        , paragraph None
+                            []
                             [ button Button
                                 [ paddingXY 10 5, onClick (AddSession (newId model.sessionLists.sessions)) ]
                                 (text "New Session")
                             ]
-                        , textLayout None
-                            []
-                            (List.map viewSessionEntry
-                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
-                            )
                         ]
                 )
             , paragraph ErrorMessage [ paddingTop 20 ] [ (text model.errorMessage) ]
@@ -144,12 +142,21 @@ page model =
                             )
                         ]
                      ]
-                        ++ [ -- when ((List.length model.sessions.clientSessions) > 0)
-                             --       (h3 SubHeading
-                             --           [ paddingTop 20, paddingBottom 20 ]
-                             --           (text "YOUR SESSIONS")
-                             --       )
-                             paragraph None
+                        ++ [ paragraph None
+                                [ paddingBottom 10 ]
+                                ((el SmallHeading [] (text "IN THIS SESSION:  "))
+                                    :: (List.map viewMessage session.clients)
+                                )
+                           , textLayout None
+                                [ paddingBottom 10 ]
+                                (List.map viewMessage session.messages)
+                           ]
+                        ++ [ when ((List.length model.sessionLists.clientSessions) > 0)
+                                (h3 SmallHeading
+                                    [ paddingBottom 10 ]
+                                    (text "YOUR SESSIONS")
+                                )
+                           , paragraph None
                                 [ spacing 7 ]
                                 (List.map
                                     (\cs ->
@@ -166,12 +173,6 @@ page model =
                               in
                                 paragraph None
                                     [ spacing 3 ]
-                                    -- [ when ((List.length selectedSessions) >= 1)
-                                    --     (button
-                                    --         Button
-                                    --         [ paddingXY 10 2, onClick (Broadcast selectedSessions) ]
-                                    --         (text "Broadcast")
-                                    --     )
                                     [ when
                                         ((List.length selectedSessions == 1)
                                             && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
@@ -188,10 +189,6 @@ page model =
                                     ]
                              )
                            ]
-                        ++ [ textLayout None
-                                [ paddingBottom 10 ]
-                                (List.map viewMessage session.messages)
-                           ]
                     )
                 ]
 
@@ -199,23 +196,33 @@ page model =
             [ textLayout None [] [ text "Not found" ] ]
 
 
-viewSessionEntry : SessionId -> Element Styles variation Msg
-viewSessionEntry sessionId =
-    button Button
-        [ paddingXY 10 5, spacingXY 0 10 ]
-        (link (sessionPath sessionId) <| el None [] (text ("Session " ++ toString (sessionId))))
+viewSessionEntry : SessionId -> List SessionId -> Element Styles variation Msg
+viewSessionEntry sessionId clientSessions =
+    let
+        style =
+            if List.member sessionId clientSessions then
+                ActiveButton
+            else
+                Button
+    in
+        button style
+            [ paddingXY 10 5, spacing 7 ]
+            (link (sessionPath sessionId) <| el None [] (text (toString (sessionId))))
 
 
 viewSessionButton : SessionId -> List SessionId -> Element Styles variation Msg
 viewSessionButton sessionId selectedSessions =
     let
         style =
-            case List.member sessionId selectedSessions of
-                True ->
-                    SelectedSessionButton
-
-                False ->
-                    SessionButton
+            -- case List.member sessionId selectedSessions of
+            --     True ->
+            --         SelectedSessionButton
+            --     False ->
+            --         SessionButton
+            if List.member sessionId selectedSessions then
+                SelectedSessionButton
+            else
+                SessionButton
     in
         button style
             [ paddingXY 10 5, onClick (ToggleSessionButton sessionId) ]
@@ -224,7 +231,7 @@ viewSessionButton sessionId selectedSessions =
 
 viewMessage : String -> Element Styles variation Msg
 viewMessage msg =
-    paragraph None [] [ text msg ]
+    el Text [ paddingLeft 5 ] (text msg)
 
 
 viewLabels : Board -> Int -> List (Element Styles variation Msg)
