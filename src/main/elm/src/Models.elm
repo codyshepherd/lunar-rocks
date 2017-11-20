@@ -6,9 +6,9 @@ import Window exposing (Size)
 type alias Model =
     { clientId : ClientId
     , username : String
-    , trackId : TrackId
-    , sessionId : SessionId
     , serverId : ServerId
+    , sessionId : SessionId
+    , trackId : TrackId
     , sessions : List Session
     , sessionLists : SessionLists
     , route : Route
@@ -35,8 +35,7 @@ type alias SessionId =
 
 
 type alias SessionLists =
-    -- TODO: rename this as allSessions
-    { sessions : List SessionId
+    { allSessions : List SessionId
     , clientSessions : List SessionId
     , selectedSessions : List SessionId
     }
@@ -125,9 +124,9 @@ initialModel : Route -> Model
 initialModel route =
     { clientId = "clown shoes"
     , username = ""
-    , trackId = 0
-    , sessionId = 0
     , serverId = 0
+    , sessionId = 0
+    , trackId = 0
     , sessions =
         [ emptySession 0
         , emptySession 1
@@ -135,7 +134,7 @@ initialModel route =
         , emptySession 3
         ]
     , sessionLists =
-        { sessions = [ 0, 1, 2, 3 ]
+        { allSessions = [ 0, 1, 2, 3 ]
         , clientSessions = []
         , selectedSessions = []
         }
@@ -153,17 +152,17 @@ emptySession id =
         13
         1
         120
-        [ "alan", "cody", "sergey" ]
+        []
         [ Track 0
             ""
             ""
-            "Synth"
+            "Xylophone"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         , Track 1
             ""
             ""
-            "Drums"
+            "Marimba"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         ]
