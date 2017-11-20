@@ -7,7 +7,7 @@ import Window exposing (Size)
 
 
 type Msg
-    = AddSession SessionId
+    = AddSession
     | Broadcast (List SessionId) Track
     | Disconnect
     | IncomingMessage String

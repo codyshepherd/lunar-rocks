@@ -97,12 +97,12 @@ page model =
                         , paragraph None
                             []
                             (List.map (\s -> viewSessionEntry s model.sessionLists.clientSessions)
-                                (List.filter (\id -> id /= 0) model.sessionLists.sessions)
+                                (List.filter (\id -> id /= 0) model.sessionLists.allSessions)
                             )
                         , paragraph None
                             []
                             [ button Button
-                                [ paddingXY 10 5, onClick (AddSession (newId model.sessionLists.sessions)) ]
+                                [ paddingXY 10 5, onClick AddSession ]
                                 (text "New Session")
                             ]
                         ]
@@ -205,20 +205,19 @@ viewSessionEntry sessionId clientSessions =
             else
                 Button
     in
-        button style
-            [ paddingXY 10 5, spacing 7 ]
-            (link (sessionPath sessionId) <| el None [] (text (toString (sessionId))))
+        el None
+            []
+            (link (sessionPath sessionId) <|
+                button style
+                    [ paddingXY 10 5, spacing 7 ]
+                    (text (toString (sessionId)))
+            )
 
 
 viewSessionButton : SessionId -> List SessionId -> Element Styles variation Msg
 viewSessionButton sessionId selectedSessions =
     let
         style =
-            -- case List.member sessionId selectedSessions of
-            --     True ->
-            --         SelectedSessionButton
-            --     False ->
-            --         SessionButton
             if List.member sessionId selectedSessions then
                 SelectedSessionButton
             else
@@ -380,13 +379,3 @@ viewCell sessionId track clientId row c =
                         False ->
                             el act [] empty
             }
-
-
-newId : List SessionId -> SessionId
-newId sessions =
-    case List.head (List.reverse sessions) of
-        Just head ->
-            head + 1
-
-        Nothing ->
-            -1

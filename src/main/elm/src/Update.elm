@@ -15,7 +15,7 @@ import WebSocket
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AddSession newId ->
+        AddSession ->
             ( model
             , WebSocket.send websocketServer (encodeMessage model.clientId 101 (object []))
             )
@@ -49,18 +49,38 @@ update msg model =
 
         LeaveSession sessionId ->
             let
+                session =
+                    Maybe.withDefault
+                        (emptySession sessionId)
+                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+
+                newBoard =
+                    List.map releaseTrack session.board
+
+                releaseTrack track =
+                    if track.clientId == model.clientId then
+                        updateTrackUser track.trackId "" "" session.board
+                    else
+                        track
+
+                newSession =
+                    { session | board = newBoard }
+
+                newSessions =
+                    newSession :: model.sessions
+
                 sessionLists =
                     model.sessionLists
 
-                newSelectedSessions =
-                    List.filter (\id -> id /= sessionId) sessionLists.selectedSessions
+                newClientSessions =
+                    List.filter (\id -> id /= sessionId) sessionLists.clientSessions
 
                 newSessionLists =
-                    { sessionLists | selectedSessions = newSelectedSessions }
+                    { sessionLists | clientSessions = newClientSessions }
 
-                -- TODO: remove client from any tracks they hold? Or on response from server?
+                -- TODO: destroy session if client is last to leave
             in
-                ( { model | sessionLists = newSessionLists }
+                ( { model | sessions = newSessions, sessionLists = newSessionLists }
                 , WebSocket.send websocketServer
                     (encodeMessage model.clientId 104 (encodeSessionId sessionId))
                 )
@@ -100,6 +120,12 @@ update msg model =
                         NotFoundRoute ->
                             0
 
+                sessionLists =
+                    model.sessionLists
+
+                newSessionLists =
+                    { sessionLists | selectedSessions = [] }
+
                 websocketMessage =
                     case newRoute of
                         SessionRoute id ->
@@ -107,22 +133,26 @@ update msg model =
                                 (encodeMessage model.clientId 103 (encodeSessionId id))
 
                         Home ->
-                            -- TODO: sufficient to use the same message, but 0 for home?
-                            -- or is this implicit when LeaveSession
-                            WebSocket.send websocketServer
-                                (encodeMessage model.clientId 103 (encodeSessionId 0))
+                            Cmd.none
 
+                        -- TODO: sufficient to use the same message, but 0 for home?
+                        -- or is this implicit when LeaveSession
+                        -- WebSocket.send websocketServer
+                        --     (encodeMessage model.clientId 103 (encodeSessionId 0))
                         NotFoundRoute ->
                             WebSocket.send websocketServer
                                 (encodeMessage model.clientId 114 (encodeError "Route not found"))
             in
-                ( { model | route = newRoute, sessionId = newSessionId, sessions = newSessions }
-                  -- , WebSocket.send websocketServer ("Requesting " ++ toString (session.id))
+                ( { model
+                    | route = newRoute
+                    , sessionId = newSessionId
+                    , sessions = newSessions
+                    , sessionLists = newSessionLists
+                  }
                 , websocketMessage
                 )
 
         ReleaseTrack sessionId trackId clientId ->
-            --TODO: Send WS message
             let
                 session =
                     Maybe.withDefault
@@ -130,7 +160,7 @@ update msg model =
                         (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
 
                 newTrack =
-                    updateTrackUser trackId clientId "" session.board
+                    updateTrackUser trackId "" "" session.board
 
                 newBoard =
                     List.take trackId session.board
@@ -422,13 +452,15 @@ serverUpdateModel serverMessage model =
         Just sm ->
             case sm.messageId of
                 100 ->
-                    -- TODO: implement
-                    model
+                    -- TODO: test
+                    serverUpdateSession sm model
 
                 102 ->
+                    -- TODO: test
                     serverUpdateSession sm model
 
                 105 ->
+                    -- TODO: test
                     case sm.payload of
                         SessionIds ids ->
                             let
@@ -439,7 +471,7 @@ serverUpdateModel serverMessage model =
                                     List.sort ids
 
                                 newSessionsLists =
-                                    { sessionLists | sessions = newSessions }
+                                    { sessionLists | allSessions = newSessions }
                             in
                                 { model
                                     | sessionLists = newSessionsLists
@@ -461,7 +493,7 @@ serverUpdateModel serverMessage model =
                             Debug.log "107: Payload mismatch" model
 
                 111 ->
-                    -- TODO: status message needs to be more distinct, request or release?
+                    -- TODO: status message needs to be more distinct
                     model
 
                 113 ->
