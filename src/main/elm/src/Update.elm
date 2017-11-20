@@ -9,6 +9,7 @@ import Models exposing (..)
 import Msgs exposing (..)
 import Ports exposing (play)
 import Routing exposing (parseLocation)
+import Validate exposing (ifBlank, ifInvalid)
 import WebSocket
 
 
@@ -49,25 +50,8 @@ update msg model =
 
         LeaveSession sessionId ->
             let
-                session =
-                    Maybe.withDefault
-                        (emptySession sessionId)
-                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
-
-                newBoard =
-                    List.map releaseTrack session.board
-
-                releaseTrack track =
-                    if track.clientId == model.clientId then
-                        updateTrackUser track.trackId "" "" session.board
-                    else
-                        track
-
-                newSession =
-                    { session | board = newBoard }
-
                 newSessions =
-                    newSession :: model.sessions
+                    List.filter (\s -> s.id /= sessionId) model.sessions
 
                 sessionLists =
                     model.sessionLists
@@ -77,8 +61,6 @@ update msg model =
 
                 newSessionLists =
                     { sessionLists | clientSessions = newClientSessions }
-
-                -- TODO: destroy session if client is last to leave
             in
                 ( { model | sessions = newSessions, sessionLists = newSessionLists }
                 , WebSocket.send websocketServer
@@ -237,14 +219,21 @@ update msg model =
                 )
 
         SelectName ->
-            let
-                input =
-                    model.input
+            case validate model of
+                [] ->
+                    let
+                        input =
+                            model.input
 
-                message =
-                    encodeMessage model.clientId 112 (encodeNickname input)
-            in
-                ( { model | username = input }, WebSocket.send websocketServer message )
+                        message =
+                            encodeMessage model.clientId 112 (encodeNickname input)
+                    in
+                        ( { model | username = input, validationErrors = [] }
+                        , WebSocket.send websocketServer message
+                        )
+
+                errors ->
+                    ( { model | validationErrors = errors }, Cmd.none )
 
         Send sessionId ->
             let
@@ -316,6 +305,21 @@ update msg model =
 
         WindowResize size ->
             ( { model | windowSize = size }, Cmd.none )
+
+
+
+-- VALIDATORS
+
+
+validate : Model -> List ValidationError
+validate =
+    Validate.all
+        [ .input >> ifBlank ( Name, "Nickname can't be blank." )
+        , .input
+            >> ifInvalid
+                (\n -> String.length n >= 20)
+                ( Name, "Nickname must be less than 20 characters." )
+        ]
 
 
 
@@ -486,7 +490,7 @@ serverUpdateModel serverMessage model =
                             -- TODO: test if this re-routes correctly
                             { model
                                 | sessionId = 0
-                                , errorMessage = "The server disconnected you."
+                                , serverMessage = "The server disconnected you."
                             }
 
                         _ ->
