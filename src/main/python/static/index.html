@@ -1,35 +1,48 @@
 <!doctype HTML>
 <html>
   <head>
-    <title>λ</title>
+    <title>lunar rocks</title>
     <meta charset="utf-8" />
     <link href="https://fonts.googleapis.com/css?family=Cinzel|Quattrocento+Sans" rel="stylesheet">
   </head>
   <body>
     <div id="main"></div>
     <script type="text/javascript" src="main.js"></script>
-
-
     <script src='https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js'></script>
-    <script src='https://surikov.github.io/webaudiofontdata/sound/0842_FluidR3_GM_sf2_file.js'></script>
-    <script src='https://surikov.github.io/webaudiofontdata/sound/0390_FluidR3_GM_sf2_file.js'></script>
+    <!-- xylophone -->
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0130_FluidR3_GM_sf2_file.js'></script>
+    <!-- marimba -->
+    <script src='https://surikov.github.io/webaudiofontdata/sound/0120_FluidR3_GM_sf2_file.js'></script>
+    <script src="http://reverbjs.org/reverb.js"></script>
+
     <script>
      "use strict"
      var app = Elm.Main.fullscreen();
 
      var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
 		 var audioContext = new AudioContextFunc();
+     reverbjs.extend(audioContext);
      var player=new WebAudioFontPlayer();
-     player.loader.decodeAfterLoading(audioContext, '_tone_0842_FluidR3_GM_sf2_file');
-     player.loader.decodeAfterLoading(audioContext, '_tone_0390_FluidR3_GM_sf2_file');
+
+
+     /* xylophone */
+     player.loader.decodeAfterLoading(audioContext, '_tone_0130_FluidR3_GM_sf2_file');
+     /* marimba*/
+     player.loader.decodeAfterLoading(audioContext, '_tone_0120_FluidR3_GM_sf2_file');
+
+     // MaesHowe IR from http://www.openairlib.net/auralizationdb/content/maes-howe
+     var reverbUrl = "http://reverbjs.org/Library/MaesHowe.m4a";
+     var reverb = audioContext.createReverbFromUrl(reverbUrl, function() {
+       reverb.connect(audioContext.destination);
+     });
 
      var compressor = audioContext.createDynamicsCompressor();
-     compressor.threshold.value = -50;
+     compressor.threshold.value = -30;
      compressor.knee.value = 40;
      compressor.ratio.value = 12;
-     compressor.attack.value = 0;
+     compressor.attack.value = 0.15;
      compressor.release.value = 0.25;
-     compressor.connect(audioContext.destination);
+     compressor.connect(reverb);
 
      var highpassFilter = audioContext.createBiquadFilter();
      highpassFilter.type = 'highpass';
@@ -38,20 +51,18 @@
 
      var lowpassFilter = audioContext.createBiquadFilter();
      lowpassFilter.type = 'lowpass';
-     lowpassFilter.frequency.value = 3000;
+     lowpassFilter.frequency.value = 8000;
      lowpassFilter.connect(highpassFilter);
 
 
      function playNote(trackId, tone){
        if (trackId === 0) {
-         /* Lead 5: Charang*/
          player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0842_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.4);
+                             , _tone_0130_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.5);
        }
        else {
-         /* Synth Bass 2*/
          player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0390_FluidR3_GM_sf2_file , 0, (12*3+tone), 1, 0.2);
+                             , _tone_0120_FluidR3_GM_sf2_file , 0, (12*4+tone), 1, 0.3);
        }
 	     return false;
      }

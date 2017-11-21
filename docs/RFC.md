@@ -194,7 +194,7 @@ Message IDs and descriptions are detailed in the following table:
 | 105| Update SessionList | Server | [SessionID]            | Server sends this update to Clients when its active Server list is updated |
 | 106| Disconnect         | Client | | Client notifies Server it is disconnecting |
 | 107| Disconnect         | Server | | Server notifies Client that either the Server is going down, or Client is being kicked |
-| 108| Broadcast          | Client | (Session, [SessionID]) | Used when the Client wants to update all its active Sessions with its current Board |
+| 108| Broadcast          | Client | (Track, [SessionID]) | Used when the Client wants to update a set of active Sessions with a selected track |
 | 109| Request Track      | Client | (SessionID, TrackID)   | Used when a Client wants to select a Track in a Session |
 | 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
 | 111| Track Request Response | Server | Boolean | Server notifies Client as to the status of its Track Request |
@@ -223,7 +223,7 @@ Wherever two keys/values are listed, they should be interpreted respectively. E.
 | 105 | [SessionID] | 'sessionIDs' | [Int] |
 | 106 | None | | |
 | 107 | None | | |
-| 108 | (Session, [SessionID]) | 'session', 'sessionIDs' | session object, [Int] |
+| 108 | (Track, [SessionID]) | 'track', 'sessionIDs' | track object, [Int]  |
 | 109 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
 | 110 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
 | 111 | Boolean {True, False} | 'status' | Boolean {True, False} |
