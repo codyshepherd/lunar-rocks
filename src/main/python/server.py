@@ -13,13 +13,14 @@ LOG_NAME = "server.log"
 #if os.path.isfile(LOG_NAME):
 #    os.remove(LOG_NAME)
 
-
 LOGGER = logging.getLogger(LOG_NAME)
 logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 DISPATCH_TABLE = {
     100: lambda x: handle_100(x),
     101: lambda x: handle_101(x),
+    109: lambda x: handle_109(x),
+    110: lambda x: handle_110(x),
     112: lambda x: handle_112(x)
 }
 
@@ -30,14 +31,20 @@ async def handle(websocket, path):
     async for message in websocket:
         LOGGER.info("Message received: " + str(message))
         #await websocket.send(message)
+        addr = websocket.remote_address()
         obj = json.loads(message)
         msgID = obj.get("messageID")
+        srcID = obj.get("sourceID")
         LOGGER.info("Type of msgID: " + str(type(msgID)))
         if not (obj and msgID):
             LOGGER.info("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
+        elif not srcID:
+            LOGGER.info("No sourceID provided")
+            await websocket.send(error_msg("ERROR: srcID must be provided"))
         else:
             LOGGER.info("Dispatch table called")
+            CTRL.log_socket(srcID, addr)
             await websocket.send(DISPATCH_TABLE[msgID](obj))
 
 def make_msg(srcID, msgID, payload):
@@ -61,9 +68,32 @@ def handle_100(msg):
     """
     Handler for msg code 101: Update Session
 
+    Sends updates to all clients in the session's clientlists
+
     returns a json-serialized object
     """
-    pass #TODO
+    LOGGER.debug("handle_100() started")
+
+    cid = msg.get("sourceID")
+    payload = msg.get("payload")
+
+    if not payload:
+        LOGGER.error("No payload provided to handle_100")
+        return error_msg("Error: no payload provided for msgID 100")
+
+    sess = msg.get("payload").get("session")
+    if not sess:
+        LOGGER.error("No session provided to handle_100()")
+        return error_msg("Error: no session object provided for msgID 100")
+
+    newsess =  CTRL.update_session(cid, sess)
+
+    newmsg = make_msg(SERVER_ID, 100, {'session': newsess.export()})
+    for cid, nick in newsess.clientlist:
+        sock = CTRL.get_socket(cid)
+        sock.send(newmsg)
+
+    return newmsg
 
 
 def handle_101(msg):
@@ -88,6 +118,23 @@ def handle_101(msg):
         msg = error_msg("Error: Could not join session.")
 
     return msg
+
+def handle_109(msg):
+    """
+    Handler for msgID 109: Request Track
+
+    :param msg:
+    :return:
+    """
+    pass
+
+def handle_110(msg):
+    """
+    Handler for msgID 110: Relinquish Track
+    :param msg:
+    :return:
+    """
+    pass
 
 def handle_112(msg):
     """

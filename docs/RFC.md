@@ -112,7 +112,7 @@ A session object takes the following form.
 ```
 {
         "sessionID": integer,
-        "clients": [UUID],
+        "clients": [nick],
         "tempo": integer,
         "board": [trackObject]
 }
@@ -122,7 +122,8 @@ A track object takes the following form.
 ```
 {
         "trackID": integer,
-        "clientID": UUID,
+        "clientID": UUID string, 
+        "nickname": string,
         "grid":  [[integer]]
 }
 ```

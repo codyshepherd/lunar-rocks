@@ -4,16 +4,16 @@ import uuid
 import logging
 import os
 
+#TODO: Adding Client to Session stores their nickname
+#TODO: Session.export() returns nicknames rather than UUIDs in clientlist
+#TODO: Session.addclient() takes nickname as well as cid
+
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
 MAX_CLIENTS = 1000
 DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
-
-#if os.path.isfile(LOG_NAME):
-#   os.remove(LOG_NAME)
-
 
 LOGGER = logging.getLogger(LOG_NAME)
 logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
@@ -23,7 +23,8 @@ class Track:
     def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO):
         LOGGER.debug("Track " + str(trackID) + " created")
         self.trackID = trackID              # String
-        self.clientID = ""                  # UUID
+        self.clientID = ''                  # UUID String
+        self.clientNick = ''                # String
         self.grid = np.zeros(dimensions, dtype=int).tolist() # 2D list of ints
         self.dimensions = dimensions        # tuple of ints
 
@@ -70,6 +71,7 @@ class Track:
         return {
             "trackID": self.trackID,
             "clientID": self.clientID,
+            "nickname": self.clientNick,
             "grid": self.grid
         }
 
@@ -77,7 +79,7 @@ class Session:
 
     def __init__(self, sessionID):
         LOGGER.debug("Session " + str(sessionID) + " created")
-        self.clientlist = []
+        self.clientlist = []            # list of (UUID, nickname) pairs
         self.sessionID = sessionID
         self.trackIDs = TRACK_IDS
         self.tracks = {}
@@ -89,47 +91,53 @@ class Session:
         update self from sess dict
 
         :param sess: a dict in same format as output of Session.export()
-        :returns: boolean about the success of the function
+        :return: output of self.export
         """
         LOGGER.debug("Session.update() started")
         trackslist = sess.get('tracks')
         if not trackslist:
             LOGGER.error("No tracklist provided to Session.update() by sess argument")
-            return False
+            return None
 
         for (new, trackobj) in zip(trackslist, self.tracks):
             if not trackobj.update(new):
                 LOGGER.error("Session.update() quitting because of error in Track.update()")
-                return False
+                return None
 
-        return True
+        return self.export()
             
-    def request_track(self, cid, tid):
+    def request_track(self, cid, nick, tid):
         """
         Adds cid as owner to specified track if that track is available
 
         :param cid: clientID string
+        :param nick: client nickname string
         :param tid: trackID string
-        :returns: boolean - whether client was added successfully or not
+        :return: trackID, sessionID, boolean - the first two fields are None if last is False
         """
         LOGGER.debug("Session.request_track() started")
 
+        if cid not in [x[0] for x in self.clientlist]:
+            LOGGER.error("clientID passed to Session.request_track() not in session clientlist")
+            return None, None, False
+
         if tid not in self.trackIDs:
             LOGGER.error("trackID passed to Session.request_track() not in trackIDs")
-            return False
+            return None, None, False
 
         t = self.tracks.get(str(tid))
 
         if not t:
             LOGGER.error("For some reason the trackID passed to Session.request_track() can't find a track!")
-            return False
+            return None, None, False
 
-        if t.clientID != '':
+        if t.clientID:
             LOGGER.error("Track specified to Session.request_track() is already owned")
-            return False
+            return None, None, False
 
         t.clientID = cid
-        return True
+        t.clientNick = nick
+        return t.trackID, self.sessionID, True
 
     def relinquish_track(self, cid, tid):
         """
@@ -137,9 +145,13 @@ class Session:
 
         :param cid: clientID string
         :param tid: trackID string
-        :returns: boolean - whether function was successful or not
+        :return: boolean - whether function was successful or not
         """
         LOGGER.debug("Session.relinquish_track() started")
+
+        if cid not in [x[0] for x in self.clientlist]:
+            LOGGER.error("clientID passed to Session.relinquish_track() not in session's clientlist")
+            return False
 
         if tid not in self.trackIDs:
             LOGGER.error("trackID " + str(tid) + " provided to Session.relinquish_track() not in Session's trackIDs")
@@ -152,19 +164,22 @@ class Session:
             return False
 
         t.clientID = ''
+        t.clientNick = ''
         return True
 
-    def add_client(self, cid):
+    def add_client(self, cid, nick):
         """
         Adds client to specified track
 
         :param cid: clientID string
-        :returns: boolean - whether function was successful or not
+        :param nick: client nickname string
+        :return: boolean - whether function was successful or not
+
         """
         LOGGER.debug("Session.add_client() started")
 
         if cid not in self.clientlist:
-            self.clientlist.append(cid)
+            self.clientlist.append((cid, nick))
 
         return True
 
@@ -173,19 +188,19 @@ class Session:
         Removes specified client from Session, including removing them from any tracks they are part of.
 
         :param cid: clientID string
-        :returns: boolean - whether the function was successful or not
+        :return: boolean - whether the function was successful or not
         """
         LOGGER.debug("Session.remove_client() started")
 
-        if cid not in self.clientlist:
+        if cid not in [x[0] for x in self.clientlist]:
             LOGGER.error("id provided to Session.remove_client() is not a member of the session")
             return False
 
         #self.clientlist = filter(lambda x: x != cid, self.clientlist)
-        self.clientlist = [x for x in self.clientlist if x != cid]
+        self.clientlist = [x for x in self.clientlist if x[0] != cid]
 
         for tid in self.trackIDs:
-            self.relinquish_track(cid, tid)     #TODO: let the next "waiting" client into this track
+            self.relinquish_track(cid, tid)
 
         return True
 
@@ -194,7 +209,7 @@ class Session:
         States whether the Session has no current clients
         True if no clients, false otherwise.
 
-        :returns: boolean - whether function was successful or not
+        :return: boolean - whether function was successful or not
         """
         LOGGER.debug("Session.is_empty() started")
         if not self.clientlist:
@@ -206,11 +221,11 @@ class Session:
         """
         Exports pertinent contents as a json-serializable dict
 
-        :returns: session as dict according to RFC
+        :return: session as dict according to RFC
         """
         LOGGER.debug("Session.export() started")
         return {
-            "clientlist", self.clientlist,
+            "clientlist", [x[1] for x in self.clientlist],  # export only client nicknames
             "sessionID", self.sessionID,
             "tracks", [x.export for x in self.tracks]
         }
@@ -219,16 +234,35 @@ class Controller:
 
     def __init__(self):
         LOGGER.debug("Controller.__init__() started")
-        self.clients = {} #(UUID: String)
-        self.client_sessions = {} #(UUID: List(SessionID))
-        self.sessions = {} #(SessionID: Session)
+        self.clients = {}           # (UUID: String)
+        self.client_sessions = {}   # (UUID: List(SessionID))
+        self.sessions = {}          # (SessionID: Session)
+        self.sockets = {}
+
+    def log_socket(self, cid, addr):
+        """
+        Tracks websocket connections by client ID
+        :param cid:  UUID string for the client
+        :param addr: (host, port) tuple
+        :return: None
+        """
+
+        self.sockets[cid] = addr
+
+    def get_socket(self, cid):
+        """
+        Returns the websocket by clientID
+        :param cid: UUID string for client
+        :return: websocket
+        """
+        return self.sockets.get(cid)
 
     def get_session(self, sid):
         """
         returns the IDed session as a dict
 
         :param sid: sessionID int
-        :returns: output of Session.export()
+        :return: output of Session.export()
         """
         LOGGER.debug("Controller.get_session() started")
         sess = self.sessions.get(sid)
@@ -243,7 +277,7 @@ class Controller:
         """
         Start a new session
 
-        :returns: sessionID (int) of new session
+        :return: sessionID (int) of new session
         """
         LOGGER.debug("Controller.new_session() started")
         sid = 0
@@ -258,7 +292,7 @@ class Controller:
         Client joins server
 
         :param nick: String specifying client nickname (human readable name)
-        :returns: uuid string for new client
+        :return: uuid string for new client
         """
         LOGGER.debug("Controller.new_client() started")
         cid = uuid.uuid4()
@@ -273,7 +307,7 @@ class Controller:
         Client exits/disconnects from server
 
         :param cid: clientID string
-        :returns: Boolean - whether or not function succeeded
+        :return: Boolean - whether or not function succeeded
         """
         LOGGER.debug("Controller.client_exit() started")
 
@@ -299,11 +333,11 @@ class Controller:
         if not sess:
             return False
 
-        client = self.clients.get(cid)
-        if not client:
+        nick = self.clients.get(cid)
+        if not nick:
             return False
 
-        sess.add_client(cid)
+        sess.add_client(cid, nick)
         self.client_sessions[cid].append(sess.sessionID)
         return True
 
@@ -336,29 +370,27 @@ class Controller:
 
         :param cid: string - clientID
         :param sess: dict - session represented as dict, same as output of Session.export()
+        :return: json-serializable object (None if update failed)
         """
         LOGGER.debug("update_session() started")
         sid = sess.get('sessionID')
 
         if not sid:
             LOGGER.error("No session ID provided in argument!")
-            return False
+            return None
 
         sessionIDs = self.client_sessions.get(cid)
         if not sessionIDs or sid not in sessionIDs:
             LOGGER.error("Wanted to update a session it didn't own.")
-            return False
+            return None
 
         session = self.sessions.get(sid)
         if not session:
             LOGGER.error("Session not found")
-            return False
+            return None
 
-        if not session.update(sess):
-            return False
-        else:
-            return True
-        
+        return session.update(sess)
+
 
 
 
