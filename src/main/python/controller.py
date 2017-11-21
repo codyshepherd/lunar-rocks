@@ -239,15 +239,15 @@ class Controller:
         self.sessions = {}          # (SessionID: Session)
         self.sockets = {}
 
-    def log_socket(self, cid, addr):
+    def log_socket(self, cid, sock):
         """
         Tracks websocket connections by client ID
         :param cid:  UUID string for the client
-        :param addr: (host, port) tuple
+        :param sock: a websocket object
         :return: None
         """
 
-        self.sockets[cid] = addr
+        self.sockets[cid] = sock
 
     def get_socket(self, cid):
         """

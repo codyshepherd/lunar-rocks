@@ -27,15 +27,18 @@ DISPATCH_TABLE = {
 CTRL = controller.Controller()
 
 async def handle(websocket, path):
-    LOGGER.info("handle called")
+    LOGGER.debug("handle called")
     async for message in websocket:
-        LOGGER.info("Message received: " + str(message))
-        #await websocket.send(message)
-        addr = websocket.remote_address()
+        LOGGER.debug("Message received: " + str(message))
+
+        addr = websocket.remote_address
+        #LOGGER.debug("Address of socket: " + str(addr[0]) + ':' + str(addr[1]))
+
         obj = json.loads(message)
         msgID = obj.get("messageID")
         srcID = obj.get("sourceID")
-        LOGGER.info("Type of msgID: " + str(type(msgID)))
+        #LOGGER.debug("Type of msgID: " + str(type(msgID)))
+
         if not (obj and msgID):
             LOGGER.info("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
@@ -44,10 +47,18 @@ async def handle(websocket, path):
             await websocket.send(error_msg("ERROR: srcID must be provided"))
         else:
             LOGGER.info("Dispatch table called")
-            CTRL.log_socket(srcID, addr)
+            CTRL.log_socket(srcID, websocket)
             await websocket.send(DISPATCH_TABLE[msgID](obj))
 
 def make_msg(srcID, msgID, payload):
+    """
+    Helper function for generating well-formed json messages.
+
+    :param srcID: the ID of this server, ideally
+    :param msgID: the msgID as dictated by the RFC
+    :param payload: The stuff to put in the payload, if any
+    :return: a json-serialized message
+    """
     msg = json.dumps({
         "sourceID": srcID,
         "messageID": msgID,
@@ -56,6 +67,12 @@ def make_msg(srcID, msgID, payload):
     return msg
 
 def error_msg(txt):
+    """
+    A Helper function for generating well-formed json error messages
+
+    :param txt: the error string
+    :return: a json-serialized message
+    """
     msg = json.dumps({
         "sourceID": SERVER_ID,
         "messageID": 114,
@@ -118,6 +135,14 @@ def handle_101(msg):
         msg = error_msg("Error: Could not join session.")
 
     return msg
+
+def handle_103(msg):
+    """
+    Handler for msgID 103: Join Session
+    :param msg:
+    :return:
+    """
+    pass
 
 def handle_109(msg):
     """
