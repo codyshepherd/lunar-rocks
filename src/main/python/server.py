@@ -19,6 +19,8 @@ logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 DISPATCH_TABLE = {
     100: lambda x: handle_100(x),
     101: lambda x: handle_101(x),
+    103: lambda x: handle_103(x),
+    104: lambda x: handle_104(x),
     109: lambda x: handle_109(x),
     110: lambda x: handle_110(x),
     112: lambda x: handle_112(x)
@@ -48,7 +50,9 @@ async def handle(websocket, path):
         else:
             LOGGER.info("Dispatch table called")
             CTRL.log_socket(srcID, websocket)
-            await websocket.send(DISPATCH_TABLE[msgID](obj))
+            msg = DISPATCH_TABLE[msgID](obj)
+            if msg:
+                await websocket.send(DISPATCH_TABLE[msgID](obj))
 
 def make_msg(srcID, msgID, payload):
     """
@@ -87,7 +91,8 @@ def handle_100(msg):
 
     Sends updates to all clients in the session's clientlists
 
-    returns a json-serialized object
+    :param msg: the message dict
+    :return: a json-serialized object
     """
     LOGGER.debug("handle_100() started")
 
@@ -115,57 +120,176 @@ def handle_100(msg):
 
 def handle_101(msg):
     """
-    Handler for msg code 101: Create session
+    Handler for msgID 101: Create Session
 
-    Returns an appropriate json-serialized object
+    :param msg: the message dict
+    :return: a json-serialized object
     """
-    LOGGER.info("handle_101(): Create Session started")
+    LOGGER.debug("handle_101(): Create Session started")
     src_client = msg.get("sourceID")
-    if not src_client:
-        LOGGER.error("Client did not provide sourceID")
-        return error_msg("Error: sourceID must be provided")
 
     sessID = CTRL.new_session()
     if CTRL.client_join(src_client, sessID):
-        LOGGER.info("Client " + src_client + " joined session " + str(sessID))
-        msg = make_msg(SERVER_ID, 102, {'session': CTRL.get_session(sessID)})
+        LOGGER.debug("Client " + src_client + " joined session " + str(sessID))
+        newmsg = make_msg(SERVER_ID, 102, {'session': CTRL.get_session(sessID)})
 
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
-        msg = error_msg("Error: Could not join session.")
+        newmsg = error_msg("Error: Could not join session.")
 
-    return msg
+    return newmsg
 
 def handle_103(msg):
     """
     Handler for msgID 103: Join Session
-    :param msg:
-    :return:
+
+    :param msg: the message dict
+    :return: a json-serialized object
     """
-    pass
+    LOGGER.debug("handle_103(): Join Session started")
+
+    cid = msg.get("sourceID")
+    sid = msg.get("payload").get("sessionID")
+
+    if not sid:
+        LOGGER.error("sid not provided")
+        return error_msg("Error: sessionID must be provided in payload")
+
+    if CTRL.client_join(cid, sid):
+        LOGGER.debug("Client " + cid + " joined session " + str(sid))
+        newmsg = make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)})
+
+    else:
+        LOGGER.error("Client " + cid + " attempt to join session " + str(sid) + " failed")
+        newmsg = error_msg("Error: Could not join session")
+
+    return newmsg
+
+def handle_104(msg):
+    """
+    Handler for msgID 104: Leave Session
+
+    :param msg: the message dict
+    :return: a json-serialized object
+    """
+    LOGGER.debug("handle_104(): Leave Session started")
+
+    cid = msg.get("sourceID")
+    sid = msg.get("payload").get("sessionID")
+
+    if not sid:
+        LOGGER.error("sid not provided")
+        return error_msg("Error: sessionID must be provided in payload")
+
+    if CTRL.client_leave(cid, sid):
+        newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': CTRL.client_sessions[cid]})
+    else:
+        newmsg = error_msg("Error: Leave session failed")
+
+    return newmsg
+
+def handle_106(msg):
+    """
+    Handler for msgID 106: Client Disconnect
+
+    :param msg: the message dict
+    :return: a json-serialized object
+    """
+    LOGGER.debug("handle_106(): Client Disconnect started")
+
+    cid = msg.get("sourceID")
+
+    if CTRL.client_exit(cid):
+        LOGGER.debug("Client disconnect successful")
+    else:
+        LOGGER.error("Client disconnect failed")
+
+    return None
+
+def handle_108(msg):
+    """
+    Handler for msgID 108: Broadcast
+
+    :param msg: the message dict
+    :return: a json-serialized object, or None
+    """
+    LOGGER.debug("handle_108(): Broadcast started")
+
+    cid = msg.get("sourceID")
+
+    track = msg.get("track")
+
+    if not track:
+        LOGGER.error("No track provided")
+        return error_msg("Error: track must be provided")
+
+    sids = msg.get("sessionIDs")
+
+    if not sids:
+        LOGGER.error("No list of sessionIDs provided")
+        return error_msg("Error: list of sessionIDs must be provided")
+
+    sessions = CTRL.broadcast(cid, sids, track)
+
+    for sess in sessions:
+        for ccid,nick in sess.clientlist:
+            if ccid != cid:
+                sock = CTRL.get_socket(ccid)
+                sock.send(make_msg(SERVER_ID, 100, {'session': sess.export()}))
+
+    return None
 
 def handle_109(msg):
     """
     Handler for msgID 109: Request Track
 
-    :param msg:
-    :return:
+    :param msg: the message dict
+    :return: a json-serialized object
     """
-    pass
+    LOGGER.debug("handle_109(): Request Track started")
+
+    cid = msg.get("sourceID")
+    sid = msg.get("payload").get("sessionID")
+    tid = msg.get("payload").get("trackID")
+
+    trid, ssid, yn = CTRL.request_track(cid, sid, tid)
+
+    if not trid:
+        newmsg = error_msg("Error: request_track failed")
+    else:
+        newmsg = make_msg(SERVER_ID, 111, {'status': yn, 'sessionID': ssid, 'trackID': trid})
+
+    return newmsg
 
 def handle_110(msg):
     """
     Handler for msgID 110: Relinquish Track
-    :param msg:
-    :return:
+
+    :param msg: the message dict
+    :return: a json-serialized object
     """
-    pass
+    cid = msg.get("sourceID")
+    sid = msg.get("payload").get("sessionID")
+    tid = msg.get("payload").get("trackID")
+
+    if not (sid and tid):
+        LOGGER.error("sid or tid not given in message")
+        return error_msg("Error: sessionID and trackID required")
+
+    if CTRL.relinquish_track(cid, sid, tid):
+        LOGGER.debug("Client " + str(cid) + " relinquished track " + str(sid) + ':' + str(tid))
+        return make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)})
+    else:
+        LOGGER.error("Client " + str(cid) + " failed to relinquish track " + str(sid) + ':' + str(tid))
+        return error_msg("Error: Failed to relinquish track")
+
 
 def handle_112(msg):
     """
     Handler for msgID 112: Client Connect
-    
-    returns an appropriate json-serialized object
+
+    :param msg: the message dict
+    :return: a json-serialized object
     """
     LOGGER.info("handle_112():Client Connect started")
 
@@ -180,9 +304,6 @@ def handle_112(msg):
     LOGGER.info("New client ID: " + clientID)
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID})
-
-
-
 
 
 LOGGER.info("websocket server started")

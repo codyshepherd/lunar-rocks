@@ -33,6 +33,7 @@ class Track:
         update self from trk dict
 
         :param trk: dict in same format as output of export()
+        :return: boolean about success of funciton
         """
         LOGGER.debug("Track.update() started")
         newgrid = trk.get('grid')
@@ -52,6 +53,7 @@ class Track:
         Ensures dimensions of given state matches those of self.dimensions
 
         :param grd: a 2-D list
+        :return: boolean about success of function
         """
         LOGGER.debug("Task.check_dimensions() started")
         rows = len(grd)
@@ -66,6 +68,8 @@ class Track:
     def export(self):
         """
         exports internal parametrs as json-serializable dict
+
+        :return: well-formed dict according to the RFC
         """
         LOGGER.debug("Task.export() started")
         return {
@@ -105,7 +109,35 @@ class Session:
                 return None
 
         return self.export()
-            
+
+    def update_track(self, cid, trk):
+        """
+        Updates the specified track if the client owns it
+
+        :param cid: clientID
+        :param trk: track dict (same as output of Track.export())
+        :return: boolean about success of function
+        """
+        LOGGER.debug("Session.update_track() started")
+
+        tid = trk['trackID']
+
+        track = self.tracks.get(tid)
+
+        if not track:
+            LOGGER.error("No track by id " + str(tid) + " found")
+            return False
+
+        if track.clientID != cid:
+            LOGGER.error("Client " + str(cid) + " doesn't own track " + str(tid))
+            return False
+
+        if not track.update(trk):
+            LOGGER.error("Track update failed")
+            return False
+
+        return True
+
     def request_track(self, cid, nick, tid):
         """
         Adds cid as owner to specified track if that track is available
@@ -323,11 +355,16 @@ class Controller:
 
         self.client_sessions[cid] = []
         del self.clients[cid]
+        del self.sockets[cid]
         return True
 
     def client_join(self, cid, sid):
         """
         Adds client to a session
+
+        :param cid: clientID
+        :param sid: sessionID
+        :return: Boolean about success of funciton
         """
         sess = self.sessions.get(sid)
         if not sess:
@@ -344,6 +381,10 @@ class Controller:
     def client_leave(self, cid, sid):
         """
         Client leaves a Session
+
+        :param cid: clientID
+        :param sid: sessionID
+        :return: Boolean about success of function
         """
         sess = self.sessions.get(sid)
         if not sess:
@@ -391,12 +432,86 @@ class Controller:
 
         return session.update(sess)
 
+    def request_track(self, cid, sid, tid):
+        """
+        Allows a client to request ownership of track
 
+        :param cid: id of client requesting track
+        :param sid: sessionID of track
+        :param tid: trackID
+        :return: trackID, sessionID, Boolean
+        """
+        LOGGER.debug("Controller.request_track() started")
 
+        sess = self.sessions.get(sid)
 
+        if not sess:
+            LOGGER.error("sid provided does not exist")
+            return None, None, False
 
+        nick = self.clients.get(cid)
+        if not nick:
+            LOGGER.error("cid provided does not exist")
+            return None, None, False
 
+        return sess.request_track(cid, nick, tid)
 
+    def relinquish_track(self, cid, sid, tid):
+        """
+        Allows client to relinquish ownership of a track they own
+
+        :param cid: clientID string
+        :param sid: sessionID
+        :param tid: trackID
+        :return: boolean about success of function (True)
+        """
+        LOGGER.debug("Controller.relinquish_track() started")
+
+        sess = self.sessions.get(sid)
+
+        if not sess:
+            LOGGER.error("sid provided does not exist")
+            return False
+
+        return sess.relinquish_track(cid, tid)
+
+    def broadcast(self, cid, sids, trk):
+        """
+        Allows client to broadcast a track to all owned sessions/tracks
+
+        :param cid: clientID
+        :param sids: list of sessionIDs
+        :param trk: a track dict (same as output of Track.export())
+        :return: list of sessions
+        """
+        LOGGER.debug("Controller.broadcast() started")
+
+        tid = trk.get("trackID")
+        if not tid:
+            LOGGER.error("No trackID given")
+            return None
+
+        client_sessions = self.client_sessions.get(cid)
+        sessions = []
+
+        for id in sids:
+            if id not in client_sessions:
+                LOGGER.error("Client " + str(cid) + " not in session " + str(id))
+                continue
+
+            sess = self.sessions.get(id)
+
+            if not sess:
+                LOGGER.error("No session found for sessionID " + str(id))
+                continue
+
+            if not sess.update_track(cid, trk):
+                LOGGER.error("Update track failed for client " + str(cid) + " session " + str(id) + " track " + str(tid))
+                continue
+
+            sessions.append(sess)
+
+        return sessions
 
 
 

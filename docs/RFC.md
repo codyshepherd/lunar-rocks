@@ -226,7 +226,7 @@ Wherever two keys/values are listed, they should be interpreted respectively. E.
 | 108 | (Track, [SessionID]) | 'track', 'sessionIDs' | track object, [Int]  |
 | 109 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
 | 110 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
-| 111 | Boolean {True, False} | 'status' | Boolean {True, False} |
+| 111 | Boolean {True, False}, sessionID, trackID | 'status', 'sessionID', 'trackID' | Boolean {True, False}, Int, Int |
 | 112 | String | 'nickname' | String |
 | 113 | ClientID (UUID String) | 'clientID' | String |
 | 114 | String | 'error' | String |
