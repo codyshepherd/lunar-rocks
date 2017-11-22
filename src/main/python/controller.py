@@ -257,9 +257,10 @@ class Session:
         """
         LOGGER.debug("Session.export() started")
         return {
-            "clientlist", [x[1] for x in self.clientlist],  # export only client nicknames
-            "sessionID", self.sessionID,
-            "tracks", [x.export for x in self.tracks]
+            "clients": [x[1] for x in self.clientlist],  # export only client nicknames
+            "sessionID": self.sessionID,
+            "tempo": DEFAULT_TEMPO,
+            "board": [x.export() for x in self.tracks.values()]
         }
 
 class Controller:
@@ -375,6 +376,8 @@ class Controller:
             return False
 
         sess.add_client(cid, nick)
+        if not self.client_sessions.get(cid):
+            self.client_sessions[cid] = []
         self.client_sessions[cid].append(sess.sessionID)
         return True
 

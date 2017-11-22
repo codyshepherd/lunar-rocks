@@ -42,15 +42,16 @@ async def handle(websocket, path):
         #LOGGER.debug("Type of msgID: " + str(type(msgID)))
 
         if not (obj and msgID):
-            LOGGER.info("Error sent")
+            LOGGER.debug("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
         elif not srcID:
-            LOGGER.info("No sourceID provided")
+            LOGGER.debug("No sourceID provided")
             await websocket.send(error_msg("ERROR: srcID must be provided"))
         else:
-            LOGGER.info("Dispatch table called")
+            LOGGER.debug("Dispatch table called")
             CTRL.log_socket(srcID, websocket)
             msg = DISPATCH_TABLE[msgID](obj)
+            LOGGER.debug("Message sent: " + msg)
             if msg:
                 await websocket.send(DISPATCH_TABLE[msgID](obj))
 
@@ -63,6 +64,7 @@ def make_msg(srcID, msgID, payload):
     :param payload: The stuff to put in the payload, if any
     :return: a json-serialized message
     """
+    LOGGER.debug("make_msg() started")
     msg = json.dumps({
         "sourceID": srcID,
         "messageID": msgID,
@@ -131,7 +133,8 @@ def handle_101(msg):
     sessID = CTRL.new_session()
     if CTRL.client_join(src_client, sessID):
         LOGGER.debug("Client " + src_client + " joined session " + str(sessID))
-        newmsg = make_msg(SERVER_ID, 102, {'session': CTRL.get_session(sessID)})
+        sess = CTRL.get_session(sessID)
+        newmsg = make_msg(SERVER_ID, 102, {'session': sess})
 
     else:
         LOGGER.error("Client " + src_client + " attempt to join session failed")
