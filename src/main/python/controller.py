@@ -88,7 +88,7 @@ class Session:
         self.trackIDs = TRACK_IDS
         self.tracks = {}
         for num in self.trackIDs:
-            self.tracks[num] = Track(str(num))
+            self.tracks[num] = Track(num)
 
     def update(self, sess):
         """
@@ -270,7 +270,33 @@ class Controller:
         self.clients = {}           # (UUID: String)
         self.client_sessions = {}   # (UUID: List(SessionID))
         self.sessions = {}          # (SessionID: Session)
-        self.sockets = {}
+        self.sockets = {}           # UUID: websocket
+        self.addrs = {}             # host: clientID, port
+
+    def log_cid_by_address(self, cid, addr):
+        """
+        Tracks clientIDs and port numbers by host address,
+        to assist in handling of Duplicate 112 messages from
+        the same client.
+
+        :param cid: clientID
+        :param addr: (host, port) tuple
+        :return: None
+        """
+        host = addr[0]
+        port = addr[1]
+
+        self.addrs[host] = (cid, port)
+
+    def get_cid_by_address(self, addr):
+        """
+        Allows for retrieval of (host,port) address by clientID
+
+        :param addr: a host,port tuple
+        :return: (cid, port) tuple, or None
+        """
+
+        return self.addrs.get(addr[0])
 
     def log_socket(self, cid, sock):
         """

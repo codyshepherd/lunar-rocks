@@ -48,12 +48,17 @@ async def handle(websocket, path):
             LOGGER.debug("No sourceID provided")
             await websocket.send(error_msg("ERROR: srcID must be provided"))
         else:
+            if msgID == 112:
+                obj['addr'] = addr
+
             LOGGER.debug("Dispatch table called")
-            CTRL.log_socket(srcID, websocket)
+            if srcID != "clown shoes":
+                CTRL.log_socket(srcID, websocket)
             msg = DISPATCH_TABLE[msgID](obj)
             LOGGER.debug("Message sent: " + msg)
             if msg:
-                await websocket.send(DISPATCH_TABLE[msgID](obj))
+                #await websocket.send(DISPATCH_TABLE[msgID](obj))
+                await websocket.send(msg)
 
 def make_msg(srcID, msgID, payload):
     """
@@ -294,7 +299,14 @@ def handle_112(msg):
     :param msg: the message dict
     :return: a json-serialized object
     """
-    LOGGER.info("handle_112():Client Connect started")
+    LOGGER.debug("handle_112():Client Connect started")
+
+    addr = msg.get('addr')
+
+    cid_port = CTRL.get_cid_by_address(addr)
+    if cid_port:
+        LOGGER.debug("Duplicate 112 detected from host " + str(addr[0]))
+        return make_msg(SERVER_ID, 113, {'clientID': cid_port[0]})
 
     # No check for sourceID in this function b/c a new Client will not yet have one
     nick = msg.get("payload").get('nickname')
@@ -304,12 +316,13 @@ def handle_112(msg):
         return error_msg("Error: Nickname not provided")
 
     clientID = CTRL.new_client(nick)
-    LOGGER.info("New client ID: " + clientID)
+    CTRL.log_cid_by_address(clientID, addr)
+    LOGGER.debug("New client ID: " + clientID)
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID})
 
 
-LOGGER.info("websocket server started")
+LOGGER.debug("websocket server started")
 asyncio.get_event_loop().run_until_complete(
     websockets.serve(handle, 'localhost', 8795))
 asyncio.get_event_loop().run_forever()
