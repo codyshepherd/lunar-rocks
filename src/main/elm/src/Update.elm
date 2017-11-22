@@ -178,45 +178,40 @@ update msg model =
                 )
 
         RequestTrack sessionId trackId clientId ->
-            --TODO: This will be a WS message only
-            let
-                session =
-                    Maybe.withDefault
-                        (emptySession sessionId)
-                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
-
-                newTrack =
-                    updateTrackUser trackId clientId model.username session.board
-
-                newBoard =
-                    List.take trackId session.board
-                        ++ newTrack
-                        :: List.drop (trackId + 1) session.board
-
-                newSession =
-                    { session | board = newBoard }
-
-                newSessions =
-                    newSession :: model.sessions
-
-                sessionLists =
-                    model.sessionLists
-
-                newClientSessions =
-                    case List.member session.id sessionLists.clientSessions of
-                        True ->
-                            sessionLists.clientSessions
-
-                        False ->
-                            List.sort (session.id :: sessionLists.clientSessions)
-
-                newSessionLists =
-                    { sessionLists | clientSessions = newClientSessions }
-            in
-                ( { model | sessions = newSessions, sessionLists = newSessionLists }
-                , WebSocket.send websocketServer
-                    (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
-                )
+            -- let
+            --     session =
+            --         Maybe.withDefault
+            --             (emptySession sessionId)
+            --             (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+            --     newTrack =
+            --         updateTrackUser trackId clientId model.username session.board
+            --     newBoard =
+            --         List.take trackId session.board
+            --             ++ newTrack
+            --             :: List.drop (trackId + 1) session.board
+            --     newSession =
+            --         { session | board = newBoard }
+            --     newSessions =
+            --         newSession :: model.sessions
+            --     sessionLists =
+            --         model.sessionLists
+            --     newClientSessions =
+            --         case List.member session.id sessionLists.clientSessions of
+            --             True ->
+            --                 sessionLists.clientSessions
+            --             False ->
+            --                 List.sort (session.id :: sessionLists.clientSessions)
+            --     newSessionLists =
+            --         { sessionLists | clientSessions = newClientSessions }
+            -- in
+            --     ( { model | sessions = newSessions, sessionLists = newSessionLists }
+            --     , WebSocket.send websocketServer
+            --         (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
+            --     )
+            ( model
+            , WebSocket.send websocketServer
+                (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
+            )
 
         SelectName ->
             case validate model of
@@ -244,7 +239,7 @@ update msg model =
             in
                 ( model
                 , WebSocket.send websocketServer
-                    (encodeMessage model.clientId 101 (encodeSession session))
+                    (encodeMessage model.clientId 100 (encodeSession session))
                 )
 
         Tick time ->
@@ -461,7 +456,7 @@ serverUpdateModel serverMessage model =
 
                 102 ->
                     -- TODO: test
-                    serverUpdateSession sm model
+                    serverNewSession sm model
 
                 105 ->
                     -- TODO: test
@@ -497,8 +492,8 @@ serverUpdateModel serverMessage model =
                             Debug.log "107: Payload mismatch" model
 
                 111 ->
-                    -- TODO: status message needs to be more distinct
-                    model
+                    -- TODO: test
+                    serverUpdateTrackStatus sm model
 
                 113 ->
                     case sm.payload of
@@ -557,19 +552,101 @@ serverUpdateSession serverMessage model =
             Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
 
 
-serverUpdateBoard : Board -> List TrackMessage -> Board
+serverNewSession : ServerMessage -> Model -> Model
+serverNewSession serverMessage model =
+    case serverMessage.payload of
+        SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
+            let
+                session =
+                    emptySession sessionId
+
+                board =
+                    session.board
+
+                newBoard =
+                    serverUpdateBoard board boardUpdate
+
+                newSession =
+                    { session
+                        | board = newBoard
+                        , clients = clientsUpdate
+                        , tempo = tempoUpdate
+                    }
+
+                newSessions =
+                    newSession :: model.sessions
+            in
+                { model | sessions = newSessions }
+
+        _ ->
+            Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
+
+
+serverUpdateBoard : Board -> List TrackUpdate -> Board
 serverUpdateBoard board boardUpdate =
     List.map (\t -> serverTrackUpdate t boardUpdate) board
 
 
-serverTrackUpdate : Track -> List TrackMessage -> Track
+serverTrackUpdate : Track -> List TrackUpdate -> Track
 serverTrackUpdate track boardUpdate =
     let
         trackUpdate =
             Maybe.withDefault
-                { trackId = track.trackId, clientId = track.clientId, grid = track.grid }
+                { trackId = track.trackId
+                , clientId = track.clientId
+                , username = track.username
+                , grid = track.grid
+                }
                 (List.head
                     (List.filter (\tu -> tu.trackId == track.trackId) boardUpdate)
                 )
     in
-        { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId }
+        { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
+
+
+serverUpdateTrackStatus : ServerMessage -> Model -> Model
+serverUpdateTrackStatus serverMessage model =
+    case serverMessage.payload of
+        TrackRequestResponse status sessionId trackId ->
+            if status then
+                let
+                    session =
+                        Maybe.withDefault
+                            (emptySession sessionId)
+                            (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
+
+                    newTrack =
+                        updateTrackUser trackId model.clientId model.username session.board
+
+                    newBoard =
+                        List.take trackId session.board
+                            ++ newTrack
+                            :: List.drop (trackId + 1) session.board
+
+                    newSession =
+                        { session | board = newBoard }
+
+                    newSessions =
+                        newSession :: model.sessions
+
+                    sessionLists =
+                        model.sessionLists
+
+                    newClientSessions =
+                        case List.member session.id sessionLists.clientSessions of
+                            True ->
+                                sessionLists.clientSessions
+
+                            False ->
+                                List.sort (session.id :: sessionLists.clientSessions)
+
+                    newSessionLists =
+                        { sessionLists | clientSessions = newClientSessions }
+                in
+                    { model | sessions = newSessions, sessionLists = newSessionLists }
+            else
+                -- TODO: Add message for the user
+                model
+
+        _ ->
+            Debug.log "111: Payload mismatch" model

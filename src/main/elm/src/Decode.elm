@@ -12,21 +12,26 @@ type alias ServerMessage =
 
 
 type Payload
-    = SessionMessage Int (List String) Int (List TrackMessage)
+    = SessionMessage Int (List String) Int (List TrackUpdate)
     | ClientId String
     | DisconnectMessage String
     | Error String
     | SessionIds (List Int)
+    | TrackRequestResponse Bool Int Int
 
 
-
--- | Status Bool
-
-
-type alias TrackMessage =
+type alias TrackUpdate =
     { trackId : Int
     , clientId : String
+    , username : String
     , grid : List (List Int)
+    }
+
+
+type alias TrackStatus =
+    { status : Bool
+    , sessionId : Int
+    , trackId : Int
     }
 
 
@@ -40,29 +45,34 @@ decodeServerMessage =
 
 decodePayload : Int -> Decoder Payload
 decodePayload messageId =
-    case messageId of
-        100 ->
-            field "payload" decodeSession
+    let
+        payload =
+            field "payload"
+    in
+        case messageId of
+            100 ->
+                payload decodeSession
 
-        102 ->
-            field "payload" decodeSession
+            102 ->
+                payload decodeSession
 
-        105 ->
-            field "payload" decodeSessionIds
+            105 ->
+                payload decodeSessionIds
 
-        107 ->
-            field "payload" decodeDisconnect
+            107 ->
+                payload decodeDisconnect
 
-        -- 111 ->
-        --     decodeStatus
-        113 ->
-            field "payload" decodeClientId
+            111 ->
+                payload decodeTrackStatus
 
-        114 ->
-            field "payload" decodeError
+            113 ->
+                payload decodeClientId
 
-        _ ->
-            field "payload" decodeClientId
+            114 ->
+                payload decodeError
+
+            _ ->
+                payload decodeClientId
 
 
 decodeSession : Decoder Payload
@@ -71,14 +81,15 @@ decodeSession =
         |> required "sessionId" int
         |> required "clients" (list string)
         |> required "tempo" int
-        |> required "board" (list decodeTrackMessage)
+        |> required "board" (list decodeTrackUpdate)
 
 
-decodeTrackMessage : Decoder TrackMessage
-decodeTrackMessage =
-    decode TrackMessage
+decodeTrackUpdate : Decoder TrackUpdate
+decodeTrackUpdate =
+    decode TrackUpdate
         |> required "trackID" int
         |> required "clientID" string
+        |> required "nickname" string
         |> required "grid" (list (list int))
 
 
@@ -100,11 +111,12 @@ decodeError =
         |> required "error" string
 
 
-
--- decodeStatus : Decoder
--- decodeStatus =
---     decode Status
---         |> required "status" bool
+decodeTrackStatus : Decoder Payload
+decodeTrackStatus =
+    decode TrackRequestResponse
+        |> required "status" bool
+        |> required "sessionID" int
+        |> required "trackID" int
 
 
 decodeClientId : Decoder Payload
