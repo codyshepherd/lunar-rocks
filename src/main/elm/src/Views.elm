@@ -107,7 +107,10 @@ page model =
                             ]
                         ]
                 )
-            , paragraph ErrorMessage [ paddingTop 20 ] [ (text model.errorMessage) ]
+            , paragraph ServerMessage [ paddingTop 10 ] [ (text model.serverMessage) ]
+            , paragraph ErrorMessage
+                [ paddingTop 10 ]
+                (List.map (\( _, error ) -> el None [] (text error)) model.validationErrors)
             ]
 
         SessionRoute id ->

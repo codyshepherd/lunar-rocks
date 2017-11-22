@@ -25,6 +25,7 @@ type Styles
     | Rest
     | RowLabel
     | SelectedSessionButton
+    | ServerMessage
     | SessionButton
     | SmallHeading
     | SubHeading
@@ -76,7 +77,7 @@ stylesheet =
             ]
         , style ErrorMessage
             [ Font.size 18
-            , Color.text (Color.rgb 240 0 0)
+            , Color.text (Color.rgb 215 88 19)
             ]
         , style GridBlock
             [ Color.background (Color.rgb 120 120 120) ]
@@ -134,6 +135,10 @@ stylesheet =
             , Color.border (Color.rgb 192 78 17)
             , Color.text Color.white
             , Transition.all
+            ]
+        , style ServerMessage
+            [ Font.size 18
+            , Color.text (Color.rgb 215 88 19)
             ]
         , style SessionButton
             [ Border.all 2

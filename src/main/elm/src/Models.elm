@@ -14,7 +14,8 @@ type alias Model =
     , route : Route
     , input : String
     , windowSize : Size
-    , errorMessage : String
+    , serverMessage : String
+    , validationErrors : List ValidationError
     }
 
 
@@ -24,6 +25,14 @@ type alias ClientId =
 
 type alias ServerId =
     Int
+
+
+type Field
+    = Name
+
+
+type alias ValidationError =
+    ( Field, String )
 
 
 
@@ -128,20 +137,23 @@ initialModel route =
     , sessionId = 0
     , trackId = 0
     , sessions =
-        [ emptySession 0
-        , emptySession 1
-        , emptySession 2
-        , emptySession 3
-        ]
+        [ emptySession 0 ]
+
+    -- , emptySession 1
+    -- , emptySession 2
+    -- , emptySession 3
+    -- ]
     , sessionLists =
-        { allSessions = [ 0, 1, 2, 3 ]
+        -- { allSessions = [ 0, 1, 2, 3 ]
+        { allSessions = [ 0 ]
         , clientSessions = []
         , selectedSessions = []
         }
     , route = route
     , input = ""
     , windowSize = { width = 0, height = 0 }
-    , errorMessage = ""
+    , serverMessage = ""
+    , validationErrors = []
     }
 
 
