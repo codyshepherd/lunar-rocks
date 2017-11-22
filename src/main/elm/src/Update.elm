@@ -521,30 +521,31 @@ serverUpdateModel serverMessage model =
 serverUpdateSession : ServerMessage -> Model -> Model
 serverUpdateSession serverMessage model =
     case serverMessage.payload of
-        SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
+        -- SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
+        SessionMessage su ->
             let
                 session =
                     Maybe.withDefault (emptySession 0)
                         (List.head
-                            (List.filter (\s -> s.id == sessionId) model.sessions)
+                            (List.filter (\s -> s.id == su.sessionId) model.sessions)
                         )
 
                 board =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board boardUpdate
+                    serverUpdateBoard board su.boardUpdate
 
                 newSession =
                     { session
                         | board = newBoard
-                        , clients = clientsUpdate
-                        , tempo = tempoUpdate
+                        , clients = su.clientsUpdate
+                        , tempo = su.tempoUpdate
                     }
 
                 newSessions =
                     newSession
-                        :: (List.filter (\s -> s.id /= sessionId) model.sessions)
+                        :: (List.filter (\s -> s.id /= su.sessionId) model.sessions)
             in
                 { model | sessions = newSessions }
 
@@ -555,22 +556,26 @@ serverUpdateSession serverMessage model =
 serverNewSession : ServerMessage -> Model -> Model
 serverNewSession serverMessage model =
     case serverMessage.payload of
-        SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
+        -- SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
+        SessionMessage su ->
             let
+                debug =
+                    Debug.log "su: " su
+
                 session =
-                    emptySession sessionId
+                    emptySession su.sessionId
 
                 board =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board boardUpdate
+                    serverUpdateBoard board su.boardUpdate
 
                 newSession =
                     { session
                         | board = newBoard
-                        , clients = clientsUpdate
-                        , tempo = tempoUpdate
+                        , clients = su.clientsUpdate
+                        , tempo = su.tempoUpdate
                     }
 
                 newSessions =

@@ -11,13 +11,23 @@ type alias ServerMessage =
     }
 
 
-type Payload
-    = SessionMessage Int (List String) Int (List TrackUpdate)
+type
+    Payload
+    -- = SessionMessage Int (List String) Int (List TrackUpdate)
+    = SessionMessage SessionUpdate
     | ClientId String
     | DisconnectMessage String
     | Error String
     | SessionIds (List Int)
     | TrackRequestResponse Bool Int Int
+
+
+type alias SessionUpdate =
+    { sessionId : Int
+    , clientsUpdate : List String
+    , tempoUpdate : Int
+    , boardUpdate : List TrackUpdate
+    }
 
 
 type alias TrackUpdate =
@@ -78,6 +88,12 @@ decodePayload messageId =
 decodeSession : Decoder Payload
 decodeSession =
     decode SessionMessage
+        |> required "session" decodeSessionMessage
+
+
+decodeSessionMessage : Decoder SessionUpdate
+decodeSessionMessage =
+    decode SessionUpdate
         |> required "sessionId" int
         |> required "clients" (list string)
         |> required "tempo" int
