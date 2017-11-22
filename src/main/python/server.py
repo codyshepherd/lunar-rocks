@@ -262,7 +262,7 @@ def handle_109(msg):
 
     trid, ssid, yn = CTRL.request_track(cid, sid, tid)
 
-    if not trid:
+    if trid == None:
         newmsg = error_msg("Error: request_track failed")
     else:
         newmsg = make_msg(SERVER_ID, 111, {'status': yn, 'sessionID': ssid, 'trackID': trid})

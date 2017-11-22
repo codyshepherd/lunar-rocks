@@ -2,15 +2,11 @@ import numpy as np
 import random
 import uuid
 import logging
-import os
-
-#TODO: Adding Client to Session stores their nickname
-#TODO: Session.export() returns nicknames rather than UUIDs in clientlist
-#TODO: Session.addclient() takes nickname as well as cid
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
-MAX_CLIENTS = 1000
+MAX_SESS_ID = 1000
+MIN_SESS_ID = 1
 DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
@@ -151,25 +147,26 @@ class Session:
 
         if cid not in [x[0] for x in self.clientlist]:
             LOGGER.error("clientID passed to Session.request_track() not in session clientlist")
-            return None, None, False
+            return (None, None, False)
 
         if tid not in self.trackIDs:
             LOGGER.error("trackID passed to Session.request_track() not in trackIDs")
-            return None, None, False
+            return (None, None, False)
 
-        t = self.tracks.get(str(tid))
+        t = self.tracks.get(tid)
 
         if not t:
             LOGGER.error("For some reason the trackID passed to Session.request_track() can't find a track!")
-            return None, None, False
+            return (None, None, False)
 
         if t.clientID:
             LOGGER.error("Track specified to Session.request_track() is already owned")
-            return None, None, False
+            return (None, None, False)
 
         t.clientID = cid
         t.clientNick = nick
-        return t.trackID, self.sessionID, True
+        LOGGER.debug("Session.request_track() returning " + str(t.trackID) + ", " + str(self.sessionID) + ", " + str(True))
+        return (t.trackID, self.sessionID, True)
 
     def relinquish_track(self, cid, tid):
         """
@@ -189,7 +186,7 @@ class Session:
             LOGGER.error("trackID " + str(tid) + " provided to Session.relinquish_track() not in Session's trackIDs")
             return False
 
-        t = self.tracks.get(str(tid))
+        t = self.tracks.get(tid)
 
         if not t:
             LOGGER.error("For some reason the trackID " + str(tid) + " passed to Session.relinquish_track() can't find a track!")
@@ -210,7 +207,7 @@ class Session:
         """
         LOGGER.debug("Session.add_client() started")
 
-        if cid not in self.clientlist:
+        if cid not in [x[0] for x in self.clientlist]:
             self.clientlist.append((cid, nick))
 
         return True
@@ -339,9 +336,9 @@ class Controller:
         :return: sessionID (int) of new session
         """
         LOGGER.debug("Controller.new_session() started")
-        sid = 0
+        sid = MIN_SESS_ID
         while sid in self.sessions.keys():
-            sid = random.randint(0, MAX_CLIENTS)
+            sid = random.randint(MIN_SESS_ID, MAX_SESS_ID)
         
         self.sessions[sid] = Session(sid)
         return sid
