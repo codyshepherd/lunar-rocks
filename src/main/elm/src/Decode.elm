@@ -94,7 +94,7 @@ decodeSession =
 decodeSessionMessage : Decoder SessionUpdate
 decodeSessionMessage =
     decode SessionUpdate
-        |> required "sessionId" int
+        |> required "sessionID" int
         |> required "clients" (list string)
         |> required "tempo" int
         |> required "board" (list decodeTrackUpdate)

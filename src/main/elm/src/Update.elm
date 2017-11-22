@@ -580,8 +580,14 @@ serverNewSession serverMessage model =
 
                 newSessions =
                     newSession :: model.sessions
+
+                sessionLists =
+                    model.sessionLists
+
+                newSessionsLists =
+                    { sessionLists | allSessions = List.sort (su.sessionId :: sessionLists.allSessions) }
             in
-                { model | sessions = newSessions }
+                { model | sessions = newSessions, sessionLists = newSessionsLists }
 
         _ ->
             Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
