@@ -25,10 +25,14 @@ encodeSessionId sessionId =
 encodeSession : Session -> Value
 encodeSession session =
     object
-        [ ( "sessionID", int session.id )
-        , ( "clients", object [] )
-        , ( "tempo", int session.tempo )
-        , ( "board", encodeBoard session.board )
+        [ ( "session"
+          , object
+                [ ( "sessionID", int session.id )
+                , ( "clients", object [] )
+                , ( "tempo", int session.tempo )
+                , ( "board", encodeBoard session.board )
+                ]
+          )
         ]
 
 
