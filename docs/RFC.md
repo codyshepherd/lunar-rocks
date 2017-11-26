@@ -1,16 +1,20 @@
-# Music Application RFC Specificaiton
+# Collaborative Web Audio Application RFC Specificaiton
 
-A collaborative music webApp by _Brian Ginsburg_ and _Cody Shepherd_
+Authors: _Brian Ginsburg_ and _Cody Shepherd_
+
+The Collaborative Web Audio Application protocol is web-based protocol for
+collaborative music applications. Users participate in music sessions through
+their browser. Sessions are coordinated by HTTP and websocket servers.
 
 ## 1. Intro & Concepts
 
 ### 1.1 Client
 
-A client is any web browser connecting to a server. A client sends messages
-to a server and receives messages from a server. Each client is uniquely
-identified by a UUID (rfc 4122). In addition, the server must know the username of the
-client and the host the client is running on. For each browser tab or
-window, a client may display the home page or a session.
+A client is any web browser connecting to a server. A client sends messages to a
+server and receives messages from a server. Each client is uniquely identified
+by a UUID (rfc 4122). In addition, the server must know the username of the
+client and the host the client is running on. For each browser tab or window, a
+client may display the home page or a session.
 
 The home page is a listing of available sessions and provides the client
 with an option to add sessions. When a client requests a new session, the
@@ -163,21 +167,32 @@ but is not viewing.
 
 ### 3.3 Connection Failures
 
-To ensure an active connection, communication must regularly occur between
-the client and server. This may take the form of keep-alive messages for
-example.
+To ensure an active connection, communication must regularly occur between the
+client and server. The websockets protocol defines ping and pong frames that may
+be used as keep-alive messages between a client and server. Ping-pong
+communication is implemented in most browsers and websocket servers.
 
-If a client has not received a message from a server in over ten seconds, it
-should assume the connection has been lost and notify the user. When the
-connection has been re-established, the client should send an update to the
-server with changes it has made since the last successful communication.
+If a client does not receive regular keep-alive messages from the server, it
+should close the connection and attempt to establish a new connection using an
+exponential backoff strategy. The client should queue messages while the
+connection is lost and send them once a new connection is established.
 
-If a server has not received a message from a client in over ten seconds, it
-should hold information about the client for another twenty seconds and
-await a new Websocket connection. If a new connection is made, the client
-will send its sourceID in its first message and the server will restore the
-lost session. If a new connection is not made, the server will consider the
-connection with client terminated.
+If a server does not receive keep-alive messages, it should hold information
+about the client and await a new Websocket connection. If a new connection is
+made within twenty seconds, the first message from the client will contain its
+sourceID and the server will restore the lost session. If a new connection is
+not made, the server will consider the connection with the client terminated and
+discard the session.
+
+### 3.4 Error Handling
+
+A client should address two types of errors: malformed messages from the server
+and application errors, such as validation errors. When a client receives
+malformed messages, it should log them in a form accessible to the developers,
+logging to the web browser console for example. Application errors should also
+be logged in this way, and the client should be informed when something went
+wrong, particularly for validation errors where the client can make another
+attempt at valid input.
 
 ## 4. Message Details
 As detailed in Section 2, Messages are identified by their message ID. 
