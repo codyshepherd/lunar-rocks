@@ -51,7 +51,7 @@ class Track:
         :param grd: a 2-D list
         :return: boolean about success of function
         """
-        LOGGER.debug("Task.check_dimensions() started")
+        LOGGER.debug("Track.check_dimensions() started")
         rows = len(grd)
         cols = len(grd[0])
 
@@ -68,6 +68,7 @@ class Track:
         :return: well-formed dict according to the RFC
         """
         LOGGER.debug("Task.export() started")
+
         return {
             "trackID": self.trackID,
             "clientID": self.clientID,
@@ -94,6 +95,7 @@ class Session:
         :return: output of self.export
         """
         LOGGER.debug("Session.update() started")
+
         trackslist = sess.get('tracks')
         if not trackslist:
             LOGGER.error("No tracklist provided to Session.update() by sess argument")
@@ -203,7 +205,6 @@ class Session:
         :param cid: clientID string
         :param nick: client nickname string
         :return: boolean - whether function was successful or not
-
         """
         LOGGER.debug("Session.add_client() started")
 
@@ -291,6 +292,7 @@ class Controller:
         :param addr: a host,port tuple
         :return: clientID or None
         """
+        LOGGER.debug("Controller.get_cid_by_address() started")
 
         return self.addrs.get(str(addr))
 
@@ -301,6 +303,7 @@ class Controller:
         :param sock: a websocket object
         :return: None
         """
+        LOGGER.debug("Controller.log_socket() started")
 
         self.sockets[cid] = sock
 
@@ -310,6 +313,8 @@ class Controller:
         :param cid: UUID string for client
         :return: websocket
         """
+        LOGGER.debug("Controller.get_socket() started")
+
         return self.sockets.get(cid)
 
     def get_session(self, sid):
@@ -389,6 +394,8 @@ class Controller:
         :param sid: sessionID
         :return: Boolean about success of funciton
         """
+        LOGGER.debug("Controller.client_join() started")
+
         sess = self.sessions.get(sid)
         if not sess:
             return False
@@ -411,6 +418,8 @@ class Controller:
         :param sid: sessionID
         :return: Boolean about success of function
         """
+        LOGGER.debug("Controller.client_leave() started")
+
         sess = self.sessions.get(sid)
         if not sess:
             return False
@@ -438,7 +447,8 @@ class Controller:
         :param sess: dict - session represented as dict, same as output of Session.export()
         :return: json-serializable object (None if update failed)
         """
-        LOGGER.debug("update_session() started")
+        LOGGER.debug("Controller.update_session() started")
+
         sid = sess.get('sessionID')
 
         if not sid:

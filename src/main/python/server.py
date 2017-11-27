@@ -85,6 +85,7 @@ def error_msg(txt):
     :param txt: the error string
     :return: a json-serialized message
     """
+    LOGGER.debug("error_msg() started")
     msg = json.dumps({
         "sourceID": SERVER_ID,
         "messageID": 114,
@@ -316,6 +317,8 @@ def handle_110(msg):
     :param msg: the message dict
     :return: a json-serialized object
     """
+    LOGGER.debug("handle 11: Relinquish Track started")
+
     cid = msg.get("sourceID")
     sid = msg.get("payload").get("sessionID")
     tid = msg.get("payload").get("trackID")
