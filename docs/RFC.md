@@ -206,7 +206,7 @@ Message IDs and descriptions are detailed in the following table:
 | 102| Session Created    | Server | Session                | The Server responds to a 101 request with the newly-created Session |
 | 103| Join Session       | Client | SessionID              | Used whenever a Client wants to join an existing Session |
 | 104| Leave Session      | Client | SessionID              | Used whenever a Client wants to leave a Session; if Client is last to leave, Session is destroyed |
-| 105| Update SessionList | Server | [SessionID]            | Server sends this update to Clients when its active Server list is updated |
+| 105| Update SessionList | Server | [SessionID]            | Server sends this update to Clients when its active Session list is updated |
 | 106| Disconnect         | Client | | Client notifies Server it is disconnecting |
 | 107| Disconnect         | Server | | Server notifies Client that either the Server is going down, or Client is being kicked |
 | 108| Broadcast          | Client | (Track, [SessionID]) | Used when the Client wants to update a set of active Sessions with a selected track |
@@ -214,7 +214,7 @@ Message IDs and descriptions are detailed in the following table:
 | 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
 | 111| Track Request Response | Server | (Boolean , SessionID, TrackID) | Server notifies Client as to the status of its Track Request |
 | 112| Client Connect     | Client | Nickname (string) | The Client sends this message when first connecting with the server over websocket |
-| 113| Client Connected   | Server | ClientID | The Server responds to msgID: 112 with the Client's ClientID |
+| 113| Client Connected   | Server | ClientID, [SessionID] | The Server responds to msgID: 112 with the Client's ClientID and a list of sessionIDs |
 | 114| Error              | Either | Error Description (string) | This message is for general debugging |
 
 ### Payload Object Key-Value Pairs
@@ -243,6 +243,6 @@ Wherever two keys/values are listed, they should be interpreted respectively. E.
 | 110 | (SessionID, TrackID) | 'sessionID', 'trackID' | Int, Int |
 | 111 | Boolean {True, False}, sessionID, trackID | 'status', 'sessionID', 'trackID' | Boolean {True, False}, Int, Int |
 | 112 | String | 'nickname' | String |
-| 113 | ClientID (UUID String) | 'clientID' | String |
+| 113 | ClientID (UUID String) | 'clientID', 'sessionIDs' | String, [Int] |
 | 114 | String | 'error' | String |
 

@@ -15,7 +15,7 @@ type
     Payload
     -- = SessionMessage Int (List String) Int (List TrackUpdate)
     = SessionMessage SessionUpdate
-    | ClientId String
+    | ClientInit String (List Int)
     | DisconnectMessage String
     | Error String
     | SessionIds (List Int)
@@ -76,13 +76,13 @@ decodePayload messageId =
                 payload decodeTrackStatus
 
             113 ->
-                payload decodeClientId
+                payload decodeClientInit
 
             114 ->
                 payload decodeError
 
             _ ->
-                payload decodeClientId
+                payload decodeClientInit
 
 
 decodeSession : Decoder Payload
@@ -135,7 +135,8 @@ decodeTrackStatus =
         |> required "trackID" int
 
 
-decodeClientId : Decoder Payload
-decodeClientId =
-    decode ClientId
+decodeClientInit : Decoder Payload
+decodeClientInit =
+    decode ClientInit
         |> required "clientID" string
+        |> required "sessionIDs" (list int)

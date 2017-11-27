@@ -51,7 +51,7 @@ class Track:
         :param grd: a 2-D list
         :return: boolean about success of function
         """
-        LOGGER.debug("Task.check_dimensions() started")
+        LOGGER.debug("Track.check_dimensions() started")
         rows = len(grd)
         cols = len(grd[0])
 
@@ -68,6 +68,7 @@ class Track:
         :return: well-formed dict according to the RFC
         """
         LOGGER.debug("Task.export() started")
+
         return {
             "trackID": self.trackID,
             "clientID": self.clientID,
@@ -94,17 +95,30 @@ class Session:
         :return: output of self.export
         """
         LOGGER.debug("Session.update() started")
-        trackslist = sess.get('tracks')
+
+        trackslist = sess.get('board')
         if not trackslist:
             LOGGER.error("No tracklist provided to Session.update() by sess argument")
             return None
 
+        LOGGER.debug("Trackslist: " + str(trackslist))
+        '''
         for (new, trackobj) in zip(trackslist, self.tracks):
             if not trackobj.update(new):
                 LOGGER.error("Session.update() quitting because of error in Track.update()")
                 return None
+        '''
+        for newtrack in trackslist:
+            trackID = int(newtrack.get('trackID'))
+            if trackID not in self.tracks.keys():
+                LOGGER.error("trackID provided not in session's tracks.keys()")
+                continue
+            oldtrack = self.tracks[trackID]
+            if not oldtrack.update(newtrack):
+                LOGGER.error("Session.update() skipping track " + str(trackID) + " because of error in Track.update()")
+                continue
 
-        return self.export()
+        return self
 
     def update_track(self, cid, trk):
         """
@@ -203,7 +217,6 @@ class Session:
         :param cid: clientID string
         :param nick: client nickname string
         :return: boolean - whether function was successful or not
-
         """
         LOGGER.debug("Session.add_client() started")
 
@@ -280,20 +293,20 @@ class Controller:
         :param addr: (host, port) tuple
         :return: None
         """
-        host = addr[0]
-        port = addr[1]
+        LOGGER.debug("Controller.log_cid_by_address() started")
 
-        self.addrs[host] = (cid, port)
+        self.addrs[str(addr)] = cid
 
     def get_cid_by_address(self, addr):
         """
         Allows for retrieval of (host,port) address by clientID
 
         :param addr: a host,port tuple
-        :return: (cid, port) tuple, or None
+        :return: clientID or None
         """
+        LOGGER.debug("Controller.get_cid_by_address() started")
 
-        return self.addrs.get(addr[0])
+        return self.addrs.get(str(addr))
 
     def log_socket(self, cid, sock):
         """
@@ -302,6 +315,7 @@ class Controller:
         :param sock: a websocket object
         :return: None
         """
+        LOGGER.debug("Controller.log_socket() started")
 
         self.sockets[cid] = sock
 
@@ -311,6 +325,8 @@ class Controller:
         :param cid: UUID string for client
         :return: websocket
         """
+        LOGGER.debug("Controller.get_socket() started")
+
         return self.sockets.get(cid)
 
     def get_session(self, sid):
@@ -390,6 +406,8 @@ class Controller:
         :param sid: sessionID
         :return: Boolean about success of funciton
         """
+        LOGGER.debug("Controller.client_join() started")
+
         sess = self.sessions.get(sid)
         if not sess:
             return False
@@ -412,6 +430,8 @@ class Controller:
         :param sid: sessionID
         :return: Boolean about success of function
         """
+        LOGGER.debug("Controller.client_leave() started")
+
         sess = self.sessions.get(sid)
         if not sess:
             return False
@@ -439,7 +459,8 @@ class Controller:
         :param sess: dict - session represented as dict, same as output of Session.export()
         :return: json-serializable object (None if update failed)
         """
-        LOGGER.debug("update_session() started")
+        LOGGER.debug("Controller.update_session() started")
+
         sid = sess.get('sessionID')
 
         if not sid:

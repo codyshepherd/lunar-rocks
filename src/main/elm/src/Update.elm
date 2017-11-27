@@ -497,8 +497,18 @@ serverUpdateModel serverMessage model =
 
                 113 ->
                     case sm.payload of
-                        ClientId id ->
-                            { model | clientId = id }
+                        ClientInit id sessionList ->
+                            let
+                                sessionLists =
+                                    model.sessionLists
+
+                                newSessions =
+                                    List.sort sessionList
+
+                                newSessionsLists =
+                                    { sessionLists | allSessions = newSessions }
+                            in
+                                { model | clientId = id, sessionLists = newSessionsLists }
 
                         _ ->
                             Debug.log "113: Payload mismatch" model
