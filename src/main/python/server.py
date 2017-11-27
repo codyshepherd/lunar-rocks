@@ -22,6 +22,8 @@ DISPATCH_TABLE = {
     101: lambda x: handle_101(x),
     103: lambda x: handle_103(x),
     104: lambda x: handle_104(x),
+    106: lambda x: handle_106(x),
+    108: lambda x: handle_108(x),
     109: lambda x: handle_109(x),
     110: lambda x: handle_110(x),
     112: lambda x: handle_112(x)
