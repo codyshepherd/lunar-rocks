@@ -364,7 +364,7 @@ def handle_112(msg):
     CTRL.log_cid_by_address(clientID, addr)
     LOGGER.debug("New client ID: " + clientID)
 
-    return make_msg(SERVER_ID, 113, {'clientID':clientID})
+    return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': CTRL.sessions.keys()})
 
 
 LOGGER.debug("websocket server started")
