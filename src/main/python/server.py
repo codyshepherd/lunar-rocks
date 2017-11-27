@@ -384,7 +384,7 @@ if __name__ == '__main__':
     port = nspace.get('port')
     if not port:
         port = 8795
-    LOGGER.debug("websocket server started")
+    LOGGER.debug("websocket server started on port " + str(port))
     asyncio.get_event_loop().run_until_complete(
         websockets.serve(handle, 'localhost', port))
     asyncio.get_event_loop().run_forever()
