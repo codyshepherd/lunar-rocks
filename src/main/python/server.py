@@ -58,9 +58,9 @@ async def handle(websocket, path):
             if srcID != "clown shoes":
                 CTRL.log_socket(srcID, websocket)
             msg = DISPATCH_TABLE[msgID](obj)
-            LOGGER.debug("Message sent: " + msg)
             if msg:
                 #await websocket.send(DISPATCH_TABLE[msgID](obj))
+                LOGGER.debug("Message sent: " + str(msg))
                 await websocket.send(msg)
 
 def make_msg(srcID, msgID, payload):
