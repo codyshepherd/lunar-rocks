@@ -55,21 +55,23 @@
      lowpassFilter.connect(highpassFilter);
 
 
-     function playNote(trackId, tone){
-       if (trackId === 0) {
-         player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0130_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.5);
-       }
-       else {
-         player.queueWaveTable(audioContext, lowpassFilter
-                             , _tone_0120_FluidR3_GM_sf2_file , 0, (12*4+tone), 1, 0.3);
+     function playNote(trackId, tone, duration){
+       if (duration > 0) {
+         if (trackId === 0) {
+           player.queueWaveTable(audioContext, lowpassFilter
+                               , _tone_0130_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.5);
+         }
+         else {
+           player.queueWaveTable(audioContext, lowpassFilter
+                               , _tone_0120_FluidR3_GM_sf2_file , 0, (12*4+tone), 1, 0.3);
+         }
        }
 	     return false;
      }
 
      app.ports.play.subscribe(function (args) {
        // args.beat and args.duration also available
-       playNote(args.trackId, args.tone);
+       playNote(args.trackId, args.tone, args.duration);
      });
     </script>
 
