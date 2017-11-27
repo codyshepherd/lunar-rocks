@@ -48,9 +48,12 @@ async def handle(websocket, path):
         if not (obj and msgID):
             LOGGER.debug("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
-        elif (not srcID) or (srcID == "clown shoes"):
+        elif ((not srcID) or (srcID == "clown shoes")) and msgID != 112:
             LOGGER.debug("No sourceID provided")
-            await websocket.send(error_msg("ERROR: srcID must be provided"))
+            errmsg = error_msg("Error: SrcID must be provided")
+            LOGGER.debug("Message sent: " + str(errmsg))
+            await websocket.send(errmsg)
+
         else:
             if msgID == 112:
                 obj['addr'] = addr
@@ -106,16 +109,19 @@ def broadcast(msg, clients):
     """
     LOGGER.debug("broadcast started")
     LOGGER.debug("broadcasting message: " + msg)
+    LOGGER.debug("broadcasting to: " + str(clients))
 
     # Loop through all clients, sending 105, or 102 & 105 for the 101 initiator
     for cid in clients:
         sock = CTRL.get_socket(cid)
         if sock:
-            addr = sock.remote_address
+            #addr = sock.remote_address
             LOGGER.debug("Sending to client: " + cid)
-            crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
-            crock.send(msg)
+            sock.send(msg)
+            #crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
+            #crock.send(msg)
 
+    LOGGER.debug("Broadcast finished")
     return None
 
 def handle_100(msg):
@@ -165,12 +171,14 @@ def handle_101(msg):
         newmsg = make_msg(SERVER_ID, 102, {'session': sess})
 
         sock = CTRL.get_socket(cid)
+        LOGGER.debug("Sending " + str(newmsg) + " to client " + str(cid))
         sock.send(newmsg)
 
         # For broadcasting session list to clients
-        clients = list(CTRL.clients.keys())       # UUIDs list
+        clients = list([x for x in CTRL.clients.keys() if x != cid])       # UUIDs list
         sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
 
+        LOGGER.debug("Broadcasting " + str(msg) + " to all clients.")
         return broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
     else:
         LOGGER.error("Client " + cid + " attempt to join session failed")
