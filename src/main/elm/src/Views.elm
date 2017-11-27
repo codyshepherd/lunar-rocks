@@ -58,20 +58,12 @@ page : Model -> List (Element Styles variation Msg)
 page model =
     case model.route of
         Home ->
-            [ h3 SubHeading
-                [ paddingBottom 25 ]
-                (text "MAKE MUSIC ACROSS THE WEB")
-
-            -- , paragraph Text [ paddingBottom 25 ] [ text "Some general info and instructions." ]
-            , paragraph None
-                []
+            [ h3 SubHeading [ paddingBottom 25 ] (text "MAKE MUSIC ACROSS THE WEB")
+            , paragraph Text
+                [ paddingBottom 10 ]
                 [ text "Lunar Rocks is a collaborative music making site. Lunar Rocks is in the early development, and we appreciate any feedback. \"Eject\" above to visit the GitHub repo." ]
-            , paragraph None [] [ text "Music in Lunar Rocks is made in sessions. Each sesion has two tracks, and you can claim one by selecting \"Request Track.\" Once you have a track, start making music by adding and removing notes in the note grid. When you are happy with your creation, select \"Send\" and your music will be sent to the session. When you are done with a track, select \"Release Track\" to free it. Your music will stay, and someone else can jump in and add their ideas." ]
-            , paragraph None [] [ text "If someone else is working on a track in your session, you will see and hear the changes the changes they make. Collaborate with them! Make beautiful music!" ]
-            , paragraph None [] [ text "You can send your track to another session by claiming the same track in both sessions, selectng the target session from \"Your Sessions\", and then selecting \"Broadcast\". You can send to many sessions at once by selecting multiple sessions before selecting \"Broadcast\"." ]
-            , paragraph None [] [ text "Select \"Leave Session\" when you are ready to move on. \"Sessions\" will bring you back to the list of sessions, but you will stay active in the current session if you have a track open." ]
             , textLayout None
-                [ spacingXY 25 25 ]
+                [ spacingXY 25 20 ]
                 (case model.username of
                     "" ->
                         [ paragraph Text [] [ text "Choose a nickname to get started." ]
@@ -119,6 +111,12 @@ page model =
             , paragraph ErrorMessage
                 [ paddingTop 10 ]
                 (List.map (\( _, error ) -> el None [] (text error)) model.validationErrors)
+            , h3 SubHeading [ paddingBottom 25 ] (text "HOW TO USE")
+            , paragraph Text [ paddingBottom 10 ] [ text "Music in Lunar Rocks is made in sessions. Each sesion has two tracks, and you can claim one by selecting \"Request Track.\" Once you have a track, start making music by adding and removing notes in the note grid. When you are happy with your creation, select \"Send\" and your music will be sent to the session." ]
+            , paragraph Text [ paddingBottom 10 ] [ text "When you are done with a track, select \"Release Track\" to free it. Your music will stay, and someone else can jump in and add their ideas." ]
+            , paragraph Text [ paddingBottom 10 ] [ text "If someone else is working on a track in your session, you will see and hear the changes the changes they make. Collaborate with them! Make beautiful music!" ]
+            , paragraph Text [ paddingBottom 10 ] [ text "You can send your track to another session by claiming the same track in both sessions, selectng the target session from \"Your Sessions\", and then selecting \"Broadcast\". You can send to many sessions at once by selecting multiple sessions before selecting \"Broadcast\"." ]
+            , paragraph Text [ paddingBottom 10 ] [ text "Select \"Leave Session\" when you are ready to move on. \"Sessions\" will bring you back to the list of sessions, but you will stay active in the current session if you have a track open." ]
             ]
 
         SessionRoute id ->
