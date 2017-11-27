@@ -61,7 +61,7 @@ async def handle(websocket, path):
             LOGGER.debug("Dispatch table called")
             if srcID != "clown shoes":
                 CTRL.log_socket(srcID, websocket)
-            msg = DISPATCH_TABLE[msgID](obj)
+            msg = await DISPATCH_TABLE[msgID](obj)
             if msg:
                 #await websocket.send(DISPATCH_TABLE[msgID](obj))
                 LOGGER.debug("Message sent: " + str(msg))
@@ -100,7 +100,7 @@ def error_msg(txt):
     })
     return msg
 
-def broadcast(msg, clients):
+async def broadcast(msg, clients):
     """
     Broadcast a message to all clients
     :param msg: the well-formed json object to be broadcast
@@ -117,14 +117,13 @@ def broadcast(msg, clients):
         if sock:
             #addr = sock.remote_address
             LOGGER.debug("Sending to client: " + cid)
-            sock.send(msg)
+            await sock.send(msg)
             #crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
             #crock.send(msg)
 
     LOGGER.debug("Broadcast finished")
-    return None
 
-def handle_100(msg):
+async def handle_100(msg):
     """
     Handler for msg code 101: Update Session
 
@@ -152,9 +151,9 @@ def handle_100(msg):
     newmsg = make_msg(SERVER_ID, 100, {'session': newsess.export()})
     LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
 
-    return broadcast(newmsg, [x[0] for x in newsess.clientlist])
+    await broadcast(newmsg, [x[0] for x in newsess.clientlist])
 
-def handle_101(msg):
+async def handle_101(msg):
     """
     Handler for msgID 101: Create Session
 
@@ -172,19 +171,19 @@ def handle_101(msg):
 
         sock = CTRL.get_socket(cid)
         LOGGER.debug("Sending " + str(newmsg) + " to client " + str(cid))
-        sock.send(newmsg)
+        await sock.send(newmsg)
 
         # For broadcasting session list to clients
         clients = list([x for x in CTRL.clients.keys() if x != cid])       # UUIDs list
         sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
 
         LOGGER.debug("Broadcasting " + str(msg) + " to all clients.")
-        return broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
+        await broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
     else:
         LOGGER.error("Client " + cid + " attempt to join session failed")
         return error_msg("Error: Could not join session.")
 
-def handle_103(msg):
+async def handle_103(msg):
     """
     Handler for msgID 103: Join Session
 
@@ -208,13 +207,13 @@ def handle_103(msg):
         newmsg = make_msg(SERVER_ID, 100, {'session': sess.export()})
         LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
 
-        return broadcast(newmsg, [x[0] for x in sess.clientlist])
+        await broadcast(newmsg, [x[0] for x in sess.clientlist])
 
     else:
         LOGGER.error("Client " + cid + " attempt to join session " + str(sid) + " failed")
         return error_msg("Error: Could not join session")
 
-def handle_104(msg):
+async def handle_104(msg):
     """
     Handler for msgID 104: Leave Session
 
@@ -239,9 +238,9 @@ def handle_104(msg):
     else:
         LOGGER.error("104: Leave session failed")
 
-    return broadcast(newmsg, clients)
+    await broadcast(newmsg, clients)
 
-def handle_106(msg):
+async def handle_106(msg):
     """
     Handler for msgID 106: Client Disconnect
 
@@ -261,9 +260,9 @@ def handle_106(msg):
     else:
         LOGGER.error("Client disconnect failed")
 
-    return broadcast(newmsg, clients)
+    await broadcast(newmsg, clients)
 
-def handle_108(msg):
+async def handle_108(msg):
     """
     Handler for msgID 108: Broadcast
 
@@ -290,11 +289,9 @@ def handle_108(msg):
 
     for sess in sessions:
         newmsg = make_msg(SERVER_ID, 100, {'session': sess.export()})
-        broadcast(newmsg, [x[0] for x in sess.clientlist])
+        await broadcast(newmsg, [x[0] for x in sess.clientlist])
 
-    return None
-
-def handle_109(msg):
+async def handle_109(msg):
     """
     Handler for msgID 109: Request Track
 
@@ -309,21 +306,21 @@ def handle_109(msg):
 
     trid, ssid, yn = CTRL.request_track(cid, sid, tid)
 
-    if trid == None:
+    if trid is None:
         newmsg = error_msg("Error: request_track failed")
     else:
         newmsg = make_msg(SERVER_ID, 111, {'status': yn, 'sessionID': ssid, 'trackID': trid})
 
     sock = CTRL.get_socket(cid)
-    sock.send(newmsg)
+    await sock.send(newmsg)
 
     session = CTRL.sessions.get(sid)
 
     bmsg = make_msg(SERVER_ID, 100, {'session': session.export()})
 
-    return broadcast(bmsg, [x[0] for x in session.clientlist])
+    await broadcast(bmsg, [x[0] for x in session.clientlist])
 
-def handle_110(msg):
+async def handle_110(msg):
     """
     Handler for msgID 110: Relinquish Track
 
@@ -336,7 +333,7 @@ def handle_110(msg):
     sid = msg.get("payload").get("sessionID")
     tid = msg.get("payload").get("trackID")
 
-    if not (sid and tid):
+    if sid is None or tid is None:
         LOGGER.error("sid or tid not given in message")
         return error_msg("Error: sessionID and trackID required")
 
@@ -350,10 +347,10 @@ def handle_110(msg):
         #sock.send(error_msg("Error: Failed to relinquish track"))
 
     sess = CTRL.sessions.get(sid)
-    return broadcast(make_msg(SERVER_ID, 100, {'session': sess.export()}), [x[0] for x in sess.clientlist])
+    await broadcast(make_msg(SERVER_ID, 100, {'session': sess.export()}), [x[0] for x in sess.clientlist])
 
 
-def handle_112(msg):
+async def handle_112(msg):
     """
     Handler for msgID 112: Client Connect
 

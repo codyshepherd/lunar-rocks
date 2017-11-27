@@ -96,15 +96,27 @@ class Session:
         """
         LOGGER.debug("Session.update() started")
 
-        trackslist = sess.get('tracks')
+        trackslist = sess.get('board')
         if not trackslist:
             LOGGER.error("No tracklist provided to Session.update() by sess argument")
             return None
 
+        LOGGER.debug("Trackslist: " + str(trackslist))
+        '''
         for (new, trackobj) in zip(trackslist, self.tracks):
             if not trackobj.update(new):
                 LOGGER.error("Session.update() quitting because of error in Track.update()")
                 return None
+        '''
+        for newtrack in trackslist:
+            trackID = int(newtrack.get('trackID'))
+            if trackID not in self.tracks.keys():
+                LOGGER.error("trackID provided not in session's tracks.keys()")
+                continue
+            oldtrack = self.tracks[trackID]
+            if not oldtrack.update(newtrack):
+                LOGGER.error("Session.update() skipping track " + str(trackID) + " because of error in Track.update()")
+                continue
 
         return self
 
