@@ -165,8 +165,8 @@ def handle_101(msg):
         sock.send(newmsg)
 
         # For broadcasting session list to clients
-        clients = CTRL.clients.keys()       # UUIDs list
-        sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+        clients = list(CTRL.clients.keys())       # UUIDs list
+        sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
 
         return broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
     else:
@@ -219,8 +219,8 @@ def handle_104(msg):
         LOGGER.error("sid not provided")
         return error_msg("Error: sessionID must be provided in payload")
 
-    clients = CTRL.clients.keys()       # UUIDs list
-    sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+    clients = list(CTRL.clients.keys())       # UUIDs list
+    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
     newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
     if CTRL.client_leave(cid, sid):
@@ -241,8 +241,8 @@ def handle_106(msg):
 
     cid = msg.get("sourceID")
 
-    clients = CTRL.clients.keys()       # UUIDs list
-    sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+    clients = list(CTRL.clients.keys())       # UUIDs list
+    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
     newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
     if CTRL.client_exit(cid):
@@ -319,7 +319,7 @@ def handle_110(msg):
     :param msg: the message dict
     :return: a json-serialized object
     """
-    LOGGER.debug("handle 11: Relinquish Track started")
+    LOGGER.debug("handle_110(): Relinquish Track started")
 
     cid = msg.get("sourceID")
     sid = msg.get("payload").get("sessionID")
@@ -356,8 +356,8 @@ def handle_112(msg):
     cid = CTRL.get_cid_by_address(addr)
 
     if cid:
-        LOGGER.debug("Duplicate 112 detected from host " + str(addr[0]))
-        return make_msg(SERVER_ID, 113, {'clientID': cid, 'sessionIDs': CTRL.sessions.keys()})
+        LOGGER.debug("Duplicate 112 detected from host " + str(addr))
+        return make_msg(SERVER_ID, 113, {'clientID': cid, 'sessionIDs': list(CTRL.sessions.keys())})
 
     # No check for sourceID in this function b/c a new Client will not yet have one
     nick = msg.get("payload").get('nickname')
@@ -370,7 +370,7 @@ def handle_112(msg):
     CTRL.log_cid_by_address(clientID, addr)
     LOGGER.debug("New client ID: " + clientID + " assigned to " + str(addr))
 
-    return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': CTRL.sessions.keys()})
+    return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': list(CTRL.sessions.keys())})
 
 
 LOGGER.debug("websocket server started")
