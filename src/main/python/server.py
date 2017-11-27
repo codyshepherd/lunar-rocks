@@ -348,10 +348,11 @@ def handle_112(msg):
 
     addr = msg.get('addr')
 
-    cid_port = CTRL.get_cid_by_address(addr)
-    if cid_port:
+    cid = CTRL.get_cid_by_address(addr)
+
+    if cid:
         LOGGER.debug("Duplicate 112 detected from host " + str(addr[0]))
-        return make_msg(SERVER_ID, 113, {'clientID': cid_port[0]})
+        return make_msg(SERVER_ID, 113, {'clientID': cid, 'sessionIDs': CTRL.sessions.keys()})
 
     # No check for sourceID in this function b/c a new Client will not yet have one
     nick = msg.get("payload").get('nickname')
@@ -362,7 +363,7 @@ def handle_112(msg):
 
     clientID = CTRL.new_client(nick)
     CTRL.log_cid_by_address(clientID, addr)
-    LOGGER.debug("New client ID: " + clientID)
+    LOGGER.debug("New client ID: " + clientID + " assigned to " + str(addr))
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': CTRL.sessions.keys()})
 

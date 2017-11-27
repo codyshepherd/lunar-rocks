@@ -280,20 +280,19 @@ class Controller:
         :param addr: (host, port) tuple
         :return: None
         """
-        host = addr[0]
-        port = addr[1]
+        LOGGER.debug("Controller.log_cid_by_address() started")
 
-        self.addrs[host] = (cid, port)
+        self.addrs[str(addr)] = cid
 
     def get_cid_by_address(self, addr):
         """
         Allows for retrieval of (host,port) address by clientID
 
         :param addr: a host,port tuple
-        :return: (cid, port) tuple, or None
+        :return: clientID or None
         """
 
-        return self.addrs.get(addr[0])
+        return self.addrs.get(str(addr))
 
     def log_socket(self, cid, sock):
         """
