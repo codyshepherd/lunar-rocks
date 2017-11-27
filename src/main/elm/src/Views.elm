@@ -61,7 +61,15 @@ page model =
             [ h3 SubHeading
                 [ paddingBottom 25 ]
                 (text "MAKE MUSIC ACROSS THE WEB")
-            , paragraph Text [ paddingBottom 25 ] [ text "Some general info and instructions." ]
+
+            -- , paragraph Text [ paddingBottom 25 ] [ text "Some general info and instructions." ]
+            , paragraph None
+                []
+                [ text "Lunar Rocks is a collaborative music making site. Lunar Rocks is in the early development, and we appreciate any feedback. \"Eject\" above to visit the GitHub repo." ]
+            , paragraph None [] [ text "Music in Lunar Rocks is made in sessions. Each sesion has two tracks, and you can claim one by selecting \"Request Track.\" Once you have a track, start making music by adding and removing notes in the note grid. When you are happy with your creation, select \"Send\" and your music will be sent to the session. When you are done with a track, select \"Release Track\" to free it. Your music will stay, and someone else can jump in and add their ideas." ]
+            , paragraph None [] [ text "If someone else is working on a track in your session, you will see and hear the changes the changes they make. Collaborate with them! Make beautiful music!" ]
+            , paragraph None [] [ text "You can send your track to another session by claiming the same track in both sessions, selectng the target session from \"Your Sessions\", and then selecting \"Broadcast\". You can send to many sessions at once by selecting multiple sessions before selecting \"Broadcast\"." ]
+            , paragraph None [] [ text "Select \"Leave Session\" when you are ready to move on. \"Sessions\" will bring you back to the list of sessions, but you will stay active in the current session if you have a track open." ]
             , textLayout None
                 [ spacingXY 25 25 ]
                 (case model.username of
@@ -128,8 +136,6 @@ page model =
                     ([ h3 SubHeading
                         [ paddingTop 20, paddingBottom 20 ]
                         (text ("SESSION " ++ toString (id)))
-
-                     -- ]
                      , row None
                         [ spacing 2 ]
                         [ column None [ spacing 1 ] (viewLabels session.board session.tones)
@@ -169,34 +175,49 @@ page model =
                                     )
                                     model.sessionLists.clientSessions
                                 )
-                           , spacer 10
-                           , (let
-                                selectedSessions =
-                                    model.sessionLists.selectedSessions
-                              in
-                                paragraph None
-                                    [ spacing 3 ]
-                                    [ when
-                                        ((List.length selectedSessions == 1)
-                                            && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
-                                        )
-                                        (button
-                                            Button
-                                            [ paddingXY 10 2 ]
-                                            (link
-                                                (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
-                                             <|
-                                                el None [] (text "Goto")
-                                            )
-                                        )
-                                    ]
-                             )
+
+                           -- , spacer 10
+                           -- , (let
+                           --      selectedSessions =
+                           --          model.sessionLists.selectedSessions
+                           --    in
+                           --      paragraph None
+                           --          [ spacing 3 ]
+                           --          [ when
+                           --              ((List.length selectedSessions == 1)
+                           --                  && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
+                           --              )
+                           --              (button
+                           --                  Button
+                           --                  [ paddingXY 10 2 ]
+                           --                  (link
+                           --                      (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
+                           --                   <|
+                           --                      el None [] (text "Goto")
+                           --                  )
+                           --              )
+                           --          ]
+                           --   )
                            ]
                     )
                 ]
 
         NotFoundRoute ->
             [ textLayout None [] [ text "Not found" ] ]
+
+
+
+-- viewInstructions : Element Styles variation Msg
+-- viewInstructions =
+--     el None [] <|
+--         [ paragraph None
+--             []
+--             [ text "Lunar Rocks is a collaborative music making site. Lunar Rocks is in the early development, and we appreciate any feedback. \"Eject\" above to visit the GitHub repo." ]
+--         , paragraph None [ text "Music in Lunar Rocks is made in sessions. Each sesion has two tracks, and you can claim one by selecting \"Request Track.\" Once you have a track, start making music by adding and removing notes in the note grid. When you are happy with your creation, select \"Send\" and your music will be sent to the session. When you are done with a track, select \"Release Track\" to free it. Your music will stay, and someone else can jump in and add their ideas." ]
+--         , paragraph None [ text "If someone else is working on a track in your session, you will see and hear the changes the changes they make. Collaborate with them! Make beautiful music!" ]
+--         , paragraph None [ text "You can send your track to another session by claiming the same track in both sessions, selectng the target session from \"Your Sessions\", and then selecting \"Broadcast\". You can send to many sessions at once by selecting multiple sessions before selecting \"Broadcast\"." ]
+--         , paragraph None [ text "Select \"Leave Session\" when you are ready to move on. \"Sessions\" will bring you back to the list of sessions, but you will stay active in the current session if you have a track open." ]
+--         ]
 
 
 viewSessionEntry : SessionId -> List SessionId -> Element Styles variation Msg
@@ -209,10 +230,10 @@ viewSessionEntry sessionId clientSessions =
                 Button
     in
         el None
-            []
+            [ spacing 7 ]
             (link (sessionPath sessionId) <|
                 button style
-                    [ paddingXY 10 5, spacing 7 ]
+                    [ paddingXY 10 5 ]
                     (text (toString (sessionId)))
             )
 

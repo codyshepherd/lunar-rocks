@@ -521,7 +521,6 @@ serverUpdateModel serverMessage model =
 serverUpdateSession : ServerMessage -> Model -> Model
 serverUpdateSession serverMessage model =
     case serverMessage.payload of
-        -- SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
         SessionMessage su ->
             let
                 session =
@@ -556,12 +555,8 @@ serverUpdateSession serverMessage model =
 serverNewSession : ServerMessage -> Model -> Model
 serverNewSession serverMessage model =
     case serverMessage.payload of
-        -- SessionMessage sessionId clientsUpdate tempoUpdate boardUpdate ->
         SessionMessage su ->
             let
-                debug =
-                    Debug.log "su: " su
-
                 session =
                     emptySession su.sessionId
 
