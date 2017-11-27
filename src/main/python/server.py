@@ -47,7 +47,7 @@ async def handle(websocket, path):
         if not (obj and msgID):
             LOGGER.debug("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
-        elif not srcID:
+        elif (not srcID) or (srcID == "clown shoes"):
             LOGGER.debug("No sourceID provided")
             await websocket.send(error_msg("ERROR: srcID must be provided"))
         else:
@@ -110,8 +110,10 @@ def broadcast(msg, clients):
     for cid in clients:
         sock = CTRL.get_socket(cid)
         if sock:
+            addr = sock.remote_address
             LOGGER.debug("Sending to client: " + cid)
-            sock.send(msg)
+            crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
+            crock.send(msg)
 
     return None
 
