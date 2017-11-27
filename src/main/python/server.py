@@ -6,6 +6,7 @@ import controller
 import logging
 import uuid
 import os
+import argparse
 
 SERVER_ID = str(uuid.uuid1())
 
@@ -374,8 +375,16 @@ def handle_112(msg):
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': list(CTRL.sessions.keys())})
 
-
-LOGGER.debug("websocket server started")
-asyncio.get_event_loop().run_until_complete(
-    websockets.serve(handle, 'localhost', 8795))
-asyncio.get_event_loop().run_forever()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Initialize Server")
+    #parser.add_argument('-t', '--test', action='store_true', help='Port to listen on.')
+    parser.add_argument('-p', '--port', help='Port to serve on')
+    nspace = vars(parser.parse_args())
+    #testing = nspace.get('test')
+    port = nspace.get('port')
+    if not port:
+        port = 8795
+    LOGGER.debug("websocket server started")
+    asyncio.get_event_loop().run_until_complete(
+        websockets.serve(handle, 'localhost', port))
+    asyncio.get_event_loop().run_forever()
