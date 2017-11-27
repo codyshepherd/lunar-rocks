@@ -1,3 +1,4 @@
+# noinspection PyInterpreter,PyInterpreter
 import asyncio
 import websockets
 import json
@@ -92,6 +93,25 @@ def error_msg(txt):
     })
     return msg
 
+def broadcast(msg, clients):
+    """
+    Broadcast a message to all clients
+    :param msg: the well-formed json object to be broadcast
+    :param clients: the list of UUIDs to which to send msg
+    :return: None
+    """
+    LOGGER.debug("broadcast started")
+    LOGGER.debug("broadcasting message: " + msg)
+
+    # Loop through all clients, sending 105, or 102 & 105 for the 101 initiator
+    for cid in clients:
+        sock = CTRL.get_socket(cid)
+        if sock:
+            LOGGER.debug("Sending to client: " + cid)
+            sock.send(msg)
+
+    return None
+
 def handle_100(msg):
     """
     Handler for msg code 101: Update Session
@@ -118,12 +138,9 @@ def handle_100(msg):
     newsess =  CTRL.update_session(cid, sess)
 
     newmsg = make_msg(SERVER_ID, 100, {'session': newsess.export()})
-    for cid, nick in newsess.clientlist:
-        sock = CTRL.get_socket(cid)
-        sock.send(newmsg)
+    LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
 
-    return newmsg
-
+    return broadcast(newmsg, [x[0] for x in newsess.clientlist])
 
 def handle_101(msg):
     """
@@ -133,19 +150,25 @@ def handle_101(msg):
     :return: a json-serialized object
     """
     LOGGER.debug("handle_101(): Create Session started")
-    src_client = msg.get("sourceID")
+    cid = msg.get("sourceID")
 
     sessID = CTRL.new_session()
-    if CTRL.client_join(src_client, sessID):
-        LOGGER.debug("Client " + src_client + " joined session " + str(sessID))
+    if CTRL.client_join(cid, sessID):
+        LOGGER.debug("Client " + cid + " joined session " + str(sessID))
         sess = CTRL.get_session(sessID)
         newmsg = make_msg(SERVER_ID, 102, {'session': sess})
 
-    else:
-        LOGGER.error("Client " + src_client + " attempt to join session failed")
-        newmsg = error_msg("Error: Could not join session.")
+        sock = CTRL.get_socket(cid)
+        sock.send(newmsg)
 
-    return newmsg
+        # For broadcasting session list to clients
+        clients = CTRL.clients.keys()       # UUIDs list
+        sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+
+        return broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
+    else:
+        LOGGER.error("Client " + cid + " attempt to join session failed")
+        return error_msg("Error: Could not join session.")
 
 def handle_103(msg):
     """
@@ -165,13 +188,17 @@ def handle_103(msg):
 
     if CTRL.client_join(cid, sid):
         LOGGER.debug("Client " + cid + " joined session " + str(sid))
-        newmsg = make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)})
+
+        sess = CTRL.sessions.get(sid)
+
+        newmsg = make_msg(SERVER_ID, 100, {'session': sess.export()})
+        LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
+
+        return broadcast(newmsg, [x[0] for x in sess.clientlist])
 
     else:
         LOGGER.error("Client " + cid + " attempt to join session " + str(sid) + " failed")
-        newmsg = error_msg("Error: Could not join session")
-
-    return newmsg
+        return error_msg("Error: Could not join session")
 
 def handle_104(msg):
     """
@@ -189,12 +216,16 @@ def handle_104(msg):
         LOGGER.error("sid not provided")
         return error_msg("Error: sessionID must be provided in payload")
 
-    if CTRL.client_leave(cid, sid):
-        newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': CTRL.client_sessions[cid]})
-    else:
-        newmsg = error_msg("Error: Leave session failed")
+    clients = CTRL.clients.keys()       # UUIDs list
+    sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
-    return newmsg
+    if CTRL.client_leave(cid, sid):
+        LOGGER.debug("104: Client leave session successful")
+    else:
+        LOGGER.error("104: Leave session failed")
+
+    return broadcast(newmsg, clients)
 
 def handle_106(msg):
     """
@@ -207,12 +238,16 @@ def handle_106(msg):
 
     cid = msg.get("sourceID")
 
+    clients = CTRL.clients.keys()       # UUIDs list
+    sessionIDs = CTRL.sessions.keys()   # sessionIDs list
+    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
+
     if CTRL.client_exit(cid):
         LOGGER.debug("Client disconnect successful")
     else:
         LOGGER.error("Client disconnect failed")
 
-    return None
+    return broadcast(newmsg, clients)
 
 def handle_108(msg):
     """
@@ -240,10 +275,8 @@ def handle_108(msg):
     sessions = CTRL.broadcast(cid, sids, track)
 
     for sess in sessions:
-        for ccid,nick in sess.clientlist:
-            if ccid != cid:
-                sock = CTRL.get_socket(ccid)
-                sock.send(make_msg(SERVER_ID, 100, {'session': sess.export()}))
+        newmsg = make_msg(SERVER_ID, 100, {'session': sess.export()})
+        broadcast(newmsg, [x[0] for x in sess.clientlist])
 
     return None
 
@@ -267,7 +300,14 @@ def handle_109(msg):
     else:
         newmsg = make_msg(SERVER_ID, 111, {'status': yn, 'sessionID': ssid, 'trackID': trid})
 
-    return newmsg
+    sock = CTRL.get_socket(cid)
+    sock.send(newmsg)
+
+    session = CTRL.sessions.get(sid)
+
+    bmsg = make_msg(SERVER_ID, 100, {'session': session.export()})
+
+    return broadcast(bmsg, [x[0] for x in session.clientlist])
 
 def handle_110(msg):
     """
@@ -284,12 +324,17 @@ def handle_110(msg):
         LOGGER.error("sid or tid not given in message")
         return error_msg("Error: sessionID and trackID required")
 
+    sock = CTRL.get_socket(cid)
+
     if CTRL.relinquish_track(cid, sid, tid):
         LOGGER.debug("Client " + str(cid) + " relinquished track " + str(sid) + ':' + str(tid))
-        return make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)})
+        #sock.send(make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)}))
     else:
         LOGGER.error("Client " + str(cid) + " failed to relinquish track " + str(sid) + ':' + str(tid))
-        return error_msg("Error: Failed to relinquish track")
+        #sock.send(error_msg("Error: Failed to relinquish track"))
+
+    sess = CTRL.sessions.get(sid)
+    return broadcast(make_msg(SERVER_ID, 100, {'session': sess.export()}), [x[0] for x in sess.clientlist])
 
 
 def handle_112(msg):

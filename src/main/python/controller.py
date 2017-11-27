@@ -104,7 +104,7 @@ class Session:
                 LOGGER.error("Session.update() quitting because of error in Track.update()")
                 return None
 
-        return self.export()
+        return self
 
     def update_track(self, cid, trk):
         """
