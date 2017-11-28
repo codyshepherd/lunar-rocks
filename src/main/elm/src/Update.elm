@@ -255,8 +255,6 @@ update msg model =
                 newSession =
                     { session
                         | clock = increment session.clock session.beats
-
-                        -- , messages = [ toString sessionId ]
                     }
 
                 newSessions =
@@ -545,11 +543,15 @@ serverUpdateSession serverMessage model =
                 newBoard =
                     serverUpdateBoard board su.boardUpdate
 
+                newScore =
+                    List.concatMap (\t -> serverUpdateScore t board model.clientId session.tones) su.boardUpdate
+
                 newSession =
                     { session
                         | board = newBoard
                         , clients = su.clientsUpdate
                         , tempo = su.tempoUpdate
+                        , score = newScore
                     }
 
                 newSessions =
@@ -618,6 +620,58 @@ serverTrackUpdate track boardUpdate =
                 )
     in
         { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
+
+
+serverUpdateScore : TrackUpdate -> Board -> ClientId -> Int -> Score
+serverUpdateScore tu board clientId tones =
+    if tu.clientId == clientId then
+        let
+            track =
+                List.head (List.filter (\t -> t.trackId == tu.trackId) board)
+        in
+            case track of
+                Just t ->
+                    readGrid t.grid t.trackId tones
+
+                Nothing ->
+                    []
+    else
+        readGrid tu.grid tu.trackId tones
+
+
+readGrid : List (List Int) -> TrackId -> Int -> List Note
+readGrid grid trackId tones =
+    let
+        rows =
+            List.map (List.indexedMap (,)) grid
+
+        tupleGrid =
+            List.indexedMap (,) rows
+    in
+        List.concatMap (\r -> readRow trackId tones r) tupleGrid
+
+
+readRow : TrackId -> Int -> ( Int, List ( Int, Int ) ) -> List Note
+readRow trackId tones row =
+    List.map (\c -> readCell trackId tones (Tuple.first row) c) (Tuple.second row)
+
+
+readCell : TrackId -> Int -> Int -> ( Int, Int ) -> Note
+readCell trackId tones row c =
+    let
+        col =
+            Tuple.first c
+
+        action =
+            Tuple.second c
+    in
+        case action of
+            -- TODO: Re-work to not add empty notes
+            0 ->
+                Note trackId (col + 1) 0 (tones - row)
+
+            _ ->
+                Note trackId (col + 1) 1 (tones - row)
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model

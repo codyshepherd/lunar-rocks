@@ -11,9 +11,7 @@ type alias ServerMessage =
     }
 
 
-type
-    Payload
-    -- = SessionMessage Int (List String) Int (List TrackUpdate)
+type Payload
     = SessionMessage SessionUpdate
     | ClientInit String (List Int)
     | DisconnectMessage String

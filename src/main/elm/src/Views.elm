@@ -311,7 +311,7 @@ viewTrack sessionId track clientId beats tones selectedSessions =
                 ]
 
             _ ->
-                [ el InstrumentLabel [] (text (track.username ++ " on " ++ track.instrument))
+                [ paragraph InstrumentLabel [ paddingBottom 13 ] [ (text (track.username ++ " on " ++ track.instrument)) ]
                 , when
                     (clientId == track.clientId)
                     (button Button
