@@ -543,7 +543,7 @@ serverUpdateSession serverMessage model =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board su.boardUpdate
+                    serverUpdateBoard board su.boardUpdate model.clientId
 
                 newSession =
                     { session
@@ -574,7 +574,7 @@ serverNewSession serverMessage model =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board su.boardUpdate
+                    serverUpdateBoard board su.boardUpdate model.clientId
 
                 newSession =
                     { session
@@ -598,13 +598,13 @@ serverNewSession serverMessage model =
             Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
 
 
-serverUpdateBoard : Board -> List TrackUpdate -> Board
-serverUpdateBoard board boardUpdate =
-    List.map (\t -> serverTrackUpdate t boardUpdate) board
+serverUpdateBoard : Board -> List TrackUpdate -> ClientId -> Board
+serverUpdateBoard board boardUpdate clientId =
+    List.map (\t -> serverTrackUpdate t boardUpdate clientId) board
 
 
-serverTrackUpdate : Track -> List TrackUpdate -> Track
-serverTrackUpdate track boardUpdate =
+serverTrackUpdate : Track -> List TrackUpdate -> ClientId -> Track
+serverTrackUpdate track boardUpdate clientId =
     let
         trackUpdate =
             Maybe.withDefault
@@ -617,7 +617,10 @@ serverTrackUpdate track boardUpdate =
                     (List.filter (\tu -> tu.trackId == track.trackId) boardUpdate)
                 )
     in
-        { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
+        if track.clientId == clientId then
+            track
+        else
+            { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model
