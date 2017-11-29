@@ -543,7 +543,7 @@ class Controller:
         LOGGER.debug("Controller.broadcast() started")
 
         tid = trk.get("trackID")
-        if not tid:
+        if tid is None:
             LOGGER.error("No trackID given")
             return None
 
@@ -557,7 +557,7 @@ class Controller:
 
             sess = self.sessions.get(id)
 
-            if not sess:
+            if sess is None:
                 LOGGER.error("No session found for sessionID " + str(id))
                 continue
 

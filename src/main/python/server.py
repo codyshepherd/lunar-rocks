@@ -277,13 +277,13 @@ async def handle_108(msg):
 
     cid = msg.get("sourceID")
 
-    track = msg.get("track")
+    track = msg.get('payload').get("track")
 
     if track is None:
         LOGGER.error("No track provided")
         return error_msg("Error: track must be provided")
 
-    sids = msg.get("sessionIDs")
+    sids = msg.get('payload').get("sessionIDs")
 
     if sids is None:
         LOGGER.error("No list of sessionIDs provided")
