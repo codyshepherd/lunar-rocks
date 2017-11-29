@@ -251,14 +251,18 @@ async def handle_106(msg):
 
     cid = msg.get("sourceID")
 
-    clients = list(CTRL.clients.keys())       # UUIDs list
-    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
-    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
+    if cid is None:
+        LOGGER.error("No clientID provided to handle_106()")
+        return error_msg("Error: sourceID must be provided.")
 
     if CTRL.client_exit(cid):
         LOGGER.debug("Client disconnect successful")
     else:
         LOGGER.error("Client disconnect failed")
+
+    clients = list(CTRL.clients.keys())       # UUIDs list
+    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
+    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
     await broadcast(newmsg, clients)
 
