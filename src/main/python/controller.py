@@ -193,7 +193,8 @@ class Session:
         LOGGER.debug("Session.relinquish_track() started")
 
         if cid not in [x[0] for x in self.clientlist]:
-            LOGGER.error("clientID passed to Session.relinquish_track() not in session's clientlist")
+            LOGGER.error("clientID " + str(cid) + " passed to Session.relinquish_track() not in session's clientlist")
+            LOGGER.error("clientlist: " + str(self.clientlist))
             return False
 
         if tid not in self.trackIDs:
@@ -208,6 +209,7 @@ class Session:
 
         t.clientID = ''
         t.clientNick = ''
+        self.tracks[cid] = t
         return True
 
     def add_client(self, cid, nick):
@@ -222,6 +224,8 @@ class Session:
 
         if cid not in [x[0] for x in self.clientlist]:
             self.clientlist.append((cid, nick))
+
+        #LOGGER.debug("Session clientlist after adding: " + str(self.clientlist))
 
         return True
 
@@ -238,11 +242,11 @@ class Session:
             LOGGER.error("id provided to Session.remove_client() is not a member of the session")
             return False
 
-        #self.clientlist = filter(lambda x: x != cid, self.clientlist)
-        self.clientlist = [x for x in self.clientlist if x[0] != cid]
-
         for tid in self.trackIDs:
             self.relinquish_track(cid, tid)
+
+        #self.clientlist = filter(lambda x: x != cid, self.clientlist)
+        self.clientlist = [x for x in self.clientlist if x[0] != cid]
 
         return True
 
@@ -448,6 +452,8 @@ class Controller:
         c_sessions = self.client_sessions[cid]
         #self.client_sessions[cid] = filter(lambda x: x != sid, c_sessions)
         self.client_sessions[cid] = [x for x in c_sessions if x != sid]
+
+        #LOGGER.debug("Session " + str(sid) + " after remove_client(): " + str(sess.export()))
 
         if sess.is_empty():
             del self.sessions[sid]
