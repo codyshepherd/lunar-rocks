@@ -240,6 +240,14 @@ async def handle_104(msg):
     newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
     await broadcast(newmsg, clients)
 
+    newsess = CTRL.get_session(sid)
+
+    if newsess:
+        newmsg = make_msg(SERVER_ID, 100, {'session': newsess})
+        LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
+
+        await broadcast(newmsg, [x[0] for x in newsess.clientlist])
+
 async def handle_106(msg):
     """
     Handler for msgID 106: Client Disconnect
