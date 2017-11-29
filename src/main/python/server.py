@@ -45,7 +45,7 @@ async def handle(websocket, path):
         srcID = obj.get("sourceID")
         #LOGGER.debug("Type of msgID: " + str(type(msgID)))
 
-        if not (obj and msgID):
+        if obj is None or msgID is None:
             LOGGER.debug("Error sent")
             await websocket.send(error_msg("ERROR: messageID must be provided"))
         elif ((not srcID) or (srcID == "clown shoes")) and msgID != 112:
@@ -137,12 +137,12 @@ async def handle_100(msg):
     cid = msg.get("sourceID")
     payload = msg.get("payload")
 
-    if not payload:
+    if payload is None:
         LOGGER.error("No payload provided to handle_100")
         return error_msg("Error: no payload provided for msgID 100")
 
     sess = msg.get("payload").get("session")
-    if not sess:
+    if sess is None:
         LOGGER.error("No session provided to handle_100()")
         return error_msg("Error: no session object provided for msgID 100")
 
@@ -195,7 +195,7 @@ async def handle_103(msg):
     cid = msg.get("sourceID")
     sid = msg.get("payload").get("sessionID")
 
-    if not sid:
+    if sid is None:
         LOGGER.error("sid not provided")
         return error_msg("Error: sessionID must be provided in payload")
 
@@ -225,19 +225,19 @@ async def handle_104(msg):
     cid = msg.get("sourceID")
     sid = msg.get("payload").get("sessionID")
 
-    if not sid:
+    if sid is None:
         LOGGER.error("sid not provided")
         return error_msg("Error: sessionID must be provided in payload")
 
-    clients = list(CTRL.clients.keys())       # UUIDs list
-    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
-    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
     if CTRL.client_leave(cid, sid):
         LOGGER.debug("104: Client leave session successful")
     else:
         LOGGER.error("104: Leave session failed")
 
+    clients = list(CTRL.clients.keys())       # UUIDs list
+    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
+    newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
     await broadcast(newmsg, clients)
 
 async def handle_106(msg):
@@ -275,13 +275,13 @@ async def handle_108(msg):
 
     track = msg.get("track")
 
-    if not track:
+    if track is None:
         LOGGER.error("No track provided")
         return error_msg("Error: track must be provided")
 
     sids = msg.get("sessionIDs")
 
-    if not sids:
+    if sids is None:
         LOGGER.error("No list of sessionIDs provided")
         return error_msg("Error: list of sessionIDs must be provided")
 
@@ -370,7 +370,7 @@ async def handle_112(msg):
     # No check for sourceID in this function b/c a new Client will not yet have one
     nick = msg.get("payload").get('nickname')
 
-    if not nick:
+    if nick is None:
         LOGGER.error("Client did not provide nickname")
         return error_msg("Error: Nickname not provided")
 
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     nspace = vars(parser.parse_args())
     #testing = nspace.get('test')
     port = nspace.get('port')
-    if not port:
+    if port is None:
         port = 8795
     LOGGER.debug("websocket server started on port " + str(port))
     asyncio.get_event_loop().run_until_complete(

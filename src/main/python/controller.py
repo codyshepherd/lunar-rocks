@@ -33,7 +33,7 @@ class Track:
         """
         LOGGER.debug("Track.update() started")
         newgrid = trk.get('grid')
-        if not newgrid:
+        if newgrid is None:
             LOGGER.error("No new grid state provided to Track.update()")
             return False
 
@@ -97,7 +97,7 @@ class Session:
         LOGGER.debug("Session.update() started")
 
         trackslist = sess.get('board')
-        if not trackslist:
+        if trackslist is None:
             LOGGER.error("No tracklist provided to Session.update() by sess argument")
             return None
 
@@ -134,7 +134,7 @@ class Session:
 
         track = self.tracks.get(tid)
 
-        if not track:
+        if track is None:
             LOGGER.error("No track by id " + str(tid) + " found")
             return False
 
@@ -169,7 +169,7 @@ class Session:
 
         t = self.tracks.get(tid)
 
-        if not t:
+        if t is None:
             LOGGER.error("For some reason the trackID passed to Session.request_track() can't find a track!")
             return (None, None, False)
 
@@ -202,7 +202,7 @@ class Session:
 
         t = self.tracks.get(tid)
 
-        if not t:
+        if t is None:
             LOGGER.error("For some reason the trackID " + str(tid) + " passed to Session.relinquish_track() can't find a track!")
             return False
 
@@ -339,7 +339,7 @@ class Controller:
         LOGGER.debug("Controller.get_session() started")
         sess = self.sessions.get(sid)
 
-        if not sess:
+        if sess is None:
             LOGGER.error("No session found by the sessionID passed to Controller.get_session()")
             return None
 
@@ -409,15 +409,15 @@ class Controller:
         LOGGER.debug("Controller.client_join() started")
 
         sess = self.sessions.get(sid)
-        if not sess:
+        if sess is None:
             return False
 
         nick = self.clients.get(cid)
-        if not nick:
+        if nick is None:
             return False
 
         sess.add_client(cid, nick)
-        if not self.client_sessions.get(cid):
+        if self.client_sessions.get(cid) is None:
             self.client_sessions[cid] = []
         self.client_sessions[cid].append(sess.sessionID)
         return True
@@ -433,10 +433,10 @@ class Controller:
         LOGGER.debug("Controller.client_leave() started")
 
         sess = self.sessions.get(sid)
-        if not sess:
+        if sess is None:
             return False
 
-        if not self.clients.get(cid):
+        if self.clients.get(cid) is None:
             return False
 
         if not sess.remove_client(cid):
