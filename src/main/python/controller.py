@@ -434,12 +434,15 @@ class Controller:
 
         sess = self.sessions.get(sid)
         if sess is None:
+            LOGGER.error("Session " + str(sid) + " not found by Controller.client_leave()")
             return False
 
         if self.clients.get(cid) is None:
+            LOGGER.error("Client " + str(cid) + " not found by Controller.client_leave()")
             return False
 
         if not sess.remove_client(cid):
+            LOGGER.error("Removing client failed in Controller.client_leave()")
             return False
 
         c_sessions = self.client_sessions[cid]
