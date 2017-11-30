@@ -207,9 +207,11 @@ class Session:
             LOGGER.error("For some reason the trackID " + str(tid) + " passed to Session.relinquish_track() can't find a track!")
             return False
 
-        t.clientID = ''
-        t.clientNick = ''
-        self.tracks[cid] = t
+        if t.clientID == cid:
+            t.clientID = ''
+            t.clientNick = ''
+            #self.tracks[tid] = t
+
         return True
 
     def add_client(self, cid, nick):
