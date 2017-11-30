@@ -28,7 +28,6 @@ update msg model =
             )
 
         Disconnect ->
-            -- TODO: Does this send a message before navigating away?
             ( model
             , WebSocket.send websocketServer (encodeMessage model.clientId 106 (object []))
             )
@@ -36,7 +35,8 @@ update msg model =
         IncomingMessage rawMessage ->
             let
                 serverMessage =
-                    case Debug.log "serverMessage" (Json.Decode.decodeString decodeServerMessage rawMessage) of
+                    -- case Debug.log "serverMessage" (Json.Decode.decodeString decodeServerMessage rawMessage) of
+                    case (Json.Decode.decodeString decodeServerMessage rawMessage) of
                         Ok m ->
                             Just m
 
@@ -117,10 +117,6 @@ update msg model =
                         Home ->
                             Cmd.none
 
-                        -- TODO: sufficient to use the same message, but 0 for home?
-                        -- or is this implicit when LeaveSession
-                        -- WebSocket.send websocketServer
-                        --     (encodeMessage model.clientId 103 (encodeSessionId 0))
                         NotFoundRoute ->
                             WebSocket.send websocketServer
                                 (encodeMessage model.clientId 114 (encodeError "Route not found"))
@@ -178,36 +174,6 @@ update msg model =
                 )
 
         RequestTrack sessionId trackId clientId ->
-            -- let
-            --     session =
-            --         Maybe.withDefault
-            --             (emptySession sessionId)
-            --             (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
-            --     newTrack =
-            --         updateTrackUser trackId clientId model.username session.board
-            --     newBoard =
-            --         List.take trackId session.board
-            --             ++ newTrack
-            --             :: List.drop (trackId + 1) session.board
-            --     newSession =
-            --         { session | board = newBoard }
-            --     newSessions =
-            --         newSession :: model.sessions
-            --     sessionLists =
-            --         model.sessionLists
-            --     newClientSessions =
-            --         case List.member session.id sessionLists.clientSessions of
-            --             True ->
-            --                 sessionLists.clientSessions
-            --             False ->
-            --                 List.sort (session.id :: sessionLists.clientSessions)
-            --     newSessionLists =
-            --         { sessionLists | clientSessions = newClientSessions }
-            -- in
-            --     ( { model | sessions = newSessions, sessionLists = newSessionLists }
-            --     , WebSocket.send websocketServer
-            --         (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
-            --     )
             ( model
             , WebSocket.send websocketServer
                 (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
@@ -449,15 +415,12 @@ serverUpdateModel serverMessage model =
         Just sm ->
             case sm.messageId of
                 100 ->
-                    -- TODO: test
                     serverUpdateSession sm model
 
                 102 ->
-                    -- TODO: test
                     serverNewSession sm model
 
                 105 ->
-                    -- TODO: test
                     case sm.payload of
                         SessionIds ids ->
                             let
@@ -480,7 +443,6 @@ serverUpdateModel serverMessage model =
                 107 ->
                     case sm.payload of
                         DisconnectMessage msg ->
-                            -- TODO: test if this re-routes correctly
                             { model
                                 | sessionId = 0
                                 , serverMessage = "The server disconnected you."
@@ -490,7 +452,6 @@ serverUpdateModel serverMessage model =
                             Debug.log "107: Payload mismatch" model
 
                 111 ->
-                    -- TODO: test
                     serverUpdateTrackStatus sm model
 
                 113 ->
@@ -541,10 +502,10 @@ serverUpdateSession serverMessage model =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board su.boardUpdate model.clientId
+                    serverUpdateBoard board su.boardUpdate model.clientId model.sessionId su.sessionId
 
                 newScore =
-                    List.concatMap (\t -> serverUpdateScore t board model.clientId session.tones) su.boardUpdate
+                    List.concatMap (\t -> serverUpdateScore t board session.tones model.clientId model.sessionId su.sessionId) su.boardUpdate
 
                 newSession =
                     { session
@@ -576,7 +537,7 @@ serverNewSession serverMessage model =
                     session.board
 
                 newBoard =
-                    serverUpdateBoard board su.boardUpdate model.clientId
+                    serverUpdateBoard board su.boardUpdate model.clientId model.sessionId su.sessionId
 
                 newSession =
                     { session
@@ -600,13 +561,13 @@ serverNewSession serverMessage model =
             Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
 
 
-serverUpdateBoard : Board -> List TrackUpdate -> ClientId -> Board
-serverUpdateBoard board boardUpdate clientId =
-    List.map (\t -> serverTrackUpdate t boardUpdate clientId) board
+serverUpdateBoard : Board -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Board
+serverUpdateBoard board boardUpdate clientId sessionId suId =
+    List.map (\t -> serverTrackUpdate t boardUpdate clientId sessionId suId) board
 
 
-serverTrackUpdate : Track -> List TrackUpdate -> ClientId -> Track
-serverTrackUpdate track boardUpdate clientId =
+serverTrackUpdate : Track -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Track
+serverTrackUpdate track boardUpdate clientId sessionId suId =
     let
         trackUpdate =
             Maybe.withDefault
@@ -619,15 +580,15 @@ serverTrackUpdate track boardUpdate clientId =
                     (List.filter (\tu -> tu.trackId == track.trackId) boardUpdate)
                 )
     in
-        if track.clientId == clientId then
+        if track.clientId == clientId && suId == sessionId then
             track
         else
             { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
 
 
-serverUpdateScore : TrackUpdate -> Board -> ClientId -> Int -> Score
-serverUpdateScore tu board clientId tones =
-    if tu.clientId == clientId then
+serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
+serverUpdateScore tu board tones clientId sessionId suId =
+    if tu.clientId == clientId && suId == sessionId then
         let
             track =
                 List.head (List.filter (\t -> t.trackId == tu.trackId) board)
@@ -718,7 +679,6 @@ serverUpdateTrackStatus serverMessage model =
                 in
                     { model | sessions = newSessions, sessionLists = newSessionLists }
             else
-                -- TODO: Add message for the user
                 model
 
         _ ->
