@@ -321,6 +321,8 @@ class Controller:
         """
         LOGGER.debug("Controller.log_socket() started")
 
+        LOGGER.debug("Logging socket for clientID " + str(cid))
+
         self.sockets[cid] = sock
 
     def get_socket(self, cid):
@@ -344,7 +346,7 @@ class Controller:
         sess = self.sessions.get(sid)
 
         if sess is None:
-            LOGGER.error("No session found by the sessionID passed to Controller.get_session()")
+            LOGGER.error("No session " + str(sid) + " found by Controller.get_session()")
             return None
 
         return sess.export()
@@ -414,11 +416,28 @@ class Controller:
 
         sess = self.sessions.get(sid)
         if sess is None:
+            LOGGER.error("Provided sessionID " + str(sid) + " returns no session")
             return False
 
         nick = self.clients.get(cid)
         if nick is None:
+            LOGGER.error("Provided clientID " + str(cid) + " returns no nick")
             return False
+
+        # Check for disconnected Clients
+        to_check = [x[0] for x in sess.clientlist]
+        for c_id in to_check:
+            sock = self.get_socket(c_id)
+            if sock is None:
+                LOGGER.debug("client_join() discovered no socket for clientID " + str(c_id) + ". calling client exit")
+                self.client_exit(c_id)
+            else:
+                try:
+                    sock.ping()
+                except Exception as e:
+                    LOGGER.debug("client_joing() detected closed socket for clientID " + str(cid) + ". calling client exit and removing socket")
+                    self.client_exit(c_id)
+                    del self.sockets[c_id]
 
         sess.add_client(cid, nick)
         if self.client_sessions.get(cid) is None:
@@ -509,6 +528,21 @@ class Controller:
         if not nick:
             LOGGER.error("cid provided does not exist")
             return None, None, False
+
+        # Check for disconnected Clients
+        to_check = [x[0] for x in sess.clientlist]
+        for c_id in to_check:
+            sock = self.get_socket(c_id)
+            if sock is None:
+                LOGGER.debug("request_track() discovered no socket for clientID " + str(c_id) + ". calling client exit")
+                self.client_exit(c_id)
+            else:
+                try:
+                    sock.ping()
+                except Exception as e:
+                    LOGGER.debug("request_track() detected closed socket for clientID " + str(cid) + ". calling client exit and removing socket")
+                    self.client_exit(c_id)
+                    del self.sockets[c_id]
 
         return sess.request_track(cid, nick, tid)
 
