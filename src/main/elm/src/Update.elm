@@ -505,7 +505,9 @@ serverUpdateSession serverMessage model =
                     serverUpdateBoard board su.boardUpdate model.clientId model.sessionId su.sessionId
 
                 newScore =
-                    List.concatMap (\t -> serverUpdateScore t board session.tones model.clientId model.sessionId su.sessionId) su.boardUpdate
+                    List.concatMap
+                        (\t -> serverUpdateScore t board session.tones model.clientId model.sessionId su.sessionId)
+                        su.boardUpdate
 
                 newSession =
                     { session
@@ -563,11 +565,11 @@ serverNewSession serverMessage model =
 
 serverUpdateBoard : Board -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Board
 serverUpdateBoard board boardUpdate clientId sessionId suId =
-    List.map (\t -> serverTrackUpdate t boardUpdate clientId sessionId suId) board
+    List.map (\t -> serverUpdateTrack t boardUpdate clientId sessionId suId) board
 
 
-serverTrackUpdate : Track -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Track
-serverTrackUpdate track boardUpdate clientId sessionId suId =
+serverUpdateTrack : Track -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Track
+serverUpdateTrack track boardUpdate clientId sessionId suId =
     let
         trackUpdate =
             Maybe.withDefault

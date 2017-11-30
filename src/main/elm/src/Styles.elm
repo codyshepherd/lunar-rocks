@@ -156,7 +156,10 @@ stylesheet =
             [ Font.typeface serif
             , Font.size 24
             ]
-        , style Text [ Font.size 18 ]
+        , style Text
+            [ Font.size 18
+            , Font.letterSpacing 0.45
+            ]
         ]
 
 

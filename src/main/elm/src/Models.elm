@@ -138,13 +138,7 @@ initialModel route =
     , trackId = 0
     , sessions =
         [ emptySession 0 ]
-
-    -- , emptySession 1
-    -- , emptySession 2
-    -- , emptySession 3
-    -- ]
     , sessionLists =
-        -- { allSessions = [ 0, 1, 2, 3 ]
         { allSessions = [ 0 ]
         , clientSessions = []
         , selectedSessions = []
