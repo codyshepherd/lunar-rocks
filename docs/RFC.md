@@ -208,7 +208,7 @@ Message IDs and descriptions are detailed in the following table:
 | 104| Leave Session      | Client | SessionID              | Used whenever a Client wants to leave a Session; if Client is last to leave, Session is destroyed |
 | 105| Update SessionList | Server | [SessionID]            | Server sends this update to Clients when its active Session list is updated |
 | 106| Disconnect         | Client | | Client notifies Server it is disconnecting |
-| 107| Disconnect         | Server | | Server notifies Client that either the Server is going down, or Client is being kicked |
+| 107| Disconnect         | Server | | NOT IMPLEMENTED |
 | 108| Broadcast          | Client | (Track, [SessionID]) | Used when the Client wants to update a set of active Sessions with a selected track |
 | 109| Request Track      | Client | (SessionID, TrackID)   | Used when a Client wants to select a Track in a Session |
 | 110| Relinquish Track   | Client | (SessionID, TrackID)   | Used when a Client wants to relinquish a Track in a Session
