@@ -1,7 +1,22 @@
+'''
+Lunar Rocks Backend
+
+The classes in this module comprise the building blocks of the Lunar Rocks server infrastructure.
+'''
+
 import numpy as np
 import random
 import uuid
 import logging
+
+__author__ = "Cody Shepherd and Brian Ginsburg"
+__copyright__ = "Copyright 2017, Cody Shepherd & Brian Ginsburg"
+__credits__ = ["Cody Shepherd", "Brian Ginsburg"]
+#__license__ =
+__version__ = "1.0.0"
+__maintainer__ = "Cody Shepherd"
+__email__ = "cody.shepherd@gmail.com"
+__status__ = "Alpha"
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
@@ -11,14 +26,14 @@ DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
 
-LOGGER = logging.getLogger('root')
-#logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
+LOGGER = logging.getLogger(LOG_NAME)
+logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 class Track:
 
     def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO):
         LOGGER.debug("Track " + str(trackID) + " created")
-        self.trackID = trackID              # Int
+        self.trackID = trackID              # String
         self.clientID = ''                  # UUID String
         self.clientNick = ''                # String
         self.grid = np.zeros(dimensions, dtype=int).tolist() # 2D list of ints
@@ -80,10 +95,10 @@ class Session:
 
     def __init__(self, sessionID):
         LOGGER.debug("Session " + str(sessionID) + " created")
-        self.clientlist = []                # list of (UUID, nickname) pairs
-        self.sessionID = sessionID          # Int
-        self.trackIDs = TRACK_IDS           # [Int]
-        self.tracks = {}                    # Int: Track
+        self.clientlist = []            # list of (UUID, nickname) pairs
+        self.sessionID = sessionID
+        self.trackIDs = TRACK_IDS
+        self.tracks = {}
         for num in self.trackIDs:
             self.tracks[num] = Track(num)
 
@@ -154,7 +169,7 @@ class Session:
 
         :param cid: clientID string
         :param nick: client nickname string
-        :param tid: trackID int
+        :param tid: trackID string
         :return: trackID, sessionID, boolean - the first two fields are None if last is False
         """
         LOGGER.debug("Session.request_track() started")
@@ -173,13 +188,12 @@ class Session:
             LOGGER.error("For some reason the trackID passed to Session.request_track() can't find a track!")
             return (None, None, False)
 
-        if t.clientID != '':
+        if t.clientID:
             LOGGER.error("Track specified to Session.request_track() is already owned")
             return (None, None, False)
 
         t.clientID = cid
         t.clientNick = nick
-        self.tracks[tid] = t
         LOGGER.debug("Session.request_track() returning " + str(t.trackID) + ", " + str(self.sessionID) + ", " + str(True))
         return (t.trackID, self.sessionID, True)
 
@@ -211,7 +225,6 @@ class Session:
         if t.clientID == cid:
             t.clientID = ''
             t.clientNick = ''
-            self.tracks[tid] = t
 
         return True
 
@@ -248,7 +261,6 @@ class Session:
         for tid in self.trackIDs:
             self.relinquish_track(cid, tid)
 
-        #self.clientlist = filter(lambda x: x != cid, self.clientlist)
         self.clientlist = [x for x in self.clientlist if x[0] != cid]
 
         return True
@@ -393,15 +405,11 @@ class Controller:
         LOGGER.debug("Controller.client_exit() started")
 
         if cid not in self.clients.keys():
-            LOGGER.error("cid " + str(cid) + " provided to Controller.client_exit() not in clients.keys()")
+            LOGGER.error("cid provided to Controller.client_exit() not in clients.keys()")
             return False
 
         c_sessions = self.client_sessions[cid]
-        for sid in c_sessions:
-            session = self.sessions.get(sid)
-            if session is None:
-                LOGGER.error("client_sessions had a sessionID -- " + str(sid) + " -- for which no session existed!")
-                continue
+        for session in c_sessions:
             session.remove_client(cid)
             if session.is_empty():
                 del self.sessions[session.sessionID]
@@ -476,7 +484,6 @@ class Controller:
             return False
 
         c_sessions = self.client_sessions[cid]
-        #self.client_sessions[cid] = filter(lambda x: x != sid, c_sessions)
         self.client_sessions[cid] = [x for x in c_sessions if x != sid]
 
         #LOGGER.debug("Session " + str(sid) + " after remove_client(): " + str(sess.export()))
@@ -499,21 +506,17 @@ class Controller:
         sid = sess.get('sessionID')
 
         if not sid:
-            LOGGER.error("No session ID provided to Controller.update_session()!")
+            LOGGER.error("No session ID provided in argument!")
             return None
 
         sessionIDs = self.client_sessions.get(cid)
-        if not sessionIDs:
-            LOGGER.error("client " + str(cid) + " not in any sessions!")
-            return None
-
-        if sid not in sessionIDs:
-            LOGGER.error("Client " + str(cid) + " trying to update session it isn't a member of: " + str(sid))
+        if not sessionIDs or sid not in sessionIDs:
+            LOGGER.error("Wanted to update a session it didn't own.")
             return None
 
         session = self.sessions.get(sid)
         if not session:
-            LOGGER.error("Session " + str(sid) + " not found by Controller.update_session()")
+            LOGGER.error("Session not found")
             return None
 
         return session.update(sess)
@@ -532,7 +535,7 @@ class Controller:
         sess = self.sessions.get(sid)
 
         if not sess:
-            LOGGER.error("sid " + str(sid) + " does not return a session")
+            LOGGER.error("sid provided does not exist")
             return None, None, False
 
         nick = self.clients.get(cid)
