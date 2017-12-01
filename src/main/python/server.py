@@ -169,10 +169,11 @@ async def handle_100(msg):
 
     newsess =  CTRL.update_session(cid, sess)
 
-    newmsg = make_msg(SERVER_ID, 100, {'session': newsess.export()})
-    LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
+    if newsess is not None:
+        newmsg = make_msg(SERVER_ID, 100, {'session': newsess.export()})
+        LOGGER.debug("Broadcasting " + newmsg + " to all of session's clients")
 
-    await broadcast(newmsg, [x[0] for x in newsess.clientlist])
+        await broadcast(newmsg, [x[0] for x in newsess.clientlist])
 
 async def handle_101(msg):
     """
@@ -357,9 +358,11 @@ async def handle_109(msg):
 
     session = CTRL.sessions.get(sid)
 
-    bmsg = make_msg(SERVER_ID, 100, {'session': session.export()})
-
-    await broadcast(bmsg, [x[0] for x in session.clientlist])
+    if session is None:
+        LOGGER.error("session " + str(sid) + " not found by handle_109() after calling CTRL.request_track()")
+    else:
+        bmsg = make_msg(SERVER_ID, 100, {'session': session.export()})
+        await broadcast(bmsg, [x[0] for x in session.clientlist])
 
 async def handle_110(msg):
     """
@@ -388,7 +391,10 @@ async def handle_110(msg):
         #sock.send(error_msg("Error: Failed to relinquish track"))
 
     sess = CTRL.sessions.get(sid)
-    await broadcast(make_msg(SERVER_ID, 100, {'session': sess.export()}), [x[0] for x in sess.clientlist])
+    if sess is None:
+        LOGGER.error("Session " + str(sid) + " not found by handle_110() after calling CTRL.relinquish_track()")
+    else:
+        await broadcast(make_msg(SERVER_ID, 100, {'session': sess.export()}), [x[0] for x in sess.clientlist])
 
 
 async def handle_112(msg):
