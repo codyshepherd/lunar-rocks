@@ -1,7 +1,22 @@
+"""
+Lunar Rocks Backend
+
+The classes in this module comprise the building blocks of the Lunar Rocks Server infrastructure.
+"""
+
 import numpy as np
 import random
 import uuid
 import logging
+
+__author__ = "Cody Shepherd & Brian Ginsburg"
+__copyright__ = "Copyright 2017, Cody Shepherd & Brian Ginsburg"
+__credits__ = ["Cody Shepherd", "Brian Ginsburg"]
+#__license__ =
+__version__ = "1.0"
+__maintainer__ = "Cody Shepherd"
+__email__ = "cody.shepherd@gmail.com"
+__status__ = "Alpha"
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
@@ -12,7 +27,6 @@ LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
 
 LOGGER = logging.getLogger('root')
-#logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 class Track:
 
@@ -248,7 +262,6 @@ class Session:
         for tid in self.trackIDs:
             self.relinquish_track(cid, tid)
 
-        #self.clientlist = filter(lambda x: x != cid, self.clientlist)
         self.clientlist = [x for x in self.clientlist if x[0] != cid]
 
         return True
@@ -476,7 +489,6 @@ class Controller:
             return False
 
         c_sessions = self.client_sessions[cid]
-        #self.client_sessions[cid] = filter(lambda x: x != sid, c_sessions)
         self.client_sessions[cid] = [x for x in c_sessions if x != sid]
 
         #LOGGER.debug("Session " + str(sid) + " after remove_client(): " + str(sess.export()))

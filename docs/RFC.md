@@ -194,6 +194,9 @@ be logged in this way, and the client should be informed when something went
 wrong, particularly for validation errors where the client can make another
 attempt at valid input.
 
+Clients are informed of errors via message type 114: Error. The payload of this
+message type will be a plaintext message describing the error.
+
 ## 4. Message Details
 As detailed in Section 2, Messages are identified by their message ID. 
 

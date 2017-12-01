@@ -1,4 +1,11 @@
-# noinspection PyInterpreter,PyInterpreter
+"""
+Lunar Rocks Websocket Server
+
+This module handles websocket traffic to and from the server.
+
+Python >= 3.5 required.
+"""
+
 import asyncio
 import websockets
 from websockets.exceptions import ConnectionClosed
@@ -7,15 +14,20 @@ import controller
 import logging
 from logging.handlers import RotatingFileHandler
 import uuid
-import os
 import argparse
+
+__author__ = "Cody Shepherd & Brian Ginsburg"
+__copyright__ = "Copyright 2017, Cody Shepherd & Brian Ginsburg"
+__credits__ = ["Cody Shepherd", "Brian Ginsburg"]
+#__license__ =
+__version__ = "1.0"
+__maintainer__ = "Cody Shepherd"
+__email__ = "cody.shepherd@gmail.com"
+__status__ = "Alpha"
 
 SERVER_ID = str(uuid.uuid1())
 
 LOG_NAME = "server.log"
-
-#if os.path.isfile(LOG_NAME):
-#    os.remove(LOG_NAME)
 
 log_handler = RotatingFileHandler(LOG_NAME, mode='w+', maxBytes = 1000000, backupCount=2, encoding=None, delay=0)
 log_handler.setLevel(logging.DEBUG)

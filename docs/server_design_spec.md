@@ -1,5 +1,7 @@
+## This file is outdated. Please refer to the RFC for current specification.
+
 # Server Design & API Specification
-version 1.1
+version 0.1
 
 ## Custom Types
 
