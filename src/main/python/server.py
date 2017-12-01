@@ -1,4 +1,11 @@
-# noinspection PyInterpreter,PyInterpreter
+'''
+Lunar Rocks Websocket Server
+
+This module handles websocket traffic to and from the server.
+
+Python >= 3.5 required
+'''
+
 import asyncio
 import websockets
 from websockets.exceptions import ConnectionClosed
@@ -7,15 +14,20 @@ import controller
 import logging
 from logging.handlers import RotatingFileHandler
 import uuid
-import os
 import argparse
+
+__author__ = "Cody Shepherd and Brian Ginsburg"
+__copyright__ = "Copyright 2017, Cody Shepherd & Brian Ginsburg"
+__credits__ = ["Cody Shepherd", "Brian Ginsburg"]
+#__license__ =
+__version__ = "1.0.0"
+__maintainer__ = "Cody Shepherd"
+__email__ = "cody.shepherd@gmail.com"
+__status__ = "Alpha"
 
 SERVER_ID = str(uuid.uuid1())
 
 LOG_NAME = "server.log"
-
-#if os.path.isfile(LOG_NAME):
-#    os.remove(LOG_NAME)
 
 log_handler = RotatingFileHandler(LOG_NAME, mode='w+', maxBytes = 1000000, backupCount=2, encoding=None, delay=0)
 log_handler.setLevel(logging.DEBUG)
@@ -70,7 +82,6 @@ async def handle(websocket, path):
                     CTRL.log_socket(srcID, websocket)
                 msg = await DISPATCH_TABLE[msgID](obj)
                 if msg:
-                    #await websocket.send(DISPATCH_TABLE[msgID](obj))
                     LOGGER.debug("Message sent: " + str(msg))
                     await websocket.send(msg)
 
@@ -136,11 +147,8 @@ async def broadcast(msg, clients):
     for cid in clients:
         sock = CTRL.get_socket(cid)
         if sock:
-            #addr = sock.remote_address
             LOGGER.debug("Sending to client: " + cid)
             await sock.send(msg)
-            #crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
-            #crock.send(msg)
 
     LOGGER.debug("Broadcast finished")
 
@@ -385,10 +393,8 @@ async def handle_110(msg):
 
     if CTRL.relinquish_track(cid, sid, tid):
         LOGGER.debug("Client " + str(cid) + " relinquished track " + str(sid) + ':' + str(tid))
-        #sock.send(make_msg(SERVER_ID, 100, {'session': CTRL.get_session(sid)}))
     else:
         LOGGER.error("Client " + str(cid) + " failed to relinquish track " + str(sid) + ':' + str(tid))
-        #sock.send(error_msg("Error: Failed to relinquish track"))
 
     sess = CTRL.sessions.get(sid)
     if sess is None:
@@ -429,10 +435,8 @@ async def handle_112(msg):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Initialize Server")
-    #parser.add_argument('-t', '--test', action='store_true', help='Port to listen on.')
     parser.add_argument('-p', '--port', help='Port to serve on')
     nspace = vars(parser.parse_args())
-    #testing = nspace.get('test')
     port = nspace.get('port')
     if port is None:
         port = 8795
