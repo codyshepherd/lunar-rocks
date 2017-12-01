@@ -284,7 +284,7 @@ async def handle_106(msg):
         LOGGER.error("No clientID provided to handle_106()")
         return error_msg("Error: sourceID must be provided.")
 
-    client_sessionIDs = CTRL.client_sessions[cid]
+    client_sessionIDs = CTRL.client_sessions.get(cid)
 
     if CTRL.client_exit(cid):
         LOGGER.debug("Client disconnect successful")
