@@ -11,8 +11,8 @@ DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
 
-LOGGER = logging.getLogger(LOG_NAME)
-logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
+LOGGER = logging.getLogger('root')
+#logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
 
 class Track:
 
@@ -80,10 +80,10 @@ class Session:
 
     def __init__(self, sessionID):
         LOGGER.debug("Session " + str(sessionID) + " created")
-        self.clientlist = []            # list of (UUID, nickname) pairs
-        self.sessionID = sessionID
-        self.trackIDs = TRACK_IDS
-        self.tracks = {}
+        self.clientlist = []                # list of (UUID, nickname) pairs
+        self.sessionID = sessionID          # Int
+        self.trackIDs = TRACK_IDS           # [Int]
+        self.tracks = {}                    # Int: Track
         for num in self.trackIDs:
             self.tracks[num] = Track(num)
 
@@ -392,11 +392,15 @@ class Controller:
         LOGGER.debug("Controller.client_exit() started")
 
         if cid not in self.clients.keys():
-            LOGGER.error("cid provided to Controller.client_exit() not in clients.keys()")
+            LOGGER.error("cid " + str(cid) + " provided to Controller.client_exit() not in clients.keys()")
             return False
 
         c_sessions = self.client_sessions[cid]
-        for session in c_sessions:
+        for sid in c_sessions:
+            session = self.sessions.get(sid)
+            if session is None:
+                LOGGER.error("client_sessions had a sessionID -- " + str(sid) + " -- for which no session existed!")
+                continue
             session.remove_client(cid)
             if session.is_empty():
                 del self.sessions[session.sessionID]

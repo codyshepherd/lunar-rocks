@@ -1,9 +1,11 @@
 # noinspection PyInterpreter,PyInterpreter
 import asyncio
 import websockets
+from websockets.exceptions import ConnectionClosed
 import json
 import controller
 import logging
+from logging.handlers import RotatingFileHandler
 import uuid
 import os
 import argparse
@@ -15,8 +17,12 @@ LOG_NAME = "server.log"
 #if os.path.isfile(LOG_NAME):
 #    os.remove(LOG_NAME)
 
-LOGGER = logging.getLogger(LOG_NAME)
-logging.basicConfig(filename=LOG_NAME,level=logging.DEBUG)
+log_handler = RotatingFileHandler(LOG_NAME, mode='w+', maxBytes = 1000000, backupCount=2, encoding=None, delay=0)
+log_handler.setLevel(logging.DEBUG)
+
+LOGGER = logging.getLogger('root')
+LOGGER.setLevel(logging.DEBUG)
+LOGGER.addHandler(log_handler)
 
 DISPATCH_TABLE = {
     100: lambda x: handle_100(x),
@@ -34,39 +40,54 @@ CTRL = controller.Controller()
 
 async def handle(websocket, path):
     LOGGER.debug("handle called")
-    async for message in websocket:
-        LOGGER.debug("Message received: " + str(message))
+    try:
+        async for message in websocket:
+            LOGGER.debug("Message received: " + str(message))
 
+            addr = websocket.remote_address
+            #LOGGER.debug("Address of socket: " + str(addr[0]) + ':' + str(addr[1]))
+
+            obj = json.loads(message)
+            msgID = obj.get("messageID")
+            srcID = obj.get("sourceID")
+            #LOGGER.debug("Type of msgID: " + str(type(msgID)))
+
+            if obj is None or msgID is None:
+                LOGGER.debug("Error sent")
+                await websocket.send(error_msg("ERROR: messageID must be provided"))
+            elif ((not srcID) or (srcID == "clown shoes")) and msgID != 112:
+                LOGGER.debug("No sourceID provided")
+                errmsg = error_msg("Error: SrcID must be provided")
+                LOGGER.debug("Message sent: " + str(errmsg))
+                await websocket.send(errmsg)
+
+            else:
+                if msgID == 112:
+                    obj['addr'] = addr
+
+                LOGGER.debug("Dispatch table called")
+                if srcID != "clown shoes":
+                    CTRL.log_socket(srcID, websocket)
+                msg = await DISPATCH_TABLE[msgID](obj)
+                if msg:
+                    #await websocket.send(DISPATCH_TABLE[msgID](obj))
+                    LOGGER.debug("Message sent: " + str(msg))
+                    await websocket.send(msg)
+
+    except ConnectionClosed as e:
         addr = websocket.remote_address
-        #LOGGER.debug("Address of socket: " + str(addr[0]) + ':' + str(addr[1]))
+        LOGGER.debug("Connection closed at: " + str(addr))
 
-        obj = json.loads(message)
-        msgID = obj.get("messageID")
-        srcID = obj.get("sourceID")
-        #LOGGER.debug("Type of msgID: " + str(type(msgID)))
+        cid = CTRL.get_cid_by_address(addr)
 
-        if obj is None or msgID is None:
-            LOGGER.debug("Error sent")
-            await websocket.send(error_msg("ERROR: messageID must be provided"))
-        elif ((not srcID) or (srcID == "clown shoes")) and msgID != 112:
-            LOGGER.debug("No sourceID provided")
-            errmsg = error_msg("Error: SrcID must be provided")
-            LOGGER.debug("Message sent: " + str(errmsg))
-            await websocket.send(errmsg)
+        if cid is None:
+            LOGGER.error("No clientID found for connection at address " + str(addr))
+            return
 
-        else:
-            if msgID == 112:
-                obj['addr'] = addr
-
-            LOGGER.debug("Dispatch table called")
-            if srcID != "clown shoes":
-                CTRL.log_socket(srcID, websocket)
-            msg = await DISPATCH_TABLE[msgID](obj)
-            if msg:
-                #await websocket.send(DISPATCH_TABLE[msgID](obj))
-                LOGGER.debug("Message sent: " + str(msg))
-                await websocket.send(msg)
-
+        LOGGER.debug("Closed connection thrown by client " + cid + ". Exiting client now.")
+        msg = {'sourceID': cid}
+        await handle_106(msg)
+        
 def make_msg(srcID, msgID, payload):
     """
     Helper function for generating well-formed json messages.
@@ -263,6 +284,8 @@ async def handle_106(msg):
         LOGGER.error("No clientID provided to handle_106()")
         return error_msg("Error: sourceID must be provided.")
 
+    client_sessionIDs = CTRL.client_sessions[cid]
+
     if CTRL.client_exit(cid):
         LOGGER.debug("Client disconnect successful")
     else:
@@ -273,6 +296,12 @@ async def handle_106(msg):
     newmsg = make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs})
 
     await broadcast(newmsg, clients)
+
+    for sid in client_sessionIDs:
+        sess = CTRL.sessions.get(sid)
+        if sess is not None:
+            upd = make_msg(SERVER_ID, 100, {'session': sess.export()})
+            await broadcast(upd, [x[0] for x in sess.clientlist])
 
 async def handle_108(msg):
     """
