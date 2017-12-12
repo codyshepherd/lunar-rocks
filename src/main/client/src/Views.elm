@@ -130,6 +130,11 @@ page model =
 
                         Nothing ->
                             emptySession 0
+
+                otherSessions =
+                    List.filter
+                        (\cs -> cs /= id)
+                        model.sessionLists.clientSessions
             in
                 [ textLayout None
                     [ spacing 1 ]
@@ -160,7 +165,7 @@ page model =
                                 [ paddingBottom 10 ]
                                 (List.map viewMessage session.messages)
                            ]
-                        ++ [ when ((List.length model.sessionLists.clientSessions) > 0)
+                        ++ [ when ((List.length otherSessions) > 0)
                                 (h3 SmallHeading
                                     [ paddingBottom 10 ]
                                     (text "YOUR SESSIONS")
@@ -173,7 +178,7 @@ page model =
                                             cs
                                             model.sessionLists.selectedSessions
                                     )
-                                    model.sessionLists.clientSessions
+                                    otherSessions
                                 )
 
                            -- TODO: Add Goto button once a sensible spot for it becomes clear
