@@ -5,7 +5,6 @@ import Msgs exposing (..)
 import Navigation exposing (Location)
 import Routing exposing (parseLocation)
 import Task exposing (perform)
-import Time exposing (every, second)
 import Views exposing (view)
 import Update exposing (update)
 import WebSocket
@@ -40,6 +39,5 @@ subscriptions model =
     Sub.batch
         [ WebSocket.listen websocketServer IncomingMessage
         , WebSocket.keepAlive websocketServer
-        , every (second * 0.5) Tick
         , Window.resizes (\{ width, height } -> WindowResize { width = width, height = width })
         ]

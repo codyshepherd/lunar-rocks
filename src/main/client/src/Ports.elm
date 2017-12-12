@@ -1,6 +1,6 @@
 port module Ports exposing (..)
 
-import Models exposing (Note)
+import Models exposing (Note, Score)
 
 
-port play : Note -> Cmd msg
+port sendScore : Score -> Cmd msg

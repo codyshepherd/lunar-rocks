@@ -126,8 +126,7 @@ type Route
 
 websocketServer : String
 websocketServer =
-    -- "ws://localhost:8795"
-    "ws://35.199.159.219:8695"
+    "ws://localhost:8795"
 
 
 initialModel : Route -> Model
