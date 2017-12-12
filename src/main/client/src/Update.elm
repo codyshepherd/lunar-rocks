@@ -7,7 +7,7 @@ import Json.Decode exposing (decodeString)
 import List.Extra exposing ((!!))
 import Models exposing (..)
 import Msgs exposing (..)
-import Ports exposing (play)
+import Ports exposing (sendScore)
 import Routing exposing (parseLocation)
 import Validate exposing (ifBlank, ifInvalid)
 import WebSocket
@@ -45,8 +45,11 @@ update msg model =
 
                 newModel =
                     serverUpdateModel serverMessage model
+
+                command =
+                    serverCommand serverMessage newModel
             in
-                ( newModel, Cmd.none )
+                ( newModel, command )
 
         LeaveSession sessionId ->
             let
@@ -108,14 +111,14 @@ update msg model =
                 newSessionLists =
                     { sessionLists | selectedSessions = [] }
 
-                websocketMessage =
+                command =
                     case newRoute of
                         SessionRoute id ->
                             WebSocket.send websocketServer
                                 (encodeMessage model.clientId 103 (encodeSessionId id))
 
                         Home ->
-                            Cmd.none
+                            sendScore session.score
 
                         NotFoundRoute ->
                             WebSocket.send websocketServer
@@ -127,7 +130,7 @@ update msg model =
                     , sessions = newSessions
                     , sessionLists = newSessionLists
                   }
-                , websocketMessage
+                , command
                 )
 
         ReleaseTrack sessionId trackId clientId ->
@@ -197,6 +200,7 @@ update msg model =
                     ( { model | validationErrors = errors }, Cmd.none )
 
         Send sessionId ->
+            -- TODO: rename this message
             let
                 session =
                     Maybe.withDefault
@@ -207,29 +211,6 @@ update msg model =
                 , WebSocket.send websocketServer
                     (encodeMessage model.clientId 100 (encodeSession session))
                 )
-
-        Tick time ->
-            let
-                sessionId =
-                    model.sessionId
-
-                session =
-                    Maybe.withDefault
-                        (emptySession sessionId)
-                        (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
-
-                newSession =
-                    { session
-                        | clock = increment session.clock session.beats
-                    }
-
-                newSessions =
-                    newSession :: model.sessions
-            in
-                { model
-                    | sessions = newSessions
-                }
-                    ! [ Cmd.batch (playNotes newSession.clock session.score) ]
 
         ToggleSessionButton sessionId ->
             let
@@ -254,10 +235,13 @@ update msg model =
 
         UpdateBoard cell ->
             let
+                newSession =
+                    updateSession cell model
+
                 newSessions =
-                    updateSessions cell model
+                    newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
             in
-                ( { model | sessions = newSessions }, Cmd.none )
+                ( { model | sessions = newSessions }, sendScore newSession.score )
 
         UserInput newInput ->
             ( { model | input = newInput }, Cmd.none )
@@ -285,8 +269,8 @@ validate =
 -- SESSION
 
 
-updateSessions : Cell -> Model -> List Session
-updateSessions cell model =
+updateSession : Cell -> Model -> Session
+updateSession cell model =
     let
         session =
             Maybe.withDefault
@@ -308,14 +292,11 @@ updateSessions cell model =
                                 (session.tones - cell.row)
                     in
                         note :: session.score
-
-        newSession =
-            { session
-                | board = (updateBoard session.board cell)
-                , score = newScore
-            }
     in
-        newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
+        { session
+            | board = (updateBoard session.board cell)
+            , score = newScore
+        }
 
 
 updateBoard : Board -> Cell -> Board
@@ -324,7 +305,9 @@ updateBoard board cell =
         trackId =
             .trackId cell
     in
-        List.take trackId board ++ (updateTrack (board !! trackId) cell) :: List.drop (trackId + 1) board
+        List.take trackId board
+            ++ (updateTrack (board !! trackId) cell)
+            :: List.drop (trackId + 1) board
 
 
 updateTrack : Maybe Track -> Cell -> Track
@@ -374,26 +357,6 @@ updateTrackUser trackId clientId username board =
                 Track -1 "" "" "404s" [] []
 
 
-
--- SCORE
-
-
-increment : Int -> Int -> Int
-increment clock beats =
-    case clock of
-        0 ->
-            0
-
-        _ ->
-            (clock % beats) + 1
-
-
-playNotes : Int -> Score -> List (Cmd msg)
-playNotes clock score =
-    List.filter (\n -> .beat n == clock) score
-        |> List.map play
-
-
 removeNote : Cell -> Score -> Score
 removeNote cell score =
     List.filter
@@ -407,6 +370,32 @@ removeNote cell score =
 
 
 -- SERVER_UPDATE
+
+
+serverCommand : Maybe ServerMessage -> Model -> Cmd msg
+serverCommand serverMessage model =
+    case serverMessage of
+        Just sm ->
+            case sm.messageId of
+                100 ->
+                    case sm.payload of
+                        SessionMessage su ->
+                            let
+                                session =
+                                    Maybe.withDefault
+                                        (emptySession su.sessionId)
+                                        (List.head (List.filter (\s -> s.id == su.sessionId) model.sessions))
+                            in
+                                sendScore session.score
+
+                        _ ->
+                            Debug.log "100: Payload mismatch" Cmd.none
+
+                _ ->
+                    Cmd.none
+
+        Nothing ->
+            Cmd.none
 
 
 serverUpdateModel : Maybe ServerMessage -> Model -> Model
@@ -524,6 +513,7 @@ serverUpdateSession serverMessage model =
                 { model | sessions = newSessions }
 
         _ ->
+            -- TODO: clean up
             Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
 
 

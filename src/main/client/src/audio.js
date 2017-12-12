@@ -1,10 +1,9 @@
-
 var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
-var audioContext = new AudioContextFunc();
-reverbjs.extend(audioContext);
+export var audioContext = new AudioContextFunc();
 
 // reverb
 // MaesHowe IR from http://www.openairlib.net/auralizationdb/content/maes-howe
+reverbjs.extend(audioContext);
 var reverbUrl = "http://reverbjs.org/Library/MaesHowe.m4a";
 var reverb = audioContext.createReverbFromUrl(reverbUrl, function() {
   reverb.connect(audioContext.destination);
@@ -12,7 +11,7 @@ var reverb = audioContext.createReverbFromUrl(reverbUrl, function() {
 
 
 // webaudio soundfont player
-var player=new WebAudioFontPlayer();
+var player = new WebAudioFontPlayer();
 /* xylophone */
 player.loader.decodeAfterLoading(audioContext, '_tone_0130_FluidR3_GM_sf2_file');
 /* marimba*/
@@ -51,5 +50,3 @@ var lowpassFilter = audioContext.createBiquadFilter();
 lowpassFilter.type = 'lowpass';
 lowpassFilter.frequency.value = 8000;
 lowpassFilter.connect(highpassFilter);
-
-

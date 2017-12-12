@@ -16,6 +16,11 @@ source .env
 pip install -r requirements.txt
 ```
 
+Install npm packages from the `client` directory.
+```
+npm install
+```
+
 Install [Elm](https://guide.elm-lang.org/install.html) and [Create-Elm-App](https://github.com/halfzebra/create-elm-app).
 
 ## Run 
