@@ -1,14 +1,8 @@
-# Music
+# Lunar Rocks
 
-Cody Shepherd
-Brian Ginsburg
+Lunar Rocks is a collaborative music application for the web.
 
-## Build
-
-Compile the client from the `elm` directory.
-```
-elm-make src/Main.elm --output=../python/static/main.js
-```
+## Setup
 
 From the `python` directory, setup up a python virtual environment using Python 3.6.
 
@@ -22,18 +16,29 @@ source .env
 pip install -r requirements.txt
 ```
 
+Install [Elm](https://guide.elm-lang.org/install.html) and [Create-Elm-App](https://github.com/halfzebra/create-elm-app).
 
 ## Run 
 
-Activate the virtual environment from the `python` directory, and start flask.
-
-```
-source .env
-flask run
-```
-
-In a separate terminal window, activate the virtual environment, and start the websocket server.
+Activate the virtual environment and start the websocket server.
 ```
 source .env
 python server.py
 ```
+
+Start the elm app from the `client` directory.
+
+```
+elm-app start
+```
+
+
+## Build
+
+Create a production build of the client.
+
+```
+elm-app build
+```
+
+This will embed the app into `index.html`, minify, and prepare the app for production.
