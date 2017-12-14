@@ -1,7 +1,7 @@
 {
-  "name": "client",
-  "version": "1.0.0",
-  "description": "This project is bootstrapped with [Create Elm App](https://github.com/halfzebra/create-elm-app).",
+  "name": "lunar-rocks-client",
+  "version": "0.1.0",
+  "description": "Client for Lunar Rocks.",
   "main": "index.js",
   "directories": {
     "test": "tests"
@@ -11,7 +11,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "",
   "dependencies": {
     "waaclock": "^0.5.3"
   }
