@@ -14,20 +14,22 @@ var reverb = audioContext.createReverbFromUrl(reverbUrl, function() {
 var player = new WebAudioFontPlayer();
 /* xylophone */
 player.loader.decodeAfterLoading(audioContext, '_tone_0130_FluidR3_GM_sf2_file');
-/* marimba*/
+/* marimba */
 player.loader.decodeAfterLoading(audioContext, '_tone_0120_FluidR3_GM_sf2_file');
+/* acoustic guitar */
+player.loader.decodeAfterLoading(audioContext, '_tone_0240_FluidR3_GM_sf2_file');
+/* piano */
+player.loader.decodeAfterLoading(audioContext, '_tone_0001_FluidR3_GM_sf2_file');
 
 export function playNote(trackId, tone, duration){
-  if (duration > 0) {
     if (trackId === 0) {
       player.queueWaveTable(audioContext, lowpassFilter
-                            , _tone_0130_FluidR3_GM_sf2_file , 0, (12*6+tone), 1, 0.5);
+                            , _tone_0240_FluidR3_GM_sf2_file , 0, (12*6+tone), duration*0.5, 0.5);
     }
     else {
       player.queueWaveTable(audioContext, lowpassFilter
-                            , _tone_0120_FluidR3_GM_sf2_file , 0, (12*4+tone), 1, 0.3);
+                            , _tone_0001_FluidR3_GM_sf2_file , 0, (12*4+tone), duration*0.5, 0.3);
     }
-  }
   return false;
 }
 

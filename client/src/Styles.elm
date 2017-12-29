@@ -12,7 +12,9 @@ type Styles
     = ActiveButton
     | Button
     | ErrorMessage
+    | ExtendHandle
     | GridBlock
+    | GridBlockHeld
     | InstrumentLabel
     | Logo
     | Main
@@ -79,8 +81,12 @@ stylesheet =
             [ Font.size 18
             , Color.text (Color.rgb 215 88 19)
             ]
-        , style GridBlock
-            [ Color.background (Color.rgb 120 120 120) ]
+        , style ExtendHandle [ cursor "e-resize" ]
+        , style GridBlock [ Color.background (Color.rgb 120 120 120) ]
+        , style GridBlockHeld
+            [ Color.background (Color.rgb 120 120 120)
+            , cursor "pointer"
+            ]
         , style InstrumentLabel [ Font.size 20 ]
         , style Logo
             [ Font.typeface serif
