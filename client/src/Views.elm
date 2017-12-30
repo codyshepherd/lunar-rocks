@@ -294,7 +294,7 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
                 GridBlock
     in
         [ grid style
-            [ spacing 1 ]
+            [ spacing 1, noSelect ]
             { columns = List.repeat beats (px 99)
             , rows = List.repeat tones (px 13)
             , cells =
