@@ -1,6 +1,7 @@
 module Styles exposing (..)
 
 import Color
+import Element.Attributes exposing (inlineStyle)
 import Style exposing (..)
 import Style.Border as Border
 import Style.Color as Color
@@ -54,6 +55,17 @@ sansSerif =
     , Font.font "arial"
     , Font.font "sans-serif"
     ]
+
+
+noSelect =
+    inlineStyle
+        [ ( "-webkit-touch-callout", "none" )
+        , ( "-webkit-user-select", "none" )
+        , ( "-khtml-user-select", "none" )
+        , ( "-moz-user-select", "none" )
+        , ( "-ms-user-select", "none" )
+        , ( "user-select", "none" )
+        ]
 
 
 stylesheet : StyleSheet Styles variation

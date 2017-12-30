@@ -95,8 +95,8 @@ type alias Cell =
     { sessionId : SessionId
     , trackId : TrackId
     , column : Int
-    , length : Int
     , row : Int
+    , length : Int
     , action : Int
     }
 
