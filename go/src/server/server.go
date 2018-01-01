@@ -23,7 +23,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{conn: conn, send: make(chan []byte, 1024)}
-	
+
 	//go client.writeWorker(conn)
 	go client.readWorker()
 }
