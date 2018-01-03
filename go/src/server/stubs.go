@@ -1,5 +1,5 @@
 // object and function stubs
-package main
+package main 
 
 //-------------------------------------------------------------------------------------------------
 //										CLIENT
@@ -36,7 +36,10 @@ type Roster struct {
 	leave chan *Client
 	
 	// clients holds all clients currently active
-	clients map[*Client]bool
+	clients map[clientID]*Client
+
+	// users holds mapping of users to clients
+	users map[userID]clientID
 
 	//TODO: logging
 }
