@@ -285,7 +285,8 @@ updateSession cell model =
 
         newScore =
             List.concatMap
-                (\track -> readGrid track.grid track.trackId session.tones)
+                -- (\track -> readGrid track.grid track.trackId session.tones)
+                (\track -> readGrid track.grid track.trackId track.instrument session.tones)
                 newBoard
     in
         { session
@@ -369,10 +370,44 @@ updateTrackUser trackId clientId username board =
 
 
 -- SCORE
+-- readGrid : List (List Int) -> TrackId -> Int -> List Note
+-- readGrid grid trackId tones =
+--     let
+--         rows =
+--             List.map (List.indexedMap (,)) grid
+--         tupleGrid =
+--             List.indexedMap (,) rows
+--     in
+--         List.concatMap (\row -> readRow row 1 trackId tones) tupleGrid
+-- readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> Int -> List Note
+-- readRow ( row, cols ) noteStart trackId tones =
+--     case cols of
+--         c :: d :: cs ->
+--             case Tuple.second c of
+--                 0 ->
+--                     readRow ( row, (d :: cs) ) (noteStart + 1) trackId tones
+--                 _ ->
+--                     if (Tuple.second d > Tuple.second c) then
+--                         readRow ( row, (d :: cs) ) noteStart trackId tones
+--                     else
+--                         readCell ( row, c ) noteStart trackId tones
+--                             :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId tones
+--         c :: cs ->
+--             case Tuple.second c of
+--                 0 ->
+--                     []
+--                 _ ->
+--                     readCell ( row, c ) noteStart trackId tones
+--                         :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId tones
+--         [] ->
+--             []
+-- readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> Int -> Note
+-- readCell ( row, ( col, action ) ) noteStart trackId tones =
+--     Note trackId noteStart action (tones - row)
 
 
-readGrid : List (List Int) -> TrackId -> Int -> List Note
-readGrid grid trackId tones =
+readGrid : List (List Int) -> TrackId -> String -> Int -> List Note
+readGrid grid trackId instrument tones =
     let
         rows =
             List.map (List.indexedMap (,)) grid
@@ -380,23 +415,23 @@ readGrid grid trackId tones =
         tupleGrid =
             List.indexedMap (,) rows
     in
-        List.concatMap (\row -> readRow row 1 trackId tones) tupleGrid
+        List.concatMap (\row -> readRow row 1 trackId instrument tones) tupleGrid
 
 
-readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> Int -> List Note
-readRow ( row, cols ) noteStart trackId tones =
+readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> String -> Int -> List Note
+readRow ( row, cols ) noteStart trackId instrument tones =
     case cols of
         c :: d :: cs ->
             case Tuple.second c of
                 0 ->
-                    readRow ( row, (d :: cs) ) (noteStart + 1) trackId tones
+                    readRow ( row, (d :: cs) ) (noteStart + 1) trackId instrument tones
 
                 _ ->
                     if (Tuple.second d > Tuple.second c) then
-                        readRow ( row, (d :: cs) ) noteStart trackId tones
+                        readRow ( row, (d :: cs) ) noteStart trackId instrument tones
                     else
-                        readCell ( row, c ) noteStart trackId tones
-                            :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId tones
+                        readCell ( row, c ) noteStart trackId instrument tones
+                            :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId instrument tones
 
         c :: cs ->
             case Tuple.second c of
@@ -404,16 +439,16 @@ readRow ( row, cols ) noteStart trackId tones =
                     []
 
                 _ ->
-                    readCell ( row, c ) noteStart trackId tones
-                        :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId tones
+                    readCell ( row, c ) noteStart trackId instrument tones
+                        :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId instrument tones
 
         [] ->
             []
 
 
-readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> Int -> Note
-readCell ( row, ( col, action ) ) noteStart trackId tones =
-    Note trackId noteStart action (tones - row)
+readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> String -> Int -> Note
+readCell ( row, ( col, action ) ) noteStart trackId instrument tones =
+    Note trackId instrument noteStart action (tones - row)
 
 
 
@@ -561,8 +596,7 @@ serverUpdateSession serverMessage model =
                 { model | sessions = newSessions }
 
         _ ->
-            -- TODO: clean up
-            Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
+            Debug.log ("100: Payload mismatch") model
 
 
 serverNewSession : ServerMessage -> Model -> Model
@@ -626,21 +660,52 @@ serverUpdateTrack track boardUpdate clientId sessionId suId =
             { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
 
 
+
+-- serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
+-- serverUpdateScore tu board tones clientId sessionId suId =
+--     if tu.clientId == clientId && suId == sessionId then
+--         let
+--             track =
+--                 List.head (List.filter (\t -> t.trackId == tu.trackId) board)
+--         in
+--             case track of
+--                 Just t ->
+--                     readGrid t.grid t.trackId tones
+--                 Nothing ->
+--                     []
+--     else
+--         readGrid tu.grid tu.trackId tones
+
+
 serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
 serverUpdateScore tu board tones clientId sessionId suId =
-    if tu.clientId == clientId && suId == sessionId then
-        let
-            track =
-                List.head (List.filter (\t -> t.trackId == tu.trackId) board)
-        in
+    let
+        track =
+            List.head (List.filter (\t -> t.trackId == tu.trackId) board)
+
+        instrument =
             case track of
                 Just t ->
-                    readGrid t.grid t.trackId tones
+                    t.instrument
 
                 Nothing ->
-                    []
-    else
-        readGrid tu.grid tu.trackId tones
+                    "Marimba"
+    in
+        case sessionId of
+            0 ->
+                []
+
+            _ ->
+                if tu.clientId == clientId && suId == sessionId then
+                    case track of
+                        Just t ->
+                            readGrid t.grid t.trackId t.instrument tones
+
+                        Nothing ->
+                            []
+                else
+                    -- TODO: change to tu.instrument when server tracks instrument changes
+                    readGrid tu.grid tu.trackId instrument tones
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model

@@ -111,6 +111,7 @@ type alias Score =
 
 type alias Note =
     { trackId : TrackId
+    , instrument : String
     , beat : Int
     , duration : Int
     , tone : Int
