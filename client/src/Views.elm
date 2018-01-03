@@ -147,9 +147,8 @@ page model =
                         , column None
                             []
                             (viewBoard
-                                model.sessionId
                                 session.board
-                                model.clientId
+                                ( model.clientId, model.sessionId )
                                 session.beats
                                 session.tones
                                 model.sessionLists.selectedSessions
@@ -210,65 +209,6 @@ page model =
 
         NotFoundRoute ->
             [ textLayout None [] [ text "Not found" ] ]
-
-
-instructions : List (Element Styles variation Msg)
-instructions =
-    [ h3 SubHeading [ paddingTop 10, paddingBottom 20 ] (text "HOW TO USE")
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
-                ++ " and you can claim one by selecting "
-            )
-        , bold "Request Track"
-        , text
-            (". Once you have a track, start making music by adding and removing "
-                ++ "notes in the note grid. When you are happy with your creation, select "
-            )
-        , bold "Send "
-        , text "and your music will be sent to the session."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "When you are done with a track, select "
-        , bold "Release Track"
-        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("If someone else is working on a track in your session, you will see and hear "
-                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
-            )
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("You can send your track to another session by claiming the same track in both "
-                ++ "sessions, selectng the target session from "
-            )
-        , bold "Your Sessions"
-        , text ", and then selecting "
-        , bold "Broadcast"
-        , text
-            (". You can send to many sessions at once by selecting multiple "
-                ++ "sessions before selecting "
-            )
-        , bold "Broadcast."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "Select "
-        , bold "Leave Session"
-        , text " when you are ready to move on. "
-        , bold "Sessions"
-        , text
-            (" will bring you back to the list of sessions, but "
-                ++ "you will stay active in the current session if you have a track open."
-            )
-        ]
-    ]
 
 
 viewSessionEntry : SessionId -> List SessionId -> Element Styles variation Msg
@@ -339,62 +279,69 @@ viewLabelCell label =
         }
 
 
-viewBoard : SessionId -> Board -> ClientId -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
-viewBoard sessionId board clientId beats tones selectedSessions =
-    List.concatMap (\t -> viewTrack sessionId t clientId beats tones selectedSessions) board
+viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
+viewBoard board ( clientId, sessionId ) beats tones selectedSessions =
+    List.concatMap (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions) board
 
 
-viewTrack : SessionId -> Track -> ClientId -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
-viewTrack sessionId track clientId beats tones selectedSessions =
-    [ grid GridBlock
-        [ spacing 1 ]
-        { columns = List.repeat beats (px 99)
-        , rows = List.repeat tones (px 13)
-        , cells =
-            viewGrid sessionId track clientId
-        }
-    , paragraph None
-        [ paddingTop 8, paddingBottom 30, spacing 5 ]
-        (case track.username of
-            "" ->
-                [ el InstrumentLabel [] (text track.instrument)
-                , button Button
-                    [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
-                    (text "Request Track")
-                ]
+viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> List (Element Styles variation Msg)
+viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
+    let
+        style =
+            if track.clientId == clientId then
+                GridBlockHeld
+            else
+                GridBlock
+    in
+        [ grid style
+            [ spacing 1, noSelect ]
+            { columns = List.repeat beats (px 99)
+            , rows = List.repeat tones (px 13)
+            , cells =
+                viewGrid track ( clientId, sessionId )
+            }
+        , paragraph None
+            [ paddingTop 8, paddingBottom 30, spacing 5 ]
+            (case track.username of
+                "" ->
+                    [ el InstrumentLabel [] (text track.instrument)
+                    , button Button
+                        [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
+                        (text "Request Track")
+                    ]
 
-            _ ->
-                [ paragraph InstrumentLabel [ paddingBottom 13 ] [ (text (track.username ++ " on " ++ track.instrument)) ]
-                , when
-                    (clientId == track.clientId)
-                    (button Button
-                        [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
-                        (text "Release Track")
-                    )
-                , when
-                    (clientId == track.clientId)
-                    (button Button
-                        [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
-                        (text "Send")
-                    )
-                , when
-                    (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
-                        || ((List.length selectedSessions) > 1)
-                     )
-                        && (clientId == track.clientId)
-                    )
-                    (button
-                        Button
-                        [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
-                        (text "Broadcast")
-                    )
-                ]
-        )
-    ]
+                _ ->
+                    [ paragraph InstrumentLabel [ paddingBottom 13 ] [ (text (track.username ++ " on " ++ track.instrument)) ]
+                    , when
+                        (clientId == track.clientId)
+                        (button Button
+                            [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
+                            (text "Release Track")
+                        )
+                    , when
+                        (clientId == track.clientId)
+                        (button Button
+                            [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
+                            (text "Send")
+                        )
+                    , when
+                        (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
+                            || ((List.length selectedSessions) > 1)
+                         )
+                            && (clientId == track.clientId)
+                        )
+                        (button
+                            Button
+                            [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
+                            (text "Broadcast")
+                        )
+                    ]
+            )
+        ]
 
 
-viewGrid : SessionId -> Track -> ClientId -> List (OnGrid (Element Styles variation Msg))
-viewGrid sessionId track clientId =
+viewGrid : Track -> ( ClientId, SessionId ) -> List (OnGrid (Element Styles variation Msg))
+viewGrid track ( clientId, sessionId ) =
     let
         rows =
             List.map (List.indexedMap (,)) track.grid
@@ -402,26 +349,51 @@ viewGrid sessionId track clientId =
         tupleGrid =
             List.indexedMap (,) rows
     in
-        List.concatMap (\r -> viewRow sessionId track clientId r) tupleGrid
+        List.concatMap (\row -> viewRow row track ( clientId, sessionId )) tupleGrid
 
 
-viewRow : SessionId -> Track -> ClientId -> ( Int, List ( Int, Int ) ) -> List (OnGrid (Element Styles variation Msg))
-viewRow sessionId track clientId row =
-    List.map (\c -> viewCell sessionId track clientId (Tuple.first row) c) (Tuple.second row)
+viewRow : ( Int, List ( Int, Int ) ) -> Track -> ( ClientId, SessionId ) -> List (OnGrid (Element Styles variation Msg))
+viewRow ( row, cols ) track ids =
+    case cols of
+        c :: d :: cs ->
+            case Tuple.second c of
+                0 ->
+                    viewCell ( row, c ) track ids :: viewRow ( row, (d :: cs) ) track ids
+
+                _ ->
+                    if (Tuple.second d > Tuple.second c) then
+                        viewRow ( row, (d :: cs) ) track ids
+                    else
+                        viewCell ( row, c ) track ids :: viewRow ( row, (d :: cs) ) track ids
+
+        c :: cs ->
+            viewCell ( row, c ) track ids :: viewRow ( row, cs ) track ids
+
+        [] ->
+            []
 
 
-viewCell : SessionId -> Track -> ClientId -> Int -> ( Int, Int ) -> OnGrid (Element Styles variation Msg)
-viewCell sessionId track clientId row c =
+viewCell : ( Int, ( Int, Int ) ) -> Track -> ( ClientId, SessionId ) -> OnGrid (Element Styles variation Msg)
+viewCell ( row, ( col, action ) ) track ( clientId, sessionId ) =
     let
-        col =
-            Tuple.first c
+        colStart =
+            case action of
+                0 ->
+                    col
 
-        action =
-            Tuple.second c
+                _ ->
+                    -- backtrack to note start
+                    ((col - action) + 1)
     in
         cell
-            { start = ( col, row )
-            , width = 1
+            { start = ( colStart, row )
+            , width =
+                case action of
+                    0 ->
+                        1
+
+                    _ ->
+                        action
             , height = 1
             , content =
                 let
@@ -441,18 +413,97 @@ viewCell sessionId track clientId row c =
                     case clientId == track.clientId of
                         True ->
                             el act
-                                [ onClick
-                                    (UpdateBoard
+                                [ onMouseDown <|
+                                    SelectCell
                                         { sessionId = sessionId
                                         , trackId = track.trackId
-                                        , column = col
                                         , row = row
-                                        , action = (action + 1) % 2
+                                        , column = colStart
+                                        , length = (col - colStart + 1)
+                                        , action = action
                                         }
-                                    )
+                                , onMouseUp <|
+                                    UpdateGrid
+                                        { sessionId = sessionId
+                                        , trackId = track.trackId
+                                        , row = row
+                                        , column = colStart
+                                        , length = (col - colStart + 1)
+                                        , action = action
+                                        }
                                 ]
-                                empty
+                            <|
+                                case action of
+                                    0 ->
+                                        empty
+
+                                    _ ->
+                                        if colStart + action == 8 then
+                                            empty
+                                        else
+                                            el ExtendHandle
+                                                [ alignRight, minHeight (px 13), minWidth (px 10) ]
+                                                empty
 
                         False ->
                             el act [] empty
             }
+
+
+instructions : List (Element Styles variation Msg)
+instructions =
+    [ h3 SubHeading [ paddingTop 10, paddingBottom 20 ] (text "HOW TO USE")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text
+            ("Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
+                ++ " and you can claim one by selecting "
+            )
+        , bold "Request Track"
+        , text
+            (". Once you have a track, start making music by adding and removing "
+                ++ "notes in the note grid. When you are happy with your creation, select "
+            )
+        , bold "Send "
+        , text "and your music will be sent to the session."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text "When you are done with a track, select "
+        , bold "Release Track"
+        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text
+            ("If someone else is working on a track in your session, you will see and hear "
+                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
+            )
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text
+            ("You can send your track to another session by claiming the same track in both "
+                ++ "sessions, selectng the target session from "
+            )
+        , bold "Your Sessions"
+        , text ", and then selecting "
+        , bold "Broadcast"
+        , text
+            (". You can send to many sessions at once by selecting multiple "
+                ++ "sessions before selecting "
+            )
+        , bold "Broadcast."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text "Select "
+        , bold "Leave Session"
+        , text " when you are ready to move on. "
+        , bold "Sessions"
+        , text
+            (" will bring you back to the list of sessions, but "
+                ++ "you will stay active in the current session if you have a track open."
+            )
+        ]
+    ]
