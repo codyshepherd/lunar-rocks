@@ -76,6 +76,8 @@ async def handle(websocket, path):
             else:
                 if msgID == 112:
                     obj['addr'] = addr
+                else:
+                    CTRL.set_TTL(srcID)
 
                 LOGGER.debug("Dispatch table called")
                 if srcID != "clown shoes":
@@ -94,6 +96,10 @@ async def handle(websocket, path):
 
         if cid is None:
             LOGGER.error("No clientID found for connection at address " + str(addr))
+            return
+
+        if CTRL.check_TTL(cid):
+            LOGGER.info("Client " + str(cid) + " dropped websocket connection.")
             return
 
         LOGGER.debug("Closed connection thrown by client " + cid + ". Exiting client now.")
@@ -435,6 +441,7 @@ async def handle_112(msg):
 
     clientID = CTRL.new_client(nick)
     CTRL.log_cid_by_address(clientID, addr)
+    CTRL.set_TTL(clientID)
     LOGGER.debug("New client ID: " + clientID + " assigned to " + str(addr))
 
     return make_msg(SERVER_ID, 113, {'clientID':clientID, 'sessionIDs': list(CTRL.sessions.keys())})

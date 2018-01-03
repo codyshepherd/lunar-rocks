@@ -8,6 +8,7 @@ import numpy as np
 import random
 import uuid
 import logging
+import time
 
 __author__ = "Cody Shepherd & Brian Ginsburg"
 __copyright__ = "Copyright 2017, Cody Shepherd & Brian Ginsburg"
@@ -25,6 +26,7 @@ MIN_SESS_ID = 1
 DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 TRACK_IDS = list(range(2))
+TIME_TO_LIVE = 60           # 60 minutes
 
 LOGGER = logging.getLogger('root')
 
@@ -299,9 +301,27 @@ class Controller:
         LOGGER.debug("Controller.__init__() started")
         self.clients = {}           # (UUID: String)
         self.client_sessions = {}   # (UUID: List(SessionID))
+        self.client_TTL = {}        # (UUID: timestamp)
         self.sessions = {}          # (SessionID: Session)
         self.sockets = {}           # UUID: websocket
         self.addrs = {}             # host: clientID, port
+
+    def set_TTL(self, cid):
+        """
+        Sets Time-To-Live for a given client's "login."
+        """
+        self.client_TTL[cid] = time.time()
+
+    def check_TTL(self, cid):
+        """
+        Checks the client time against the global time to live value.
+
+        returns True if client still has time to live, false if the client isn't found or if the
+        client has exceeded its time to live
+        """
+        if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < 3600.0:
+            return True
+        return False
 
     def log_cid_by_address(self, cid, addr):
         """
