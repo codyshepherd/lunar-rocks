@@ -128,6 +128,7 @@ A track object takes the following form.
         "trackID": integer,
         "clientID": UUID string, 
         "nickname": string,
+        "instrument": string,
         "grid":  [[integer]]
 }
 ```

@@ -21,6 +21,7 @@ __status__ = "Alpha"
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
+DEFAULT_INSTRUMENT = "Marimba"
 MAX_SESS_ID = 1000
 MIN_SESS_ID = 1
 DEFAULT_TEMPO = 8
@@ -32,13 +33,14 @@ LOGGER = logging.getLogger('root')
 
 class Track:
 
-    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO):
+    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENT):
         LOGGER.debug("Track " + str(trackID) + " created")
-        self.trackID = trackID              # Int
-        self.clientID = ''                  # UUID String
-        self.clientNick = ''                # String
+        self.trackID = trackID                  # Int
+        self.clientID = ''                      # UUID String
+        self.clientNick = ''                    # String
         self.grid = np.zeros(dimensions, dtype=int).tolist() # 2D list of ints
-        self.dimensions = dimensions        # tuple of ints
+        self.dimensions = dimensions            # tuple of ints
+        self.instrument = instrument    # string
 
     def update(self, trk):
         """
@@ -58,6 +60,11 @@ class Track:
             return False
 
         self.grid = newgrid 
+
+        newinst = trk.get('instrument')
+        if newinst is not None:
+            self.instrument = newinst
+
         return True
 
     def check_dimensions(self, grd):
