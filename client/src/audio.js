@@ -40,12 +40,6 @@ export function playNote(trackId, instrument, tone, duration){
   return false;
 }
 
-// export function playNote(instrument, tone, duration) {
-//   player.queueWaveTable(audioContext, lowpassFilter
-//                         , instruments[instrument], 0, (12*6+tone), duration*0.5, 0.5);
-//   return false;
-// }
-
 
 // audio processing
 var compressor = audioContext.createDynamicsCompressor();

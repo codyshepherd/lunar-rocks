@@ -1,5 +1,7 @@
 module Models exposing (..)
 
+import Element.Input as Input exposing (SelectMsg, SelectWith, autocomplete)
+import Navigation exposing (Location)
 import Window exposing (Size)
 
 
@@ -15,6 +17,7 @@ type alias Model =
     , input : String
     , selectedCell : Cell
     , windowSize : Size
+    , searchInstrument : Input.SelectWith Instrument Msg
     , serverMessage : String
     , validationErrors : List ValidationError
     }
@@ -26,6 +29,33 @@ type alias ClientId =
 
 type alias ServerId =
     Int
+
+
+
+-- MESSAGES
+
+
+type Msg
+    = AddSession
+    | Broadcast (List SessionId) Track
+    | Disconnect
+    | IncomingMessage String
+    | LeaveSession SessionId
+    | OnLocationChange Location
+    | ReleaseTrack SessionId TrackId ClientId
+    | RequestTrack SessionId TrackId ClientId
+    | SearchInstrument (Input.SelectMsg Instrument)
+    | SelectCell Cell
+    | SelectName
+    | Send SessionId
+    | ToggleSessionButton SessionId
+    | UpdateGrid Cell
+    | UserInput String
+    | WindowResize Size
+
+
+
+-- VALIDATION
 
 
 type Field
@@ -72,15 +102,6 @@ type alias Board =
     List Track
 
 
-type alias TrackId =
-    Int
-
-
-type UpdateCellAction
-    = Add
-    | Remove
-
-
 type alias Track =
     { trackId : TrackId
     , clientId : ClientId
@@ -89,6 +110,22 @@ type alias Track =
     , grid : List (List Int)
     , rowLabels : List String
     }
+
+
+type alias TrackId =
+    Int
+
+
+type Instrument
+    = Guitar ( SessionId, TrackId )
+    | Piano ( SessionId, TrackId )
+    | Marimba ( SessionId, TrackId )
+    | Xylophone ( SessionId, TrackId )
+
+
+type UpdateCellAction
+    = Add
+    | Remove
 
 
 type alias Cell =
@@ -153,6 +190,7 @@ initialModel route =
         }
     , route = route
     , input = ""
+    , searchInstrument = Input.dropMenu Nothing SearchInstrument
     , selectedCell = emptyCell
     , windowSize = { width = 0, height = 0 }
     , serverMessage = ""

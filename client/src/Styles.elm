@@ -14,11 +14,17 @@ type Styles
     | Button
     | ErrorMessage
     | ExtendHandle
+    | Field
     | GridBlock
     | GridBlockHeld
+    | InstrumentField
     | InstrumentLabel
     | Logo
     | Main
+    | MenuChoiceFocused
+    | MenuChoiceIdle
+    | MenuChoiceSelected
+    | MenuChoiceSelectedInBox
     | MessageInput
     | Navigation
     | NavOption
@@ -32,6 +38,7 @@ type Styles
     | SessionButton
     | SmallHeading
     | SubHeading
+    | SubMenu
     | Text
 
 
@@ -94,10 +101,21 @@ stylesheet =
             , Color.text (Color.rgb 215 88 19)
             ]
         , style ExtendHandle [ cursor "e-resize" ]
+        , style Field
+            [ Border.all 2
+            , Border.rounded 3
+            , Color.background (Color.rgb 40 40 40)
+            , Color.border (Color.rgb 91 96 115)
+            ]
         , style GridBlock [ Color.background (Color.rgb 120 120 120) ]
         , style GridBlockHeld
             [ Color.background (Color.rgb 120 120 120)
             , cursor "pointer"
+            ]
+        , style InstrumentField
+            [ Color.text Color.white
+            , Font.size 16
+            , Font.letterSpacing 0.45
             ]
         , style InstrumentLabel [ Font.size 20 ]
         , style Logo
@@ -109,6 +127,16 @@ stylesheet =
             , Color.text Color.white
             , Font.typeface sansSerif
             ]
+        , style MenuChoiceFocused
+            [ Color.background (Color.rgb 40 40 40) ]
+        , style MenuChoiceIdle
+            [ Color.background (Color.rgb 40 40 40) ]
+        , style MenuChoiceSelected
+            [ Color.background (Color.rgb 210 210 210)
+            , Color.text Color.black
+            ]
+        , style MenuChoiceSelectedInBox
+            [ Color.background (Color.rgb 40 40 40) ]
         , style MessageInput
             [ Border.all 2
             , Border.rounded 3
@@ -131,15 +159,12 @@ stylesheet =
         , style None []
         , style PlayOrange
             [ Color.background (Color.rgb 215 88 19)
-            , Color.text Color.white
             ]
         , style PlayPurple
             [ Color.background (Color.rgb 91 96 115)
-            , Color.text Color.white
             ]
         , style Rest
             [ Color.background (Color.rgb 150 150 150)
-            , Color.text Color.white
             ]
         , style RowLabel
             [ Color.background (Color.rgb 40 40 40)
@@ -173,6 +198,9 @@ stylesheet =
         , style SubHeading
             [ Font.typeface serif
             , Font.size 24
+            ]
+        , style SubMenu
+            [ Font.size 11
             ]
         , style Text
             [ Font.size 18

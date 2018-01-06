@@ -6,7 +6,6 @@ import Element.Events exposing (..)
 import Element.Input as Input
 import Html
 import Models exposing (..)
-import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
 import Styles exposing (..)
 
@@ -152,6 +151,7 @@ page model =
                                 session.beats
                                 session.tones
                                 model.sessionLists.selectedSessions
+                                model.searchInstrument
                             )
                         ]
                      ]
@@ -279,13 +279,15 @@ viewLabelCell label =
         }
 
 
-viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
-viewBoard board ( clientId, sessionId ) beats tones selectedSessions =
-    List.concatMap (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions) board
+viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> Input.SelectWith Instrument Msg -> List (Element Styles variation Msg)
+viewBoard board ( clientId, sessionId ) beats tones selectedSessions searchInstrument =
+    List.concatMap
+        (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions searchInstrument)
+        board
 
 
-viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> List (Element Styles variation Msg)
-viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
+viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> Input.SelectWith Instrument Msg -> List (Element Styles variation Msg)
+viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions searchInstrument =
     let
         style =
             if track.clientId == clientId then
@@ -300,44 +302,88 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
             , cells =
                 viewGrid track ( clientId, sessionId )
             }
-        , paragraph None
-            [ paddingTop 8, paddingBottom 30, spacing 5 ]
+        , row None
+            [ paddingTop 8, paddingBottom 40, spacing 5, spread ]
             (case track.username of
                 "" ->
-                    [ el InstrumentLabel [] (text track.instrument)
-                    , button Button
-                        [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
-                        (text "Request Track")
+                    [ column None [] <| [ el InstrumentLabel [] <| text track.instrument ]
+                    , column None [] <|
+                        [ button Button
+                            [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
+                          <|
+                            text "Request Track"
+                        ]
                     ]
 
                 _ ->
-                    [ paragraph InstrumentLabel [ paddingBottom 13 ] [ (text (track.username ++ " on " ++ track.instrument)) ]
-                    , when
-                        (clientId == track.clientId)
-                        (button Button
-                            [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
-                            (text "Release Track")
-                        )
-                    , when
-                        (clientId == track.clientId)
-                        (button Button
-                            [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
-                            (text "Send")
-                        )
-                    , when
-                        (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
-                            || ((List.length selectedSessions) > 1)
-                         )
-                            && (clientId == track.clientId)
-                        )
-                        (button
-                            Button
-                            [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
-                            (text "Broadcast")
-                        )
+                    [ column None [] <| [ el InstrumentLabel [] <| text (track.username ++ " on " ++ track.instrument) ]
+                    , row None [ spacing 5 ] <|
+                        [ when
+                            (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
+                                || ((List.length selectedSessions) > 1)
+                             )
+                                && (clientId == track.clientId)
+                            )
+                          <|
+                            button
+                                Button
+                                [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
+                                (text "Broadcast")
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            button Button
+                                [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
+                                (text "Send")
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            el InstrumentField [] <|
+                                Input.select Field
+                                    [ paddingXY 10 2, alignRight ]
+                                    { label = Input.placeholder { text = "Change Instrument ", label = Input.hiddenLabel "Change Instrument" }
+                                    , with = searchInstrument
+                                    , options = []
+                                    , max = 4
+                                    , menu =
+                                        Input.menu SubMenu
+                                            []
+                                            [ Input.styledSelectChoice (Guitar ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Guitar ")
+                                            , Input.styledSelectChoice (Marimba ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Marimba ")
+                                            , Input.styledSelectChoice (Piano ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Piano ")
+                                            , Input.styledSelectChoice (Xylophone ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Xylophone ")
+                                            ]
+                                    }
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            button Button
+                                [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
+                                (text "Release Track")
+                        ]
                     ]
             )
         ]
+
+
+instrumentChoice : Input.ChoiceState -> String -> Element Styles variation Msg
+instrumentChoice state instrument =
+    let
+        style =
+            case state of
+                Input.Selected ->
+                    MenuChoiceSelected
+
+                Input.Focused ->
+                    MenuChoiceFocused
+
+                Input.Idle ->
+                    MenuChoiceIdle
+
+                Input.SelectedInBox ->
+                    MenuChoiceSelectedInBox
+    in
+        el style [] <| text instrument
 
 
 viewGrid : Track -> ( ClientId, SessionId ) -> List (OnGrid (Element Styles variation Msg))

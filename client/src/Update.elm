@@ -2,11 +2,11 @@ module Update exposing (..)
 
 import Decode exposing (..)
 import Encode exposing (..)
+import Element.Input as Input exposing (updateSelection)
 import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import Json.Decode exposing (decodeString)
 import List.Extra exposing ((!!))
 import Models exposing (..)
-import Msgs exposing (..)
 import Ports exposing (sendScore)
 import Routing exposing (parseLocation)
 import Validate exposing (ifBlank, ifInvalid)
@@ -182,6 +182,52 @@ update msg model =
                 (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
             )
 
+        SearchInstrument searchMsg ->
+            -- TODO: implement with autocomplete
+            let
+                search =
+                    Input.updateSelection searchMsg model.searchInstrument
+
+                ( ( newSessions, searchInstrument ), command ) =
+                    case Input.selected search of
+                        Just instr ->
+                            let
+                                instrumentSelection =
+                                    case instr of
+                                        Guitar ( sessionId, trackId ) ->
+                                            { instrument = "Guitar", sessionId = sessionId, trackId = trackId }
+
+                                        Piano ( sessionId, trackId ) ->
+                                            { instrument = "Piano", sessionId = sessionId, trackId = trackId }
+
+                                        Marimba ( sessionId, trackId ) ->
+                                            { instrument = "Marimba", sessionId = sessionId, trackId = trackId }
+
+                                        Xylophone ( sessionId, trackId ) ->
+                                            { instrument = "Xylophone", sessionId = sessionId, trackId = trackId }
+
+                                session =
+                                    Maybe.withDefault
+                                        (emptySession instrumentSelection.sessionId)
+                                        (List.head (List.filter (\s -> s.id == instrumentSelection.sessionId) model.sessions))
+
+                                newSession =
+                                    updateInstrument instrumentSelection search session
+
+                                debug =
+                                    Debug.log "asdgf" Input.clear search
+                            in
+                                ( ( newSession :: List.filter (\s -> s.id /= instrumentSelection.sessionId) model.sessions
+                                  , search
+                                  )
+                                , sendScore newSession.score
+                                )
+
+                        Nothing ->
+                            ( ( model.sessions, search ), Cmd.none )
+            in
+                ( { model | sessions = newSessions, searchInstrument = searchInstrument }, command )
+
         SelectCell cell ->
             ( { model | selectedCell = cell }, Cmd.none )
 
@@ -285,7 +331,6 @@ updateSession cell model =
 
         newScore =
             List.concatMap
-                -- (\track -> readGrid track.grid track.trackId session.tones)
                 (\track -> readGrid track.grid track.trackId track.instrument session.tones)
                 newBoard
     in
@@ -368,42 +413,47 @@ updateTrackUser trackId clientId username board =
                 Track -1 "" "" "404s" [] []
 
 
+updateInstrument instrumentSelection searchInstrument session =
+    case Input.selected searchInstrument of
+        Nothing ->
+            session
+
+        Just _ ->
+            let
+                newTrack =
+                    updateTrackInstrument instrumentSelection.trackId instrumentSelection.instrument session.board
+
+                newBoard =
+                    List.take instrumentSelection.trackId session.board
+                        ++ newTrack
+                        :: List.drop (instrumentSelection.trackId + 1) session.board
+
+                newScore =
+                    List.concatMap
+                        (\track -> readGrid track.grid track.trackId track.instrument session.tones)
+                        newBoard
+            in
+                { session | board = newBoard, score = newScore }
+
+
+updateTrackInstrument : TrackId -> String -> Board -> Track
+updateTrackInstrument trackId instrument board =
+    let
+        track =
+            List.head (List.filter (\t -> t.trackId == trackId) board)
+    in
+        case track of
+            Just t ->
+                { t
+                    | instrument = instrument
+                }
+
+            Nothing ->
+                Track -1 "" "" "404s" [] []
+
+
 
 -- SCORE
--- readGrid : List (List Int) -> TrackId -> Int -> List Note
--- readGrid grid trackId tones =
---     let
---         rows =
---             List.map (List.indexedMap (,)) grid
---         tupleGrid =
---             List.indexedMap (,) rows
---     in
---         List.concatMap (\row -> readRow row 1 trackId tones) tupleGrid
--- readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> Int -> List Note
--- readRow ( row, cols ) noteStart trackId tones =
---     case cols of
---         c :: d :: cs ->
---             case Tuple.second c of
---                 0 ->
---                     readRow ( row, (d :: cs) ) (noteStart + 1) trackId tones
---                 _ ->
---                     if (Tuple.second d > Tuple.second c) then
---                         readRow ( row, (d :: cs) ) noteStart trackId tones
---                     else
---                         readCell ( row, c ) noteStart trackId tones
---                             :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId tones
---         c :: cs ->
---             case Tuple.second c of
---                 0 ->
---                     []
---                 _ ->
---                     readCell ( row, c ) noteStart trackId tones
---                         :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId tones
---         [] ->
---             []
--- readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> Int -> Note
--- readCell ( row, ( col, action ) ) noteStart trackId tones =
---     Note trackId noteStart action (tones - row)
 
 
 readGrid : List (List Int) -> TrackId -> String -> Int -> List Note
@@ -658,23 +708,6 @@ serverUpdateTrack track boardUpdate clientId sessionId suId =
             track
         else
             { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
-
-
-
--- serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
--- serverUpdateScore tu board tones clientId sessionId suId =
---     if tu.clientId == clientId && suId == sessionId then
---         let
---             track =
---                 List.head (List.filter (\t -> t.trackId == tu.trackId) board)
---         in
---             case track of
---                 Just t ->
---                     readGrid t.grid t.trackId tones
---                 Nothing ->
---                     []
---     else
---         readGrid tu.grid tu.trackId tones
 
 
 serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
