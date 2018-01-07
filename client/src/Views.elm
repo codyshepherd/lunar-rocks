@@ -307,7 +307,7 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions ( sele
                             (clientId == track.clientId)
                           <|
                             button Button
-                                [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
+                                [ paddingXY 10 2, alignRight, onClick (SendSession sessionId) ]
                                 (text "Send")
                         , when
                             (clientId == track.clientId)

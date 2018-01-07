@@ -49,7 +49,7 @@ type Msg
     | SelectInstrumentOne (Input.SelectMsg Instrument)
     | SelectCell Cell
     | SelectName
-    | Send SessionId
+    | SendSession SessionId
     | ToggleSessionButton SessionId
     | UpdateGrid Cell
     | UserInput String
