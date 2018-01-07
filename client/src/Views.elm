@@ -109,7 +109,7 @@ page model =
                                 (text "New Session")
                             ]
                         ]
-            , when (model.clientId == "clown shoes") <|
+            , when (model.username == "") <|
                 paragraph None [ paddingTop 12, height (px 32) ] <|
                     [ el None [] <| nameHint model.input ]
             , paragraph ServerMessage [] [ (text model.serverMessage) ]
@@ -117,8 +117,8 @@ page model =
                 []
               <|
                 List.map (\( _, error ) -> el None [] (text error)) model.validationErrors
+            , column None [] <| instructions
             ]
-                ++ instructions
 
         SessionRoute id ->
             let
@@ -329,53 +329,62 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions ( sele
 
 instructions : List (Element Styles variation Msg)
 instructions =
-    [ h3 SubHeading [ paddingTop 15, paddingBottom 20 ] (text "HOW TO USE")
+    [ h3 SubHeading [ paddingTop 15, paddingBottom 20 ] (text "REFERENCE GUIDE")
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Note Grid")
     , paragraph Text
         [ paddingBottom 10 ]
-        [ text <|
-            "Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
-                ++ " and you can claim one by selecting "
-        , bold "Request Track"
+        [ bold "Add a note "
+        , text "by clicking and dragging to the desired note length."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Extend a note "
+        , text "by clicking and dragging on the far right portion of an existing note."
+        ]
+    , paragraph Text
+        [ paddingBottom 20 ]
+        [ bold "Remove a note "
+        , text "by clicking on it."
+        ]
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Track Controls")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Request Track: "
+        , text "Claim a free track."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Release Track: "
+        , text "Release a track you control."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Change Instrument: "
+        , text "Select an instrument."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Send: "
+        , text "Sends any changes you have made to a track. Your collaborators will see and hear them!"
+        ]
+    , paragraph Text
+        [ paddingBottom 20 ]
+        [ bold "Broadcast: "
         , text <|
-            ". Once you have a track, start making music by adding and removing "
-                ++ "notes in the note grid. When you are happy with your creation, select "
-        , bold "Send "
-        , text "and your music will be sent to the session."
+            "Send a track to another session. "
+                ++ "Select the target session or sessions in the Your Sessions area below the tracks. "
+                ++ "Note that you must control the track in both sessions. "
+        ]
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Session Navigation")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Sessions: "
+        , text "Go to the home page, but stay active on any tracks you control."
         ]
     , paragraph Text
         [ paddingBottom 10 ]
-        [ text "When you are done with a track, select "
-        , bold "Release Track"
-        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text <|
-            "If someone else is working on a track in your session, you will see and hear "
-                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text <|
-            "You can send your track to another session by claiming the same track in both "
-                ++ "sessions, selectng the target session from "
-        , bold "Your Sessions"
-        , text ", and then selecting "
-        , bold "Broadcast"
-        , text <|
-            ". You can send to many sessions at once by selecting multiple "
-                ++ "sessions before selecting "
-        , bold "Broadcast."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "Select "
-        , bold "Leave Session"
-        , text " when you are ready to move on. "
-        , bold "Sessions"
-        , text <|
-            " will bring you back to the list of sessions, but "
-                ++ "you will stay active in the current session if you have a track open."
+        [ bold "Leave Session: "
+        , text "Go to the home page, and release any tracks you control."
         ]
     ]
 
