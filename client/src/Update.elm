@@ -182,51 +182,25 @@ update msg model =
                 (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
             )
 
-        SearchInstrument searchMsg ->
-            -- TODO: implement with autocomplete
+        SelectInstrumentZero selectMsg ->
             let
-                search =
-                    Input.updateSelection searchMsg model.searchInstrument
+                select =
+                    Input.updateSelection selectMsg model.selectInstrumentZero
 
-                ( ( newSessions, searchInstrument ), command ) =
-                    case Input.selected search of
-                        Just instr ->
-                            let
-                                instrumentSelection =
-                                    case instr of
-                                        Guitar ( sessionId, trackId ) ->
-                                            { instrument = "Guitar", sessionId = sessionId, trackId = trackId }
-
-                                        Piano ( sessionId, trackId ) ->
-                                            { instrument = "Piano", sessionId = sessionId, trackId = trackId }
-
-                                        Marimba ( sessionId, trackId ) ->
-                                            { instrument = "Marimba", sessionId = sessionId, trackId = trackId }
-
-                                        Xylophone ( sessionId, trackId ) ->
-                                            { instrument = "Xylophone", sessionId = sessionId, trackId = trackId }
-
-                                session =
-                                    Maybe.withDefault
-                                        (emptySession instrumentSelection.sessionId)
-                                        (List.head (List.filter (\s -> s.id == instrumentSelection.sessionId) model.sessions))
-
-                                newSession =
-                                    updateInstrument instrumentSelection search session
-
-                                debug =
-                                    Debug.log "asdgf" Input.clear search
-                            in
-                                ( ( newSession :: List.filter (\s -> s.id /= instrumentSelection.sessionId) model.sessions
-                                  , search
-                                  )
-                                , sendScore newSession.score
-                                )
-
-                        Nothing ->
-                            ( ( model.sessions, search ), Cmd.none )
+                ( newSessions, command ) =
+                    selectInstrument select model
             in
-                ( { model | sessions = newSessions, searchInstrument = searchInstrument }, command )
+                ( { model | sessions = newSessions, selectInstrumentZero = select }, command )
+
+        SelectInstrumentOne selectMsg ->
+            let
+                select =
+                    Input.updateSelection selectMsg model.selectInstrumentOne
+
+                ( newSessions, command ) =
+                    selectInstrument select model
+            in
+                ( { model | sessions = newSessions, selectInstrumentOne = select }, command )
 
         SelectCell cell ->
             ( { model | selectedCell = cell }, Cmd.none )
@@ -306,11 +280,15 @@ update msg model =
 validate : Model -> List ValidationError
 validate =
     Validate.all
-        [ .input >> ifBlank ( Name, "Nickname can't be blank." )
+        [ .input >> ifBlank ( Name, "🗙 Nickname can't be blank." )
         , .input
             >> ifInvalid
-                (\n -> String.length n >= 20)
-                ( Name, "Nickname must be less than 20 characters." )
+                (\n -> String.length n > 20)
+                ( Name, "🗙 Nickname must be shorter than 20 characters." )
+        , .input
+            >> ifInvalid
+                (\n -> String.length n < 3)
+                ( Name, "🗙 Nickname must be at least 3 characters long." )
         ]
 
 
@@ -411,6 +389,44 @@ updateTrackUser trackId clientId username board =
 
             Nothing ->
                 Track -1 "" "" "404s" [] []
+
+
+
+-- SELECT_INSTRUMENT
+
+
+selectInstrument select model =
+    case Input.selected select of
+        Just instr ->
+            let
+                instrumentSelection =
+                    case instr of
+                        Guitar ( sessionId, trackId ) ->
+                            { instrument = "Guitar", sessionId = sessionId, trackId = trackId }
+
+                        Piano ( sessionId, trackId ) ->
+                            { instrument = "Piano", sessionId = sessionId, trackId = trackId }
+
+                        Marimba ( sessionId, trackId ) ->
+                            { instrument = "Marimba", sessionId = sessionId, trackId = trackId }
+
+                        Xylophone ( sessionId, trackId ) ->
+                            { instrument = "Xylophone", sessionId = sessionId, trackId = trackId }
+
+                session =
+                    Maybe.withDefault
+                        (emptySession instrumentSelection.sessionId)
+                        (List.head (List.filter (\s -> s.id == instrumentSelection.sessionId) model.sessions))
+
+                newSession =
+                    updateInstrument instrumentSelection select session
+            in
+                ( newSession :: List.filter (\s -> s.id /= instrumentSelection.sessionId) model.sessions
+                , sendScore newSession.score
+                )
+
+        Nothing ->
+            ( model.sessions, Cmd.none )
 
 
 updateInstrument instrumentSelection searchInstrument session =
@@ -589,7 +605,7 @@ serverUpdateModel serverMessage model =
                                 newSessionsLists =
                                     { sessionLists | allSessions = newSessions }
                             in
-                                { model | clientId = id, sessionLists = newSessionsLists }
+                                { model | clientId = id, sessionLists = newSessionsLists, input = "" }
 
                         _ ->
                             Debug.log "113: Payload mismatch" model

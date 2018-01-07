@@ -17,7 +17,8 @@ type alias Model =
     , input : String
     , selectedCell : Cell
     , windowSize : Size
-    , searchInstrument : Input.SelectWith Instrument Msg
+    , selectInstrumentZero : Input.SelectWith Instrument Msg
+    , selectInstrumentOne : Input.SelectWith Instrument Msg
     , serverMessage : String
     , validationErrors : List ValidationError
     }
@@ -44,7 +45,8 @@ type Msg
     | OnLocationChange Location
     | ReleaseTrack SessionId TrackId ClientId
     | RequestTrack SessionId TrackId ClientId
-    | SearchInstrument (Input.SelectMsg Instrument)
+    | SelectInstrumentZero (Input.SelectMsg Instrument)
+    | SelectInstrumentOne (Input.SelectMsg Instrument)
     | SelectCell Cell
     | SelectName
     | Send SessionId
@@ -116,13 +118,6 @@ type alias TrackId =
     Int
 
 
-type Instrument
-    = Guitar ( SessionId, TrackId )
-    | Piano ( SessionId, TrackId )
-    | Marimba ( SessionId, TrackId )
-    | Xylophone ( SessionId, TrackId )
-
-
 type UpdateCellAction
     = Add
     | Remove
@@ -136,6 +131,17 @@ type alias Cell =
     , length : Int
     , action : Int
     }
+
+
+type Instrument
+    = Guitar ( SessionId, TrackId )
+    | Piano ( SessionId, TrackId )
+    | Marimba ( SessionId, TrackId )
+    | Xylophone ( SessionId, TrackId )
+
+
+type alias InstrumentSelects =
+    ( Input.SelectWith Instrument Msg, Input.SelectWith Instrument Msg )
 
 
 
@@ -190,7 +196,8 @@ initialModel route =
         }
     , route = route
     , input = ""
-    , searchInstrument = Input.dropMenu Nothing SearchInstrument
+    , selectInstrumentZero = Input.dropMenu Nothing SelectInstrumentZero
+    , selectInstrumentOne = Input.dropMenu Nothing SelectInstrumentOne
     , selectedCell = emptyCell
     , windowSize = { width = 0, height = 0 }
     , serverMessage = ""

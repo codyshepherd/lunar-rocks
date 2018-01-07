@@ -39,6 +39,7 @@ type Styles
     | SmallHeading
     | SubHeading
     | SubMenu
+    | SuccessMessage
     | Text
 
 
@@ -98,7 +99,8 @@ stylesheet =
             ]
         , style ErrorMessage
             [ Font.size 18
-            , Color.text (Color.rgb 215 88 19)
+            , Font.letterSpacing 0.45
+            , Color.text (Color.rgb 220 0 0)
             ]
         , style ExtendHandle [ cursor "e-resize" ]
         , style Field
@@ -201,6 +203,11 @@ stylesheet =
             ]
         , style SubMenu
             [ Font.size 11
+            ]
+        , style SuccessMessage
+            [ Font.size 18
+            , Font.letterSpacing 0.45
+            , Color.text Color.green
             ]
         , style Text
             [ Font.size 18

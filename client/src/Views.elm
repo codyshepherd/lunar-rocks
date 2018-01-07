@@ -65,32 +65,29 @@ page model =
                         ++ "Rocks is in the early development, and we appreciate "
                         ++ "any feedback. "
                     )
-                , (bold "Eject ")
+                , bold "Eject "
                 , text "above to visit the GitHub repo."
                 ]
             , textLayout None
                 [ spacingXY 25 20 ]
-                (case model.username of
+              <|
+                case model.username of
                     "" ->
                         [ paragraph Text [] [ text "Choose a nickname to get started." ]
-                        , column None
-                            [ width (px 200) ]
-                            [ row None
-                                [ spacing 1 ]
-                                [ Input.text MessageInput
-                                    [ paddingXY 2 3 ]
-                                    { label =
-                                        Input.placeholder
-                                            { label = Input.hiddenLabel "Nickname"
-                                            , text = "nickname"
-                                            }
-                                    , onChange = UserInput
-                                    , options = []
-                                    , value = ""
-                                    }
-                                , spacer 5
-                                , button Button [ paddingXY 7 3, onClick SelectName ] (text "->")
-                                ]
+                        , row None
+                            [ width (px 200), spacing 6 ]
+                            [ Input.text MessageInput
+                                [ paddingXY 2 3 ]
+                                { label =
+                                    Input.placeholder
+                                        { label = Input.hiddenLabel "Nickname"
+                                        , text = " Nickname..."
+                                        }
+                                , onChange = UserInput
+                                , options = []
+                                , value = ""
+                                }
+                            , button Button [ paddingXY 7 3, onClick SelectName ] (text "Submit")
                             ]
                         ]
 
@@ -112,11 +109,14 @@ page model =
                                 (text "New Session")
                             ]
                         ]
-                )
-            , paragraph ServerMessage [ paddingTop 10 ] [ (text model.serverMessage) ]
+            , when (model.clientId == "clown shoes") <|
+                paragraph None [ paddingTop 12, height (px 32) ] <|
+                    [ el None [] <| nameHint model.input ]
+            , paragraph ServerMessage [] [ (text model.serverMessage) ]
             , paragraph ErrorMessage
-                [ paddingTop 10 ]
-                (List.map (\( _, error ) -> el None [] (text error)) model.validationErrors)
+                []
+              <|
+                List.map (\( _, error ) -> el None [] (text error)) model.validationErrors
             ]
                 ++ instructions
 
@@ -137,74 +137,47 @@ page model =
             in
                 [ textLayout None
                     [ spacing 1 ]
-                    ([ h3 SubHeading
+                  <|
+                    [ h3 SubHeading
                         [ paddingTop 20, paddingBottom 20 ]
                         (text ("SESSION " ++ toString (id)))
-                     , row None
+                    , row None
                         [ spacing 2 ]
-                        [ column None [ spacing 1 ] (viewLabels session.board session.tones)
+                        [ column None [ spacing 1 ] <| viewLabels session.board session.tones
                         , column None
                             []
-                            (viewBoard
+                          <|
+                            viewBoard
                                 session.board
                                 ( model.clientId, model.sessionId )
                                 session.beats
                                 session.tones
                                 model.sessionLists.selectedSessions
-                                model.searchInstrument
-                            )
+                                ( model.selectInstrumentZero, model.selectInstrumentOne )
                         ]
-                     ]
+                    ]
                         ++ [ paragraph None
                                 [ paddingBottom 10 ]
-                                ((el SmallHeading [] (text "IN THIS SESSION:  "))
+                             <|
+                                (el SmallHeading [] (text "IN THIS SESSION:  "))
                                     :: (List.map viewMessage session.clients)
-                                )
-                           , textLayout None
-                                [ paddingBottom 10 ]
-                                (List.map viewMessage session.messages)
+                           , textLayout None [ paddingBottom 10 ] <| List.map viewMessage session.messages
                            ]
-                        ++ [ when ((List.length otherSessions) > 0)
-                                (h3 SmallHeading
+                        ++ [ when ((List.length otherSessions) > 0) <|
+                                h3 SmallHeading
                                     [ paddingBottom 10 ]
                                     (text "YOUR SESSIONS")
-                                )
                            , paragraph None
                                 [ spacing 7 ]
-                                (List.map
+                             <|
+                                List.map
                                     (\cs ->
                                         viewSessionButton
                                             cs
                                             model.sessionLists.selectedSessions
                                     )
                                     otherSessions
-                                )
-
-                           -- TODO: Add Goto button once a sensible spot for it becomes clear
-                           -- , spacer 10
-                           -- , (let
-                           --      selectedSessions =
-                           --          model.sessionLists.selectedSessions
-                           --    in
-                           --      paragraph None
-                           --          [ spacing 3 ]
-                           --          [ when
-                           --              ((List.length selectedSessions == 1)
-                           --                  && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
-                           --              )
-                           --              (button
-                           --                  Button
-                           --                  [ paddingXY 10 2 ]
-                           --                  (link
-                           --                      (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
-                           --                   <|
-                           --                      el None [] (text "Goto")
-                           --                  )
-                           --              )
-                           --          ]
-                           --   )
                            ]
-                    )
                 ]
 
         NotFoundRoute ->
@@ -222,11 +195,11 @@ viewSessionEntry sessionId clientSessions =
     in
         el None
             [ spacing 7 ]
-            (link (sessionPath sessionId) <|
+        <|
+            link (sessionPath sessionId) <|
                 button style
                     [ paddingXY 10 5 ]
                     (text (toString (sessionId)))
-            )
 
 
 viewSessionButton : SessionId -> List SessionId -> Element Styles variation Msg
@@ -279,15 +252,15 @@ viewLabelCell label =
         }
 
 
-viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> Input.SelectWith Instrument Msg -> List (Element Styles variation Msg)
-viewBoard board ( clientId, sessionId ) beats tones selectedSessions searchInstrument =
+viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> InstrumentSelects -> List (Element Styles variation Msg)
+viewBoard board ( clientId, sessionId ) beats tones selectedSessions instrumentSelects =
     List.concatMap
-        (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions searchInstrument)
+        (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions instrumentSelects)
         board
 
 
-viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> Input.SelectWith Instrument Msg -> List (Element Styles variation Msg)
-viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions searchInstrument =
+viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> InstrumentSelects -> List (Element Styles variation Msg)
+viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions ( selectZero, selectOne ) =
     let
         style =
             if track.clientId == clientId then
@@ -304,7 +277,8 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions search
             }
         , row None
             [ paddingTop 8, paddingBottom 40, spacing 5, spread ]
-            (case track.username of
+          <|
+            case track.username of
                 "" ->
                     [ column None [] <| [ el InstrumentLabel [] <| text track.instrument ]
                     , column None [] <|
@@ -338,22 +312,10 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions search
                         , when
                             (clientId == track.clientId)
                           <|
-                            el InstrumentField [] <|
-                                Input.select Field
-                                    [ paddingXY 10 2, alignRight ]
-                                    { label = Input.placeholder { text = "Change Instrument ", label = Input.hiddenLabel "Change Instrument" }
-                                    , with = searchInstrument
-                                    , options = []
-                                    , max = 4
-                                    , menu =
-                                        Input.menu SubMenu
-                                            []
-                                            [ Input.styledSelectChoice (Guitar ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Guitar ")
-                                            , Input.styledSelectChoice (Marimba ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Marimba ")
-                                            , Input.styledSelectChoice (Piano ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Piano ")
-                                            , Input.styledSelectChoice (Xylophone ( sessionId, track.trackId )) <| (\state -> instrumentChoice state "Xylophone ")
-                                            ]
-                                    }
+                            if track.trackId == 0 then
+                                selectInstrument selectZero sessionId track.trackId
+                            else
+                                selectInstrument selectOne sessionId track.trackId
                         , when
                             (clientId == track.clientId)
                           <|
@@ -362,28 +324,76 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions search
                                 (text "Release Track")
                         ]
                     ]
-            )
         ]
 
 
-instrumentChoice : Input.ChoiceState -> String -> Element Styles variation Msg
-instrumentChoice state instrument =
-    let
-        style =
-            case state of
-                Input.Selected ->
-                    MenuChoiceSelected
+instructions : List (Element Styles variation Msg)
+instructions =
+    [ h3 SubHeading [ paddingTop 15, paddingBottom 20 ] (text "HOW TO USE")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text <|
+            "Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
+                ++ " and you can claim one by selecting "
+        , bold "Request Track"
+        , text <|
+            ". Once you have a track, start making music by adding and removing "
+                ++ "notes in the note grid. When you are happy with your creation, select "
+        , bold "Send "
+        , text "and your music will be sent to the session."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text "When you are done with a track, select "
+        , bold "Release Track"
+        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text <|
+            "If someone else is working on a track in your session, you will see and hear "
+                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text <|
+            "You can send your track to another session by claiming the same track in both "
+                ++ "sessions, selectng the target session from "
+        , bold "Your Sessions"
+        , text ", and then selecting "
+        , bold "Broadcast"
+        , text <|
+            ". You can send to many sessions at once by selecting multiple "
+                ++ "sessions before selecting "
+        , bold "Broadcast."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ text "Select "
+        , bold "Leave Session"
+        , text " when you are ready to move on. "
+        , bold "Sessions"
+        , text <|
+            " will bring you back to the list of sessions, but "
+                ++ "you will stay active in the current session if you have a track open."
+        ]
+    ]
 
-                Input.Focused ->
-                    MenuChoiceFocused
 
-                Input.Idle ->
-                    MenuChoiceIdle
+nameHint : String -> Element Styles variation msg
+nameHint input =
+    if String.length input == 0 then
+        text ""
+    else if String.length input < 3 then
+        el ErrorMessage [] (text "🗙 More letters please")
+    else if String.length input > 20 then
+        el ErrorMessage [] (text "🗙 Too long...")
+    else
+        el SuccessMessage [] (text "✔ Nice one!")
 
-                Input.SelectedInBox ->
-                    MenuChoiceSelectedInBox
-    in
-        el style [] <| text instrument
+
+
+-- GRID
 
 
 viewGrid : Track -> ( ClientId, SessionId ) -> List (OnGrid (Element Styles variation Msg))
@@ -496,60 +506,45 @@ viewCell ( row, ( col, action ) ) track ( clientId, sessionId ) =
             }
 
 
-instructions : List (Element Styles variation Msg)
-instructions =
-    [ h3 SubHeading [ paddingTop 10, paddingBottom 20 ] (text "HOW TO USE")
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
-                ++ " and you can claim one by selecting "
-            )
-        , bold "Request Track"
-        , text
-            (". Once you have a track, start making music by adding and removing "
-                ++ "notes in the note grid. When you are happy with your creation, select "
-            )
-        , bold "Send "
-        , text "and your music will be sent to the session."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "When you are done with a track, select "
-        , bold "Release Track"
-        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("If someone else is working on a track in your session, you will see and hear "
-                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
-            )
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("You can send your track to another session by claiming the same track in both "
-                ++ "sessions, selectng the target session from "
-            )
-        , bold "Your Sessions"
-        , text ", and then selecting "
-        , bold "Broadcast"
-        , text
-            (". You can send to many sessions at once by selecting multiple "
-                ++ "sessions before selecting "
-            )
-        , bold "Broadcast."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "Select "
-        , bold "Leave Session"
-        , text " when you are ready to move on. "
-        , bold "Sessions"
-        , text
-            (" will bring you back to the list of sessions, but "
-                ++ "you will stay active in the current session if you have a track open."
-            )
-        ]
-    ]
+
+-- SELECT_INSTRUMENT
+
+
+selectInstrument : Input.SelectWith Instrument Msg -> SessionId -> TrackId -> Element Styles variation Msg
+selectInstrument select sessionId trackId =
+    el InstrumentField [] <|
+        Input.select Field
+            [ paddingXY 10 2, alignRight ]
+            { label = Input.placeholder { text = "Change Instrument ", label = Input.hiddenLabel "Change Instrument" }
+            , with = select
+            , options = []
+            , max = 4
+            , menu =
+                Input.menu SubMenu
+                    []
+                    [ Input.styledSelectChoice (Guitar ( sessionId, trackId )) <| (\state -> instrumentChoice state "Guitar ")
+                    , Input.styledSelectChoice (Marimba ( sessionId, trackId )) <| (\state -> instrumentChoice state "Marimba ")
+                    , Input.styledSelectChoice (Piano ( sessionId, trackId )) <| (\state -> instrumentChoice state "Piano ")
+                    , Input.styledSelectChoice (Xylophone ( sessionId, trackId )) <| (\state -> instrumentChoice state "Xylophone ")
+                    ]
+            }
+
+
+instrumentChoice : Input.ChoiceState -> String -> Element Styles variation Msg
+instrumentChoice state instrument =
+    let
+        style =
+            case state of
+                Input.Selected ->
+                    MenuChoiceSelected
+
+                Input.Focused ->
+                    MenuChoiceFocused
+
+                Input.Idle ->
+                    MenuChoiceIdle
+
+                Input.SelectedInBox ->
+                    MenuChoiceSelectedInBox
+    in
+        el style [] <| text instrument
