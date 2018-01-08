@@ -182,6 +182,9 @@ update msg model =
                 (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
             )
 
+        SelectCell cell ->
+            ( { model | selectedCell = cell }, Cmd.none )
+
         SelectName ->
             case validate model of
                 [] ->
@@ -233,7 +236,7 @@ update msg model =
             in
                 ( { model | sessionLists = newSessionLists }, Cmd.none )
 
-        UpdateBoard cell ->
+        UpdateGrid cell ->
             let
                 newSession =
                     updateSession cell model
@@ -241,7 +244,7 @@ update msg model =
                 newSessions =
                     newSession :: (List.filter (\s -> s.id /= cell.sessionId) model.sessions)
             in
-                ( { model | sessions = newSessions }, sendScore newSession.score )
+                ( { model | sessions = newSessions, selectedCell = emptyCell }, sendScore newSession.score )
 
         UserInput newInput ->
             ( { model | input = newInput }, Cmd.none )
@@ -277,70 +280,77 @@ updateSession cell model =
                 (emptySession cell.sessionId)
                 (List.head (List.filter (\s -> s.id == cell.sessionId) model.sessions))
 
-        newScore =
-            case cell.action of
-                0 ->
-                    (removeNote cell session.score)
+        newBoard =
+            (updateBoard session.board cell model.selectedCell)
 
-                _ ->
-                    let
-                        note =
-                            Note
-                                cell.trackId
-                                (cell.column + 1)
-                                1
-                                (session.tones - cell.row)
-                    in
-                        note :: session.score
+        newScore =
+            List.concatMap
+                (\track -> readGrid track.grid track.trackId session.tones)
+                newBoard
     in
         { session
-            | board = (updateBoard session.board cell)
+            | board = newBoard
             , score = newScore
         }
 
 
-updateBoard : Board -> Cell -> Board
-updateBoard board cell =
+updateBoard : Board -> Cell -> Cell -> Board
+updateBoard board cell selected =
+    List.take cell.trackId board
+        ++ (updateTrack (board !! cell.trackId) cell selected)
+        :: List.drop (cell.trackId + 1) board
+
+
+updateTrack : Maybe Track -> Cell -> Cell -> Track
+updateTrack track cell selected =
+    case track of
+        Just t ->
+            { t | grid = updateGrid t cell selected }
+
+        Nothing ->
+            Track -1 "" "" "404s" [] []
+
+
+updateGrid : Track -> Cell -> Cell -> List (List Int)
+updateGrid track cell selected =
+    if
+        (cell.column >= selected.column)
+            && (cell.row > (selected.row - 2))
+            && (cell.row < (selected.row + 2))
+    then
+        if cell.column == selected.column && cell.action /= 0 then
+            updateRow track.grid Remove cell cell.length
+        else
+            updateRow track.grid Add selected ((cell.column + cell.length) - selected.column)
+    else
+        track.grid
+
+
+updateRow : List (List Int) -> UpdateCellAction -> Cell -> Int -> List (List Int)
+updateRow grid updateAction cell length =
     let
-        trackId =
-            .trackId cell
+        row =
+            case grid !! cell.row of
+                Just r ->
+                    r
+
+                Nothing ->
+                    []
+
+        newRow =
+            List.take cell.column row
+                ++ case updateAction of
+                    Add ->
+                        List.range 1 length
+                            ++ List.drop (cell.column + length) row
+
+                    Remove ->
+                        List.repeat length 0
+                            ++ List.drop (cell.column + length) row
     in
-        List.take trackId board
-            ++ (updateTrack (board !! trackId) cell)
-            :: List.drop (trackId + 1) board
-
-
-updateTrack : Maybe Track -> Cell -> Track
-updateTrack track cell =
-    let
-        rowNum =
-            .row cell
-    in
-        case track of
-            Just t ->
-                { t
-                    | grid =
-                        List.take rowNum (.grid t)
-                            ++ (updateRow ((.grid t) !! rowNum) cell)
-                            :: List.drop (rowNum + 1) (.grid t)
-                }
-
-            Nothing ->
-                Track -1 "" "" "404s" [] []
-
-
-updateRow : Maybe (List Int) -> Cell -> List Int
-updateRow row cell =
-    let
-        colNum =
-            .column cell
-    in
-        case row of
-            Just r ->
-                List.take colNum r ++ (.action cell) :: List.drop (colNum + 1) r
-
-            Nothing ->
-                []
+        List.take cell.row grid
+            ++ newRow
+            :: List.drop (cell.row + 1) grid
 
 
 updateTrackUser : TrackId -> ClientId -> String -> Board -> Track
@@ -357,15 +367,53 @@ updateTrackUser trackId clientId username board =
                 Track -1 "" "" "404s" [] []
 
 
-removeNote : Cell -> Score -> Score
-removeNote cell score =
-    List.filter
-        (\n ->
-            (.trackId n /= .trackId cell)
-                || (.beat n - 1 /= .column cell)
-                || (13 - .tone n /= .row cell)
-        )
-        score
+
+-- SCORE
+
+
+readGrid : List (List Int) -> TrackId -> Int -> List Note
+readGrid grid trackId tones =
+    let
+        rows =
+            List.map (List.indexedMap (,)) grid
+
+        tupleGrid =
+            List.indexedMap (,) rows
+    in
+        List.concatMap (\row -> readRow row 1 trackId tones) tupleGrid
+
+
+readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> Int -> List Note
+readRow ( row, cols ) noteStart trackId tones =
+    case cols of
+        c :: d :: cs ->
+            case Tuple.second c of
+                0 ->
+                    readRow ( row, (d :: cs) ) (noteStart + 1) trackId tones
+
+                _ ->
+                    if (Tuple.second d > Tuple.second c) then
+                        readRow ( row, (d :: cs) ) noteStart trackId tones
+                    else
+                        readCell ( row, c ) noteStart trackId tones
+                            :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId tones
+
+        c :: cs ->
+            case Tuple.second c of
+                0 ->
+                    []
+
+                _ ->
+                    readCell ( row, c ) noteStart trackId tones
+                        :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId tones
+
+        [] ->
+            []
+
+
+readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> Int -> Note
+readCell ( row, ( col, action ) ) noteStart trackId tones =
+    Note trackId noteStart action (tones - row)
 
 
 
@@ -593,41 +641,6 @@ serverUpdateScore tu board tones clientId sessionId suId =
                     []
     else
         readGrid tu.grid tu.trackId tones
-
-
-readGrid : List (List Int) -> TrackId -> Int -> List Note
-readGrid grid trackId tones =
-    let
-        rows =
-            List.map (List.indexedMap (,)) grid
-
-        tupleGrid =
-            List.indexedMap (,) rows
-    in
-        List.concatMap (\r -> readRow trackId tones r) tupleGrid
-
-
-readRow : TrackId -> Int -> ( Int, List ( Int, Int ) ) -> List Note
-readRow trackId tones row =
-    List.map (\c -> readCell trackId tones (Tuple.first row) c) (Tuple.second row)
-
-
-readCell : TrackId -> Int -> Int -> ( Int, Int ) -> Note
-readCell trackId tones row c =
-    let
-        col =
-            Tuple.first c
-
-        action =
-            Tuple.second c
-    in
-        case action of
-            -- TODO: Re-work to not add empty notes
-            0 ->
-                Note trackId (col + 1) 0 (tones - row)
-
-            _ ->
-                Note trackId (col + 1) 1 (tones - row)
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model

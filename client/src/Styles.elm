@@ -1,6 +1,7 @@
 module Styles exposing (..)
 
 import Color
+import Element.Attributes exposing (inlineStyle)
 import Style exposing (..)
 import Style.Border as Border
 import Style.Color as Color
@@ -12,7 +13,9 @@ type Styles
     = ActiveButton
     | Button
     | ErrorMessage
+    | ExtendHandle
     | GridBlock
+    | GridBlockHeld
     | InstrumentLabel
     | Logo
     | Main
@@ -54,6 +57,17 @@ sansSerif =
     ]
 
 
+noSelect =
+    inlineStyle
+        [ ( "-webkit-touch-callout", "none" )
+        , ( "-webkit-user-select", "none" )
+        , ( "-khtml-user-select", "none" )
+        , ( "-moz-user-select", "none" )
+        , ( "-ms-user-select", "none" )
+        , ( "user-select", "none" )
+        ]
+
+
 stylesheet : StyleSheet Styles variation
 stylesheet =
     Style.styleSheet
@@ -79,8 +93,12 @@ stylesheet =
             [ Font.size 18
             , Color.text (Color.rgb 215 88 19)
             ]
-        , style GridBlock
-            [ Color.background (Color.rgb 120 120 120) ]
+        , style ExtendHandle [ cursor "e-resize" ]
+        , style GridBlock [ Color.background (Color.rgb 120 120 120) ]
+        , style GridBlockHeld
+            [ Color.background (Color.rgb 120 120 120)
+            , cursor "pointer"
+            ]
         , style InstrumentLabel [ Font.size 20 ]
         , style Logo
             [ Font.typeface serif

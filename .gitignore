@@ -1,3 +1,6 @@
+.vscode
+
+
 # elm
 elm-stuff/
 main.js
@@ -8,3 +11,8 @@ venv/
 controller.log
 server.log
 
+# go
+.envrc
+bin/
+pkg/
+src/github.com/

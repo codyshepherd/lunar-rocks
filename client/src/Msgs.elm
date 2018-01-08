@@ -14,9 +14,10 @@ type Msg
     | OnLocationChange Location
     | ReleaseTrack SessionId TrackId ClientId
     | RequestTrack SessionId TrackId ClientId
+    | SelectCell Cell
     | SelectName
     | Send SessionId
     | ToggleSessionButton SessionId
-    | UpdateBoard Cell
+    | UpdateGrid Cell
     | UserInput String
     | WindowResize Size

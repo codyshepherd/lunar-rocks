@@ -21,7 +21,7 @@ var score = [];
 
 // process score
 app.ports.sendScore.subscribe(function (args) {
-    if (args.length > 1) {
+    if (args.length > 0) {
         play = true;
         var newScore = [];
         for (var i = 1; i <= beats; i++) {
@@ -43,7 +43,7 @@ app.ports.sendScore.subscribe(function (args) {
 
 // loop over eight beats, schedule one second ahead for each
 var loop = clock.callbackAtTime(function() {
-  console.log(beat);
+  // console.log(beat);
   // play notes for current beat
   if (play) {
     var notes = score[beat];

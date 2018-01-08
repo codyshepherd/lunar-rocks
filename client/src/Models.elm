@@ -13,6 +13,7 @@ type alias Model =
     , sessionLists : SessionLists
     , route : Route
     , input : String
+    , selectedCell : Cell
     , windowSize : Size
     , serverMessage : String
     , validationErrors : List ValidationError
@@ -75,6 +76,11 @@ type alias TrackId =
     Int
 
 
+type UpdateCellAction
+    = Add
+    | Remove
+
+
 type alias Track =
     { trackId : TrackId
     , clientId : ClientId
@@ -90,6 +96,7 @@ type alias Cell =
     , trackId : TrackId
     , column : Int
     , row : Int
+    , length : Int
     , action : Int
     }
 
@@ -145,6 +152,7 @@ initialModel route =
         }
     , route = route
     , input = ""
+    , selectedCell = emptyCell
     , windowSize = { width = 0, height = 0 }
     , serverMessage = ""
     , validationErrors = []
@@ -162,15 +170,26 @@ emptySession id =
         [ Track 0
             ""
             ""
-            "Xylophone"
+            "Guitar"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         , Track 1
             ""
             ""
-            "Marimba"
+            "Piano"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         ]
         []
         []
+
+
+emptyCell : Cell
+emptyCell =
+    { sessionId = 0
+    , trackId = 0
+    , row = 0
+    , column = 0
+    , length = 0
+    , action = 0
+    }
