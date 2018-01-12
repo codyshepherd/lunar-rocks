@@ -17,16 +17,21 @@ const (
 
     // dispatchTable is a map (dict) of ints to (anonymous) functions that take maps of ints to 
     // arbitrary data types, and return booleans
-    dispatchTable = map[int]func(*Client, map[int]interface{})bool{
+    /*dispatchTable = map[int]func(*Client, map[int]interface{})bool{
         112: func(c *Client, x map[int]interface{}) {
             return c.handle112(x)
         }
-    }
+    }*/
 )
 
 var (
     newline = []byte{'\n'}
     space   = []byte{' '}
+    dispatchTable = map[int]func(*Client, map[int]interface{})bool{
+        112: func(c *Client, x map[int]interface{}) bool {
+            return c.handle112(x)
+        },
+    }
 )
 
 type clientID string
@@ -70,9 +75,9 @@ func (c *Client) readWorker() {
 }
 
 func (c *Client) writeWorker() {
-    defer c.socket.Close()
+    defer c.conn.Close()
     for msg := range c.send {
-        err := c.socket.WriteMessage(websocket.TextMessage, msg) // will this work with JSON marshalling?
+        err := c.conn.WriteMessage(websocket.TextMessage, msg) // will this work with JSON marshalling?
         if err != nil {
             log.Fatal(err)
             return
@@ -90,4 +95,5 @@ func (c *Client) handle112(msg map[int]interface{}) bool {
     // check which user role is proposed
     // if Anon, assign nickname and log user-client mapping with roster
     // if Standard, authenticate credentials and then log user-client mapping with roster
+    return true
 }
