@@ -96,6 +96,7 @@ class Track:
             "trackID": self.trackID,
             "clientID": self.clientID,
             "nickname": self.clientNick,
+            "instrument": self.instrument,
             "grid": self.grid
         }
 
