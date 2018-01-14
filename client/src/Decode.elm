@@ -32,6 +32,7 @@ type alias TrackUpdate =
     { trackId : Int
     , clientId : String
     , username : String
+    , instrument : String
     , grid : List (List Int)
     }
 
@@ -104,6 +105,7 @@ decodeTrackUpdate =
         |> required "trackID" int
         |> required "clientID" string
         |> required "nickname" string
+        |> required "instrument" string
         |> required "grid" (list (list int))
 
 

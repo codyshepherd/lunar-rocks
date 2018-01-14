@@ -199,6 +199,7 @@ serverUpdateTrack track boardUpdate clientId sessionId suId =
                 { trackId = track.trackId
                 , clientId = track.clientId
                 , username = track.username
+                , instrument = track.instrument
                 , grid = track.grid
                 }
                 (List.head
@@ -239,7 +240,8 @@ serverUpdateScore tu board tones clientId sessionId suId =
                             []
                 else
                     -- TODO: change to tu.instrument when server tracks instrument changes
-                    readGrid tu.grid tu.trackId instrument tones
+                    -- readGrid tu.grid tu.trackId instrument tones
+                    readGrid tu.grid tu.trackId tu.instrument tones
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model

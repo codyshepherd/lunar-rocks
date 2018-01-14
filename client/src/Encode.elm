@@ -46,6 +46,8 @@ encodeTrack track =
     object
         [ ( "trackID", int track.trackId )
         , ( "clientID", string track.clientId )
+        , ( "nickname", string track.username )
+        , ( "instrument", string track.instrument )
         , ( "grid", list (List.map (\r -> encodeRow r) track.grid) )
         ]
 
