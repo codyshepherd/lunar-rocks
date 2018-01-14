@@ -21,14 +21,21 @@ player.loader.decodeAfterLoading(audioContext, '_tone_0240_FluidR3_GM_sf2_file')
 /* piano */
 player.loader.decodeAfterLoading(audioContext, '_tone_0001_FluidR3_GM_sf2_file');
 
-export function playNote(trackId, tone, duration){
+export var instruments = {
+    'Xylophone': _tone_0130_FluidR3_GM_sf2_file,
+    'Marimba': _tone_0120_FluidR3_GM_sf2_file,
+    'Guitar': _tone_0240_FluidR3_GM_sf2_file,
+    'Piano': _tone_0001_FluidR3_GM_sf2_file
+};
+
+export function playNote(trackId, instrument, tone, duration){
     if (trackId === 0) {
       player.queueWaveTable(audioContext, lowpassFilter
-                            , _tone_0240_FluidR3_GM_sf2_file , 0, (12*6+tone), duration*0.5, 0.5);
+                            , instruments[instrument] , 0, (12*6+tone), duration*0.5, 0.5);
     }
     else {
       player.queueWaveTable(audioContext, lowpassFilter
-                            , _tone_0001_FluidR3_GM_sf2_file , 0, (12*4+tone), duration*0.5, 0.3);
+                            , instruments[instrument], 0, (12*4+tone), duration*0.5, 0.3);
     }
   return false;
 }

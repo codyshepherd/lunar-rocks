@@ -2,13 +2,15 @@ module Update exposing (..)
 
 import Decode exposing (..)
 import Encode exposing (..)
+import Element.Input as Input exposing (updateSelection)
 import Json.Encode exposing (encode, Value, string, int, float, bool, list, object)
 import Json.Decode exposing (decodeString)
 import List.Extra exposing ((!!))
 import Models exposing (..)
-import Msgs exposing (..)
 import Ports exposing (sendScore)
 import Routing exposing (parseLocation)
+import ServerUpdate exposing (serverUpdateModel, serverCommand)
+import Score exposing (readGrid)
 import Validate exposing (ifBlank, ifInvalid)
 import WebSocket
 
@@ -182,6 +184,26 @@ update msg model =
                 (encodeMessage model.clientId 109 (encodeTrackRequest sessionId trackId))
             )
 
+        SelectInstrumentZero selectMsg ->
+            let
+                select =
+                    Input.updateSelection selectMsg model.selectInstrumentZero
+
+                ( newSessions, command ) =
+                    selectInstrument select model
+            in
+                ( { model | sessions = newSessions, selectInstrumentZero = select }, command )
+
+        SelectInstrumentOne selectMsg ->
+            let
+                select =
+                    Input.updateSelection selectMsg model.selectInstrumentOne
+
+                ( newSessions, command ) =
+                    selectInstrument select model
+            in
+                ( { model | sessions = newSessions, selectInstrumentOne = select }, command )
+
         SelectCell cell ->
             ( { model | selectedCell = cell }, Cmd.none )
 
@@ -202,8 +224,7 @@ update msg model =
                 errors ->
                     ( { model | validationErrors = errors }, Cmd.none )
 
-        Send sessionId ->
-            -- TODO: rename this message
+        SendSession sessionId ->
             let
                 session =
                     Maybe.withDefault
@@ -260,11 +281,15 @@ update msg model =
 validate : Model -> List ValidationError
 validate =
     Validate.all
-        [ .input >> ifBlank ( Name, "Nickname can't be blank." )
+        [ .input >> ifBlank ( Name, "🗙 Nickname can't be blank." )
         , .input
             >> ifInvalid
-                (\n -> String.length n >= 20)
-                ( Name, "Nickname must be less than 20 characters." )
+                (\n -> String.length n > 20)
+                ( Name, "🗙 Nickname must be shorter than 20 characters." )
+        , .input
+            >> ifInvalid
+                (\n -> String.length n < 3)
+                ( Name, "🗙 Nickname must be at least 3 characters long." )
         ]
 
 
@@ -285,7 +310,7 @@ updateSession cell model =
 
         newScore =
             List.concatMap
-                (\track -> readGrid track.grid track.trackId session.tones)
+                (\track -> readGrid track.grid track.trackId track.instrument session.tones)
                 newBoard
     in
         { session
@@ -368,323 +393,77 @@ updateTrackUser trackId clientId username board =
 
 
 
--- SCORE
+-- SELECT_INSTRUMENT
 
 
-readGrid : List (List Int) -> TrackId -> Int -> List Note
-readGrid grid trackId tones =
-    let
-        rows =
-            List.map (List.indexedMap (,)) grid
-
-        tupleGrid =
-            List.indexedMap (,) rows
-    in
-        List.concatMap (\row -> readRow row 1 trackId tones) tupleGrid
-
-
-readRow : ( Int, List ( Int, Int ) ) -> Int -> TrackId -> Int -> List Note
-readRow ( row, cols ) noteStart trackId tones =
-    case cols of
-        c :: d :: cs ->
-            case Tuple.second c of
-                0 ->
-                    readRow ( row, (d :: cs) ) (noteStart + 1) trackId tones
-
-                _ ->
-                    if (Tuple.second d > Tuple.second c) then
-                        readRow ( row, (d :: cs) ) noteStart trackId tones
-                    else
-                        readCell ( row, c ) noteStart trackId tones
-                            :: readRow ( row, (d :: cs) ) (noteStart + Tuple.second c) trackId tones
-
-        c :: cs ->
-            case Tuple.second c of
-                0 ->
-                    []
-
-                _ ->
-                    readCell ( row, c ) noteStart trackId tones
-                        :: readRow ( row, cs ) (noteStart + Tuple.second c) trackId tones
-
-        [] ->
-            []
-
-
-readCell : ( Int, ( Int, Int ) ) -> Int -> TrackId -> Int -> Note
-readCell ( row, ( col, action ) ) noteStart trackId tones =
-    Note trackId noteStart action (tones - row)
-
-
-
--- SERVER_UPDATE
-
-
-serverCommand : Maybe ServerMessage -> Model -> Cmd msg
-serverCommand serverMessage model =
-    case serverMessage of
-        Just sm ->
-            case sm.messageId of
-                100 ->
-                    case sm.payload of
-                        SessionMessage su ->
-                            let
-                                session =
-                                    Maybe.withDefault
-                                        (emptySession su.sessionId)
-                                        (List.head (List.filter (\s -> s.id == su.sessionId) model.sessions))
-                            in
-                                sendScore session.score
-
-                        _ ->
-                            Debug.log "100: Payload mismatch" Cmd.none
-
-                _ ->
-                    Cmd.none
-
-        Nothing ->
-            Cmd.none
-
-
-serverUpdateModel : Maybe ServerMessage -> Model -> Model
-serverUpdateModel serverMessage model =
-    case serverMessage of
-        Just sm ->
-            case sm.messageId of
-                100 ->
-                    serverUpdateSession sm model
-
-                102 ->
-                    serverNewSession sm model
-
-                105 ->
-                    case sm.payload of
-                        SessionIds ids ->
-                            let
-                                sessionLists =
-                                    model.sessionLists
-
-                                newSessions =
-                                    List.sort ids
-
-                                newSessionsLists =
-                                    { sessionLists | allSessions = newSessions }
-                            in
-                                { model
-                                    | sessionLists = newSessionsLists
-                                }
-
-                        _ ->
-                            Debug.log "105: Payload mismatch" model
-
-                107 ->
-                    case sm.payload of
-                        DisconnectMessage msg ->
-                            { model
-                                | sessionId = 0
-                                , serverMessage = "The server disconnected you."
-                            }
-
-                        _ ->
-                            Debug.log "107: Payload mismatch" model
-
-                111 ->
-                    serverUpdateTrackStatus sm model
-
-                113 ->
-                    case sm.payload of
-                        ClientInit id sessionList ->
-                            let
-                                sessionLists =
-                                    model.sessionLists
-
-                                newSessions =
-                                    List.sort sessionList
-
-                                newSessionsLists =
-                                    { sessionLists | allSessions = newSessions }
-                            in
-                                { model | clientId = id, sessionLists = newSessionsLists }
-
-                        _ ->
-                            Debug.log "113: Payload mismatch" model
-
-                114 ->
-                    case sm.payload of
-                        Error msg ->
-                            Debug.log ("Error: " ++ msg) model
-
-                        _ ->
-                            Debug.log "114: Payload mismatch" model
-
-                _ ->
-                    Debug.log "Bad messageId" model
-
-        Nothing ->
-            Debug.log "Decode failure" model
-
-
-serverUpdateSession : ServerMessage -> Model -> Model
-serverUpdateSession serverMessage model =
-    case serverMessage.payload of
-        SessionMessage su ->
+selectInstrument select model =
+    case Input.selected select of
+        Just instr ->
             let
-                session =
-                    Maybe.withDefault (emptySession 0)
-                        (List.head
-                            (List.filter (\s -> s.id == su.sessionId) model.sessions)
-                        )
+                instrumentSelection =
+                    case instr of
+                        Guitar ( sessionId, trackId ) ->
+                            { instrument = "Guitar", sessionId = sessionId, trackId = trackId }
 
-                board =
-                    session.board
+                        Piano ( sessionId, trackId ) ->
+                            { instrument = "Piano", sessionId = sessionId, trackId = trackId }
+
+                        Marimba ( sessionId, trackId ) ->
+                            { instrument = "Marimba", sessionId = sessionId, trackId = trackId }
+
+                        Xylophone ( sessionId, trackId ) ->
+                            { instrument = "Xylophone", sessionId = sessionId, trackId = trackId }
+
+                session =
+                    Maybe.withDefault
+                        (emptySession instrumentSelection.sessionId)
+                        (List.head (List.filter (\s -> s.id == instrumentSelection.sessionId) model.sessions))
+
+                newSession =
+                    updateInstrument instrumentSelection select session
+            in
+                ( newSession :: List.filter (\s -> s.id /= instrumentSelection.sessionId) model.sessions
+                , sendScore newSession.score
+                )
+
+        Nothing ->
+            ( model.sessions, Cmd.none )
+
+
+updateInstrument instrumentSelection searchInstrument session =
+    case Input.selected searchInstrument of
+        Nothing ->
+            session
+
+        Just _ ->
+            let
+                newTrack =
+                    updateTrackInstrument instrumentSelection.trackId instrumentSelection.instrument session.board
 
                 newBoard =
-                    serverUpdateBoard board su.boardUpdate model.clientId model.sessionId su.sessionId
+                    List.take instrumentSelection.trackId session.board
+                        ++ newTrack
+                        :: List.drop (instrumentSelection.trackId + 1) session.board
 
                 newScore =
                     List.concatMap
-                        (\t -> serverUpdateScore t board session.tones model.clientId model.sessionId su.sessionId)
-                        su.boardUpdate
-
-                newSession =
-                    { session
-                        | board = newBoard
-                        , clients = su.clientsUpdate
-                        , tempo = su.tempoUpdate
-                        , score = newScore
-                    }
-
-                newSessions =
-                    newSession
-                        :: (List.filter (\s -> s.id /= su.sessionId) model.sessions)
+                        (\track -> readGrid track.grid track.trackId track.instrument session.tones)
+                        newBoard
             in
-                { model | sessions = newSessions }
-
-        _ ->
-            -- TODO: clean up
-            Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
+                { session | board = newBoard, score = newScore }
 
 
-serverNewSession : ServerMessage -> Model -> Model
-serverNewSession serverMessage model =
-    case serverMessage.payload of
-        SessionMessage su ->
-            let
-                session =
-                    emptySession su.sessionId
-
-                board =
-                    session.board
-
-                newBoard =
-                    serverUpdateBoard board su.boardUpdate model.clientId model.sessionId su.sessionId
-
-                newSession =
-                    { session
-                        | board = newBoard
-                        , clients = su.clientsUpdate
-                        , tempo = su.tempoUpdate
-                    }
-
-                newSessions =
-                    newSession :: model.sessions
-
-                sessionLists =
-                    model.sessionLists
-
-                newSessionsLists =
-                    { sessionLists | allSessions = List.sort (su.sessionId :: sessionLists.allSessions) }
-            in
-                { model | sessions = newSessions, sessionLists = newSessionsLists }
-
-        _ ->
-            Debug.log ((toString (serverMessage.messageId)) ++ ": Payload mismatch") model
-
-
-serverUpdateBoard : Board -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Board
-serverUpdateBoard board boardUpdate clientId sessionId suId =
-    List.map (\t -> serverUpdateTrack t boardUpdate clientId sessionId suId) board
-
-
-serverUpdateTrack : Track -> List TrackUpdate -> ClientId -> SessionId -> SessionId -> Track
-serverUpdateTrack track boardUpdate clientId sessionId suId =
+updateTrackInstrument : TrackId -> String -> Board -> Track
+updateTrackInstrument trackId instrument board =
     let
-        trackUpdate =
-            Maybe.withDefault
-                { trackId = track.trackId
-                , clientId = track.clientId
-                , username = track.username
-                , grid = track.grid
-                }
-                (List.head
-                    (List.filter (\tu -> tu.trackId == track.trackId) boardUpdate)
-                )
+        track =
+            List.head (List.filter (\t -> t.trackId == trackId) board)
     in
-        if track.clientId == clientId && suId == sessionId then
-            track
-        else
-            { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
+        case track of
+            Just t ->
+                { t
+                    | instrument = instrument
+                }
 
-
-serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
-serverUpdateScore tu board tones clientId sessionId suId =
-    if tu.clientId == clientId && suId == sessionId then
-        let
-            track =
-                List.head (List.filter (\t -> t.trackId == tu.trackId) board)
-        in
-            case track of
-                Just t ->
-                    readGrid t.grid t.trackId tones
-
-                Nothing ->
-                    []
-    else
-        readGrid tu.grid tu.trackId tones
-
-
-serverUpdateTrackStatus : ServerMessage -> Model -> Model
-serverUpdateTrackStatus serverMessage model =
-    case serverMessage.payload of
-        TrackRequestResponse status sessionId trackId ->
-            if status then
-                let
-                    session =
-                        Maybe.withDefault
-                            (emptySession sessionId)
-                            (List.head (List.filter (\s -> s.id == sessionId) model.sessions))
-
-                    newTrack =
-                        updateTrackUser trackId model.clientId model.username session.board
-
-                    newBoard =
-                        List.take trackId session.board
-                            ++ newTrack
-                            :: List.drop (trackId + 1) session.board
-
-                    newSession =
-                        { session | board = newBoard }
-
-                    newSessions =
-                        newSession :: model.sessions
-
-                    sessionLists =
-                        model.sessionLists
-
-                    newClientSessions =
-                        case List.member session.id sessionLists.clientSessions of
-                            True ->
-                                sessionLists.clientSessions
-
-                            False ->
-                                List.sort (session.id :: sessionLists.clientSessions)
-
-                    newSessionLists =
-                        { sessionLists | clientSessions = newClientSessions }
-                in
-                    { model | sessions = newSessions, sessionLists = newSessionLists }
-            else
-                model
-
-        _ ->
-            Debug.log "111: Payload mismatch" model
+            Nothing ->
+                Track -1 "" "" "404s" [] []

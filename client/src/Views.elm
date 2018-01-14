@@ -6,7 +6,6 @@ import Element.Events exposing (..)
 import Element.Input as Input
 import Html
 import Models exposing (..)
-import Msgs exposing (..)
 import Routing exposing (sessionPath, sessionsPath)
 import Styles exposing (..)
 
@@ -66,32 +65,29 @@ page model =
                         ++ "Rocks is in the early development, and we appreciate "
                         ++ "any feedback. "
                     )
-                , (bold "Eject ")
+                , bold "Eject "
                 , text "above to visit the GitHub repo."
                 ]
             , textLayout None
                 [ spacingXY 25 20 ]
-                (case model.username of
+              <|
+                case model.username of
                     "" ->
                         [ paragraph Text [] [ text "Choose a nickname to get started." ]
-                        , column None
-                            [ width (px 200) ]
-                            [ row None
-                                [ spacing 1 ]
-                                [ Input.text MessageInput
-                                    [ paddingXY 2 3 ]
-                                    { label =
-                                        Input.placeholder
-                                            { label = Input.hiddenLabel "Nickname"
-                                            , text = "nickname"
-                                            }
-                                    , onChange = UserInput
-                                    , options = []
-                                    , value = ""
-                                    }
-                                , spacer 5
-                                , button Button [ paddingXY 7 3, onClick SelectName ] (text "->")
-                                ]
+                        , row None
+                            [ width (px 200), spacing 6 ]
+                            [ Input.text MessageInput
+                                [ paddingXY 2 3 ]
+                                { label =
+                                    Input.placeholder
+                                        { label = Input.hiddenLabel "Nickname"
+                                        , text = " Nickname..."
+                                        }
+                                , onChange = UserInput
+                                , options = []
+                                , value = ""
+                                }
+                            , button Button [ paddingXY 7 3, onClick SelectName ] (text "Submit")
                             ]
                         ]
 
@@ -113,13 +109,16 @@ page model =
                                 (text "New Session")
                             ]
                         ]
-                )
-            , paragraph ServerMessage [ paddingTop 10 ] [ (text model.serverMessage) ]
+            , when (model.username == "") <|
+                paragraph None [ paddingTop 12, height (px 32) ] <|
+                    [ el None [] <| nameHint model.input ]
+            , paragraph ServerMessage [] [ (text model.serverMessage) ]
             , paragraph ErrorMessage
-                [ paddingTop 10 ]
-                (List.map (\( _, error ) -> el None [] (text error)) model.validationErrors)
+                []
+              <|
+                List.map (\( _, error ) -> el None [] (text error)) model.validationErrors
+            , column None [] <| instructions
             ]
-                ++ instructions
 
         SessionRoute id ->
             let
@@ -138,73 +137,47 @@ page model =
             in
                 [ textLayout None
                     [ spacing 1 ]
-                    ([ h3 SubHeading
+                  <|
+                    [ h3 SubHeading
                         [ paddingTop 20, paddingBottom 20 ]
                         (text ("SESSION " ++ toString (id)))
-                     , row None
+                    , row None
                         [ spacing 2 ]
-                        [ column None [ spacing 1 ] (viewLabels session.board session.tones)
+                        [ column None [ spacing 1 ] <| viewLabels session.board session.tones
                         , column None
                             []
-                            (viewBoard
+                          <|
+                            viewBoard
                                 session.board
                                 ( model.clientId, model.sessionId )
                                 session.beats
                                 session.tones
                                 model.sessionLists.selectedSessions
-                            )
+                                ( model.selectInstrumentZero, model.selectInstrumentOne )
                         ]
-                     ]
+                    ]
                         ++ [ paragraph None
                                 [ paddingBottom 10 ]
-                                ((el SmallHeading [] (text "IN THIS SESSION:  "))
+                             <|
+                                (el SmallHeading [] (text "IN THIS SESSION:  "))
                                     :: (List.map viewMessage session.clients)
-                                )
-                           , textLayout None
-                                [ paddingBottom 10 ]
-                                (List.map viewMessage session.messages)
+                           , textLayout None [ paddingBottom 10 ] <| List.map viewMessage session.messages
                            ]
-                        ++ [ when ((List.length otherSessions) > 0)
-                                (h3 SmallHeading
+                        ++ [ when ((List.length otherSessions) > 0) <|
+                                h3 SmallHeading
                                     [ paddingBottom 10 ]
                                     (text "YOUR SESSIONS")
-                                )
                            , paragraph None
                                 [ spacing 7 ]
-                                (List.map
+                             <|
+                                List.map
                                     (\cs ->
                                         viewSessionButton
                                             cs
                                             model.sessionLists.selectedSessions
                                     )
                                     otherSessions
-                                )
-
-                           -- TODO: Add Goto button once a sensible spot for it becomes clear
-                           -- , spacer 10
-                           -- , (let
-                           --      selectedSessions =
-                           --          model.sessionLists.selectedSessions
-                           --    in
-                           --      paragraph None
-                           --          [ spacing 3 ]
-                           --          [ when
-                           --              ((List.length selectedSessions == 1)
-                           --                  && (session.id /= Maybe.withDefault 0 (List.head selectedSessions))
-                           --              )
-                           --              (button
-                           --                  Button
-                           --                  [ paddingXY 10 2 ]
-                           --                  (link
-                           --                      (sessionPath (Maybe.withDefault 0 (List.head selectedSessions)))
-                           --                   <|
-                           --                      el None [] (text "Goto")
-                           --                  )
-                           --              )
-                           --          ]
-                           --   )
                            ]
-                    )
                 ]
 
         NotFoundRoute ->
@@ -222,11 +195,11 @@ viewSessionEntry sessionId clientSessions =
     in
         el None
             [ spacing 7 ]
-            (link (sessionPath sessionId) <|
+        <|
+            link (sessionPath sessionId) <|
                 button style
                     [ paddingXY 10 5 ]
                     (text (toString (sessionId)))
-            )
 
 
 viewSessionButton : SessionId -> List SessionId -> Element Styles variation Msg
@@ -279,13 +252,15 @@ viewLabelCell label =
         }
 
 
-viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> List (Element Styles variation Msg)
-viewBoard board ( clientId, sessionId ) beats tones selectedSessions =
-    List.concatMap (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions) board
+viewBoard : Board -> ( ClientId, SessionId ) -> Int -> Int -> List SessionId -> InstrumentSelects -> List (Element Styles variation Msg)
+viewBoard board ( clientId, sessionId ) beats tones selectedSessions instrumentSelects =
+    List.concatMap
+        (\t -> viewTrack t ( clientId, sessionId ) ( beats, tones ) selectedSessions instrumentSelects)
+        board
 
 
-viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> List (Element Styles variation Msg)
-viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
+viewTrack : Track -> ( ClientId, SessionId ) -> ( Int, Int ) -> List SessionId -> InstrumentSelects -> List (Element Styles variation Msg)
+viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions ( selectZero, selectOne ) =
     let
         style =
             if track.clientId == clientId then
@@ -300,44 +275,134 @@ viewTrack track ( clientId, sessionId ) ( beats, tones ) selectedSessions =
             , cells =
                 viewGrid track ( clientId, sessionId )
             }
-        , paragraph None
-            [ paddingTop 8, paddingBottom 30, spacing 5 ]
-            (case track.username of
+        , row None
+            [ paddingTop 8, paddingBottom 40, spacing 5, spread ]
+          <|
+            case track.username of
                 "" ->
-                    [ el InstrumentLabel [] (text track.instrument)
-                    , button Button
-                        [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
-                        (text "Request Track")
+                    [ column None [] <| [ el InstrumentLabel [] <| text track.instrument ]
+                    , column None [] <|
+                        [ button Button
+                            [ paddingXY 10 2, alignRight, onClick (RequestTrack sessionId track.trackId clientId) ]
+                          <|
+                            text "Request Track"
+                        ]
                     ]
 
                 _ ->
-                    [ paragraph InstrumentLabel [ paddingBottom 13 ] [ (text (track.username ++ " on " ++ track.instrument)) ]
-                    , when
-                        (clientId == track.clientId)
-                        (button Button
-                            [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
-                            (text "Release Track")
-                        )
-                    , when
-                        (clientId == track.clientId)
-                        (button Button
-                            [ paddingXY 10 2, alignRight, onClick (Send sessionId) ]
-                            (text "Send")
-                        )
-                    , when
-                        (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
-                            || ((List.length selectedSessions) > 1)
-                         )
-                            && (clientId == track.clientId)
-                        )
-                        (button
-                            Button
-                            [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
-                            (text "Broadcast")
-                        )
+                    [ column None [] <| [ el InstrumentLabel [] <| text (track.username ++ " on " ++ track.instrument) ]
+                    , row None [ spacing 5 ] <|
+                        [ when
+                            (((List.length selectedSessions == 1 && Maybe.withDefault 0 (List.head selectedSessions) /= sessionId)
+                                || ((List.length selectedSessions) > 1)
+                             )
+                                && (clientId == track.clientId)
+                            )
+                          <|
+                            button
+                                Button
+                                [ paddingXY 10 2, alignRight, onClick (Broadcast selectedSessions track) ]
+                                (text "Broadcast")
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            button Button
+                                [ paddingXY 10 2, alignRight, onClick (SendSession sessionId) ]
+                                (text "Send")
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            if track.trackId == 0 then
+                                selectInstrument selectZero sessionId track.trackId
+                            else
+                                selectInstrument selectOne sessionId track.trackId
+                        , when
+                            (clientId == track.clientId)
+                          <|
+                            button Button
+                                [ paddingXY 10 2, alignRight, onClick (ReleaseTrack sessionId track.trackId "") ]
+                                (text "Release Track")
+                        ]
                     ]
-            )
         ]
+
+
+instructions : List (Element Styles variation Msg)
+instructions =
+    [ h3 SubHeading [ paddingTop 15, paddingBottom 20 ] (text "REFERENCE GUIDE")
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Note Grid")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Add a note "
+        , text "by clicking and dragging to the desired note length."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Extend a note "
+        , text "by clicking and dragging on the far right portion of an existing note."
+        ]
+    , paragraph Text
+        [ paddingBottom 20 ]
+        [ bold "Remove a note "
+        , text "by clicking on it."
+        ]
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Track Controls")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Request Track: "
+        , text "Claim a free track."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Release Track: "
+        , text "Release a track you control."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Change Instrument: "
+        , text "Select an instrument."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Send: "
+        , text "Sends any changes you have made to a track. Your collaborators will see and hear them!"
+        ]
+    , paragraph Text
+        [ paddingBottom 20 ]
+        [ bold "Broadcast: "
+        , text <|
+            "Send a track to another session. "
+                ++ "Select the target session or sessions in the Your Sessions area below the tracks. "
+                ++ "Note that you must control the track in both sessions. "
+        ]
+    , h4 SmallHeading [ paddingBottom 10 ] (text "Session Navigation")
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Sessions: "
+        , text "Go to the home page, but stay active on any tracks you control."
+        ]
+    , paragraph Text
+        [ paddingBottom 10 ]
+        [ bold "Leave Session: "
+        , text "Go to the home page, and release any tracks you control."
+        ]
+    ]
+
+
+nameHint : String -> Element Styles variation msg
+nameHint input =
+    if String.length input == 0 then
+        text ""
+    else if String.length input < 3 then
+        el ErrorMessage [] (text "🗙 More letters please")
+    else if String.length input > 20 then
+        el ErrorMessage [] (text "🗙 Too long...")
+    else
+        el SuccessMessage [] (text "✔ Nice one!")
+
+
+
+-- GRID
 
 
 viewGrid : Track -> ( ClientId, SessionId ) -> List (OnGrid (Element Styles variation Msg))
@@ -450,60 +515,45 @@ viewCell ( row, ( col, action ) ) track ( clientId, sessionId ) =
             }
 
 
-instructions : List (Element Styles variation Msg)
-instructions =
-    [ h3 SubHeading [ paddingTop 10, paddingBottom 20 ] (text "HOW TO USE")
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("Music in Lunar Rocks is made in sessions. Each sesion has two tracks,"
-                ++ " and you can claim one by selecting "
-            )
-        , bold "Request Track"
-        , text
-            (". Once you have a track, start making music by adding and removing "
-                ++ "notes in the note grid. When you are happy with your creation, select "
-            )
-        , bold "Send "
-        , text "and your music will be sent to the session."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "When you are done with a track, select "
-        , bold "Release Track"
-        , text " to free it. Your music will stay, and someone else can jump in and add their ideas."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("If someone else is working on a track in your session, you will see and hear "
-                ++ "the changes the changes they make. Collaborate with them! Make beautiful music!"
-            )
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text
-            ("You can send your track to another session by claiming the same track in both "
-                ++ "sessions, selectng the target session from "
-            )
-        , bold "Your Sessions"
-        , text ", and then selecting "
-        , bold "Broadcast"
-        , text
-            (". You can send to many sessions at once by selecting multiple "
-                ++ "sessions before selecting "
-            )
-        , bold "Broadcast."
-        ]
-    , paragraph Text
-        [ paddingBottom 10 ]
-        [ text "Select "
-        , bold "Leave Session"
-        , text " when you are ready to move on. "
-        , bold "Sessions"
-        , text
-            (" will bring you back to the list of sessions, but "
-                ++ "you will stay active in the current session if you have a track open."
-            )
-        ]
-    ]
+
+-- SELECT_INSTRUMENT
+
+
+selectInstrument : Input.SelectWith Instrument Msg -> SessionId -> TrackId -> Element Styles variation Msg
+selectInstrument select sessionId trackId =
+    el InstrumentField [] <|
+        Input.select Field
+            [ paddingXY 10 2, alignRight ]
+            { label = Input.placeholder { text = "Change Instrument ", label = Input.hiddenLabel "Change Instrument" }
+            , with = select
+            , options = []
+            , max = 4
+            , menu =
+                Input.menu SubMenu
+                    []
+                    [ Input.styledSelectChoice (Guitar ( sessionId, trackId )) <| (\state -> instrumentChoice state "Guitar ")
+                    , Input.styledSelectChoice (Marimba ( sessionId, trackId )) <| (\state -> instrumentChoice state "Marimba ")
+                    , Input.styledSelectChoice (Piano ( sessionId, trackId )) <| (\state -> instrumentChoice state "Piano ")
+                    , Input.styledSelectChoice (Xylophone ( sessionId, trackId )) <| (\state -> instrumentChoice state "Xylophone ")
+                    ]
+            }
+
+
+instrumentChoice : Input.ChoiceState -> String -> Element Styles variation Msg
+instrumentChoice state instrument =
+    let
+        style =
+            case state of
+                Input.Selected ->
+                    MenuChoiceSelected
+
+                Input.Focused ->
+                    MenuChoiceFocused
+
+                Input.Idle ->
+                    MenuChoiceIdle
+
+                Input.SelectedInBox ->
+                    MenuChoiceSelectedInBox
+    in
+        el style [] <| text instrument
