@@ -14,7 +14,7 @@ clock.start();
 
 var beat = 0;   // current beat
 var beats = 8;  // total beats
-var bpm = 120;
+var bpm = 120;  // beats per minute
 var tick = 60 / bpm;  // duration of one beat
 var play = false;
 var score = [];
@@ -41,14 +41,14 @@ app.ports.sendScore.subscribe(function (args) {
 });
 
 
-// loop over eight beats, schedule one second ahead for each
+// play notes
+// schedule notes for a beat, increment beat each time
 var loop = clock.callbackAtTime(function() {
-  // console.log(beat);
   // play notes for current beat
   if (play) {
     var notes = score[beat];
     for (var i = 0; i < notes.length; i++) {
-      playNote(notes[i].trackId, notes[i].tone, notes[i].duration);
+        playNote(notes[i].trackId, notes[i].instrument, notes[i].tone, notes[i].duration);
     }
   };
   beat = (beat + 1) % beats;

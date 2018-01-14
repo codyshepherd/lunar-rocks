@@ -1,7 +1,6 @@
 module Main exposing (..)
 
-import Models exposing (Model, SessionId, initialModel, websocketServer)
-import Msgs exposing (..)
+import Models exposing (..)
 import Navigation exposing (Location)
 import Routing exposing (parseLocation)
 import Task exposing (perform)

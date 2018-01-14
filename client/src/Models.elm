@@ -1,5 +1,7 @@
 module Models exposing (..)
 
+import Element.Input as Input exposing (SelectMsg, SelectWith, autocomplete)
+import Navigation exposing (Location)
 import Window exposing (Size)
 
 
@@ -15,6 +17,8 @@ type alias Model =
     , input : String
     , selectedCell : Cell
     , windowSize : Size
+    , selectInstrumentZero : Input.SelectWith Instrument Msg
+    , selectInstrumentOne : Input.SelectWith Instrument Msg
     , serverMessage : String
     , validationErrors : List ValidationError
     }
@@ -26,6 +30,34 @@ type alias ClientId =
 
 type alias ServerId =
     Int
+
+
+
+-- MESSAGES
+
+
+type Msg
+    = AddSession
+    | Broadcast (List SessionId) Track
+    | Disconnect
+    | IncomingMessage String
+    | LeaveSession SessionId
+    | OnLocationChange Location
+    | ReleaseTrack SessionId TrackId ClientId
+    | RequestTrack SessionId TrackId ClientId
+    | SelectInstrumentZero (Input.SelectMsg Instrument)
+    | SelectInstrumentOne (Input.SelectMsg Instrument)
+    | SelectCell Cell
+    | SelectName
+    | SendSession SessionId
+    | ToggleSessionButton SessionId
+    | UpdateGrid Cell
+    | UserInput String
+    | WindowResize Size
+
+
+
+-- VALIDATION
 
 
 type Field
@@ -72,15 +104,6 @@ type alias Board =
     List Track
 
 
-type alias TrackId =
-    Int
-
-
-type UpdateCellAction
-    = Add
-    | Remove
-
-
 type alias Track =
     { trackId : TrackId
     , clientId : ClientId
@@ -89,6 +112,15 @@ type alias Track =
     , grid : List (List Int)
     , rowLabels : List String
     }
+
+
+type alias TrackId =
+    Int
+
+
+type UpdateCellAction
+    = Add
+    | Remove
 
 
 type alias Cell =
@@ -101,6 +133,17 @@ type alias Cell =
     }
 
 
+type Instrument
+    = Guitar ( SessionId, TrackId )
+    | Piano ( SessionId, TrackId )
+    | Marimba ( SessionId, TrackId )
+    | Xylophone ( SessionId, TrackId )
+
+
+type alias InstrumentSelects =
+    ( Input.SelectWith Instrument Msg, Input.SelectWith Instrument Msg )
+
+
 
 -- AUDIO
 
@@ -111,6 +154,7 @@ type alias Score =
 
 type alias Note =
     { trackId : TrackId
+    , instrument : String
     , beat : Int
     , duration : Int
     , tone : Int
@@ -152,6 +196,8 @@ initialModel route =
         }
     , route = route
     , input = ""
+    , selectInstrumentZero = Input.dropMenu Nothing SelectInstrumentZero
+    , selectInstrumentOne = Input.dropMenu Nothing SelectInstrumentOne
     , selectedCell = emptyCell
     , windowSize = { width = 0, height = 0 }
     , serverMessage = ""

@@ -1,0 +1,32 @@
+1. Subsume Message object as payload to JWT (JSON web token): see structure below
+2. Change sourceID to clientID
+3. Change clientID value to string (uuid)
+
+Note: use of JWT requires (at least) deciding between using HMAC, requiring a 'secret', 
+and RSA, which requires use of public/private keysj
+
+It seems like HMAC is useful for authentication, RSA useful for secure communications,
+i.e. encrypted channels. We might be served to start with HMAC for now.
+
+JWT Header (see JWT docs http://jwt.io)
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+
+JWT Payload (probably falls under 'private claims' in JWT parliance):
+
+{
+    "clientID": string,
+    "messageID": integer,
+    "payload": {...}
+}
+
+JWT Signature:
+
+{
+    HMACSHA256(
+      base64UrlEncode(header) + "." +
+      base64UrlEncode(payload),
+      secret)                           // 'secret' is liable to be a 1-way-hashed password
+}
