@@ -21,19 +21,20 @@ __status__ = "Alpha"
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
-DEFAULT_INSTRUMENT = "Marimba"
+DEFAULT_INSTRUMENTS = ["Guitar", "Piano"]
 MAX_SESS_ID = 1000
 MIN_SESS_ID = 1
 DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
-TRACK_IDS = list(range(2))
+NUM_INITIAL_TRACKS = 2
+TRACK_IDS = list(range(NUM_INITIAL_TRACKS))
 TIME_TO_LIVE = 60           # 60 minutes
 
 LOGGER = logging.getLogger('root')
 
 class Track:
 
-    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENT):
+    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENT[0]):
         LOGGER.debug("Track " + str(trackID) + " created")
         self.trackID = trackID                  # Int
         self.clientID = ''                      # UUID String
@@ -109,7 +110,7 @@ class Session:
         self.trackIDs = TRACK_IDS           # [Int]
         self.tracks = {}                    # Int: Track
         for num in self.trackIDs:
-            self.tracks[num] = Track(num)
+            self.tracks[num] = Track(num, instrument=DEFAULT_INSTRUMENTS[num%len(DEFAULT_INSTRUMENTS)])
 
     def update(self, sess):
         """
