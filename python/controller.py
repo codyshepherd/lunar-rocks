@@ -34,7 +34,7 @@ LOGGER = logging.getLogger('root')
 
 class Track:
 
-    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENT[0]):
+    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENTS[0]):
         LOGGER.debug("Track " + str(trackID) + " created")
         self.trackID = trackID                  # Int
         self.clientID = ''                      # UUID String
