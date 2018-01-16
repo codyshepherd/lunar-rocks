@@ -49,7 +49,7 @@ DISPATCH_TABLE = {
 }
 
 CTRL = controller.Controller()
-D_CONNS = []
+D_CONNS = []                    # List for timing out connections
 
 async def handle(websocket, path):
     LOGGER.debug("handle called")
@@ -110,7 +110,7 @@ async def handle(websocket, path):
         msg = {'sourceID': cid}
         await handle_106(msg)
 
-def prune_dc():
+async def prune_dc():
     """
     This function repeatedly checks the list of "timing out" connections to ensure that timed
     out connections get dropped.
