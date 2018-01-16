@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-var phrases = [...]string{"these", "should", "be", "random", "strings", "for", "testing"}
+var phrases = [...]string{"JSON string from Browser"}
 
 func main() {
 	var wg sync.WaitGroup
@@ -17,7 +19,7 @@ func main() {
 	browsers := make([]*Browser, 10)
 	cids := make([]clientID, 10)
 
-	roster := &Roster{join: make(chan *Client, 1024), leave: make(chan *Client, 1024), clients: make(map[clientID]*Client), users: make(map[browserID]clientID), tokens: make(map[userID]string), secret: "secret"}
+	roster := &Roster{join: make(chan *Client, 1024), leave: make(chan *Client, 1024), clients: make(map[clientID]*Client), users: make(map[browserID]clientID), tokens: make(map[userID]string)}
 	go roster.run(wg)
 
 	fmt.Println("Checkpoint 1")
@@ -38,18 +40,32 @@ func main() {
 	}
 
 	fmt.Println("Checkpoint 2")
-	for i := 0; i < len(phrases); i++ {
-		index := rand.Int() % 10
-		b := browsers[index]
-		b.testSend(phrases[i])
+	for i := 0; i < 10; i++ {
+		index := rand.Int() % len(phrases)
+		b := browsers[i]
+		b.testSend(phrases[index])
 	}
 
 	fmt.Println("Checkpoint 3")
-	for roster.usersActive() {
-		for i := range cids {
-			roster.kick(cids[i])
+	/*
+		for roster.usersActive() {
+			for i := range cids {
+				roster.kick(cids[i])
+			}
 		}
-	}
+	*/
 
+	for {
+		if roster.usersActive() {
+			for i := range cids {
+				roster.kick(cids[i])
+			}
+		} else {
+			fmt.Println("No users Active")
+		}
+		fmt.Println(strconv.FormatBool(roster.usersActive()))
+		fmt.Println(len(roster.clients))
+		time.Sleep(1 * time.Second)
+	}
 	wg.Wait()
 }

@@ -18,8 +18,6 @@ type Roster struct {
 	users map[browserID]clientID
 
 	tokens map[userID]string
-
-	secret string
 }
 
 func (r *Roster) run(wg sync.WaitGroup) {
@@ -41,31 +39,6 @@ func (r *Roster) run(wg sync.WaitGroup) {
 	}
 }
 
-/*
-func (r *Roster) joinHandler() {
-	for {
-		for client := range r.join {
-			fmt.Println("roster registering client " + string(client.cid))
-			r.clients[client.cid] = client
-			r.users[client.browser.bid] = client.cid
-			fmt.Println(strconv.Itoa(len(r.clients)) + " total clients")
-		}
-	}
-}
-
-func (r *Roster) leaveHandler() {
-	fmt.Println("roster.leaveHandler started")
-	for {
-		for client := range r.leave {
-			fmt.Println("roster deleting client " + string(client.cid))
-			delete(r.clients, client.cid)
-			delete(r.users, client.browser.bid)
-			fmt.Println(strconv.Itoa(len(r.clients)) + " total clients")
-		}
-	}
-}
-*/
-
 func (r *Roster) kick(cid clientID) {
 	if client, ok := r.clients[cid]; ok {
 		r.leave <- client
@@ -73,17 +46,9 @@ func (r *Roster) kick(cid clientID) {
 	}
 }
 
-func (r *Roster) getSecret() string {
-	return r.secret
-}
-
-func (r *Roster) authToken(token string, userID string) bool {
-	return true
-}
-
 func (r *Roster) usersActive() bool {
 	if len(r.clients) == 0 {
-		return true
+		return false
 	}
-	return false
+	return true
 }
