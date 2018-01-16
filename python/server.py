@@ -49,12 +49,15 @@ DISPATCH_TABLE = {
 }
 
 CTRL = controller.Controller()
+D_CONNS = []
 
 async def handle(websocket, path):
     LOGGER.debug("handle called")
     try:
         async for message in websocket:
             LOGGER.debug("Message received: " + str(message))
+
+            await prune_dc()
 
             addr = websocket.remote_address
             #LOGGER.debug("Address of socket: " + str(addr[0]) + ':' + str(addr[1]))
@@ -99,12 +102,24 @@ async def handle(websocket, path):
             return
 
         if CTRL.check_TTL(cid):
+            D_CONNS.append(cid)
             LOGGER.info("Client " + str(cid) + " dropped websocket connection.")
             return
 
         LOGGER.debug("Closed connection thrown by client " + cid + ". Exiting client now.")
         msg = {'sourceID': cid}
         await handle_106(msg)
+
+def prune_dc():
+    """
+    This function repeatedly checks the list of "timing out" connections to ensure that timed
+    out connections get dropped.
+    """
+    for cid in D_CONNS:
+        if not CTRL.check_TTL(cid):
+            LOGGER.info(str(cid) + " has timed out and is being dropped.")
+            msg = {'sourceID': cid}
+            await handle_106(msg)
         
 def make_msg(srcID, msgID, payload):
     """

@@ -28,7 +28,7 @@ DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 NUM_INITIAL_TRACKS = 2
 TRACK_IDS = list(range(NUM_INITIAL_TRACKS))
-TIME_TO_LIVE = 60           # 60 minutes
+TIME_TO_LIVE = 2           # 2 minutes
 
 LOGGER = logging.getLogger('root')
 
