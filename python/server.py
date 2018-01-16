@@ -50,6 +50,7 @@ DISPATCH_TABLE = {
 
 CTRL = controller.Controller()
 D_CONNS = []                    # List for timing out connections
+UUID_SLICE = 4
 
 async def handle(websocket, path):
     LOGGER.debug("handle called")
@@ -97,6 +98,9 @@ async def handle(websocket, path):
         LOGGER.debug("Connection closed at: " + str(addr))
 
         cid = CTRL.get_cid_by_address(addr)
+        nick = CTRL.clients.get(cid)
+        if nick is None:
+            nick = "NOT FOUND"
 
         if cid is None:
             LOGGER.error("No clientID found for connection at address " + str(addr))
@@ -104,10 +108,10 @@ async def handle(websocket, path):
 
         if CTRL.check_TTL(cid):
             D_CONNS.append(cid)
-            LOGGER.info("Client " + str(cid) + " dropped websocket connection.")
+            LOGGER.info("Client " + nick + '--' + str(cid[:UUID_SLICE]) + " dropped websocket connection.")
             return
 
-        LOGGER.debug("Closed connection thrown by client " + cid + ". Exiting client now.")
+        LOGGER.debug("Closed connection thrown by client " + nick + '--' + cid[:UUID_SLICE] + ". Exiting client now.")
         msg = {'sourceID': cid}
         await handle_106(msg)
 
@@ -173,10 +177,13 @@ async def broadcast(msg, clients):
 
     # Loop through all clients, sending 105, or 102 & 105 for the 101 initiator
     for cid in clients:
+        nick = CTRL.clients.get(cid)
+        if nick is None:
+            nick = "NOT FOUND"
         sock = CTRL.get_socket(cid)
         if sock:
             #addr = sock.remote_address
-            LOGGER.debug("Sending to client: " + cid)
+            LOGGER.debug("Sending to client: " + nick + '--' + cid[:UUID_SLICE])
             await sock.send(msg)
             #crock = websockets.connect("ws://" + str(addr[0]) + ':' + str(addr[1]))
             #crock.send(msg)
@@ -223,15 +230,34 @@ async def handle_101(msg):
     """
     LOGGER.debug("handle_101(): Create Session started")
     cid = msg.get("sourceID")
+    nick = CTRL.clients.get(cid)
+    if nick is None:
+        nick = "NOT FOUND"
 
     sessID = CTRL.new_session()
+
+    LOGGER.info("Client " + nick + '--' + cid[:UUID_SLICE] + " created session " + str(sessID))
+
+    sess = CTRL.get_session(sessID)
+    newmsg = make_msg(SERVER_ID, 102, {'session': sess})
+
+    sock = CTRL.get_socket(cid)
+    LOGGER.debug("Sending " + str(newmsg) + " to client " + nick + '--' + str(cid[:UUID_SLICE]))
+    await sock.send(newmsg)
+
+    # For broadcasting session list to clients
+    clients = list([x for x in CTRL.clients.keys()])       # UUIDs list
+    sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list
+
+    await broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
+    """
     if CTRL.client_join(cid, sessID):
-        LOGGER.debug("Client " + cid + " joined session " + str(sessID))
+        LOGGER.debug("Client " + nick + '--' + cid[:UUID_SLICE] + " joined session " + str(sessID))
         sess = CTRL.get_session(sessID)
         newmsg = make_msg(SERVER_ID, 102, {'session': sess})
 
         sock = CTRL.get_socket(cid)
-        LOGGER.debug("Sending " + str(newmsg) + " to client " + str(cid))
+        LOGGER.debug("Sending " + str(newmsg) + " to client " + nick + '--' + str(cid[:UUID_SLICE]))
         await sock.send(newmsg)
 
         # For broadcasting session list to clients
@@ -241,8 +267,9 @@ async def handle_101(msg):
         LOGGER.debug("Broadcasting " + str(msg) + " to all clients.")
         await broadcast(make_msg(SERVER_ID, 105, {'sessionIDs': sessionIDs}), clients)
     else:
-        LOGGER.error("Client " + cid + " attempt to join session failed")
+        LOGGER.error("Client " + nick + '--' + cid[:UUID_SLICE] + " attempt to join session failed")
         return error_msg("Error: Could not join session.")
+    """
 
 async def handle_103(msg):
     """
@@ -319,6 +346,9 @@ async def handle_106(msg):
     LOGGER.debug("handle_106(): Client Disconnect started")
 
     cid = msg.get("sourceID")
+    nick = CTRL.clients.get(cid)
+    if nick is None:
+        nick = "NOT FOUND"
 
     if cid is None:
         LOGGER.error("No clientID provided to handle_106()")
@@ -327,9 +357,9 @@ async def handle_106(msg):
     client_sessionIDs = CTRL.client_sessions.get(cid)
 
     if CTRL.client_exit(cid):
-        LOGGER.debug("Client disconnect successful")
+        LOGGER.debug(nick + ": Client disconnect successful")
     else:
-        LOGGER.error("Client disconnect failed")
+        LOGGER.error(nick + ": Client disconnect failed")
 
     clients = list(CTRL.clients.keys())       # UUIDs list
     sessionIDs = list(CTRL.sessions.keys())   # sessionIDs list

@@ -328,6 +328,11 @@ class Controller:
         returns True if client still has time to live, false if the client isn't found or if the
         client has exceeded its time to live
         """
+        sock = self.sockets.get(cid)
+        if sock and sock.open:
+            self.set_TTL(cid)
+            return True
+
         if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < (60 * TIME_TO_LIVE):
             return True
         return False
@@ -434,8 +439,12 @@ class Controller:
         """
         LOGGER.debug("Controller.client_exit() started")
 
+        nick = self.clients.get(cid)
+        if nick is None:
+            nick = "NOT FOUND"
+
         if cid not in self.clients.keys():
-            LOGGER.error("cid " + str(cid) + " provided to Controller.client_exit() not in clients.keys()")
+            LOGGER.error("nick/cid " + nick + '--' + str(cid[:3]) + " provided to Controller.client_exit() not in clients.keys()")
             return False
 
         c_sessions = self.client_sessions[cid]
