@@ -28,7 +28,7 @@ DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
 NUM_INITIAL_TRACKS = 2
 TRACK_IDS = list(range(NUM_INITIAL_TRACKS))
-TIME_TO_LIVE = 2           # 2 minutes
+TIME_TO_LIVE = 1           # 2 minutes
 
 LOGGER = logging.getLogger('root')
 
@@ -328,7 +328,7 @@ class Controller:
         returns True if client still has time to live, false if the client isn't found or if the
         client has exceeded its time to live
         """
-        if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < 3600.0:
+        if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < (60 * TIME_TO_LIVE):
             return True
         return False
 

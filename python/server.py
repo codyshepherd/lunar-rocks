@@ -53,6 +53,7 @@ D_CONNS = []                    # List for timing out connections
 
 async def handle(websocket, path):
     LOGGER.debug("handle called")
+    global D_CONNS
     try:
         async for message in websocket:
             LOGGER.debug("Message received: " + str(message))
@@ -115,10 +116,15 @@ async def prune_dc():
     This function repeatedly checks the list of "timing out" connections to ensure that timed
     out connections get dropped.
     """
+    global D_CONNS
+    if D_CONNS == []:
+        return
+
     for cid in D_CONNS:
         if not CTRL.check_TTL(cid):
             LOGGER.info(str(cid) + " has timed out and is being dropped.")
             msg = {'sourceID': cid}
+            D_CONNS = [x for x in D_CONNS if x != cid]
             await handle_106(msg)
         
 def make_msg(srcID, msgID, payload):
