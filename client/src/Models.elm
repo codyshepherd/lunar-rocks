@@ -216,13 +216,13 @@ emptySession id =
         [ Track 0
             ""
             ""
-            "Marimba"
+            "Guitar"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         , Track 1
             ""
             ""
-            "Marimba"
+            "Piano"
             (List.repeat 13 (List.repeat 8 0))
             [ "C", "B", "A♯", "A", "G♯", "G", "F♯", "F", "E", "D♯", "D", "C♯", "C" ]
         ]
