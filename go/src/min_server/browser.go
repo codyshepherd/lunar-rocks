@@ -1,28 +1,47 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	crypto "golang.org/x/crypto/argon2"
 )
 
 type browserID string
 
 type Browser struct {
-	recv chan string
+	//recv chan string
+	recv chan []byte // byte array channels are required for sending json-marshalled data
 
-	send chan string
+	//send chan string
+	send chan []byte
 
 	client *Client
 
-	bid browserID
+	//bid browserID
+	idKey browserID
+
+	secret string
+
+	salt []byte
 }
 
+func (b *Browser) startSend(number int) {
+	hash := crypto.Key([]byte(b.secret), b.salt, 3, 32*1024, 4, 256)
+	startmsg := Message{0, 112, Credentials{"uname0", hash}}
+	m, _ := json.Marshal(startmsg)
+	b.send <- m
+}
+
+//type browserID string
+
+/*
 func (b *Browser) testSend(msg string) {
 	//b.client.recv <- msg
 	b.send <- msg
 }
+*/
 
+/*
 func (b *Browser) createSignedString(msg string) string {
 	//msg := "Pretend this is a JSON string"
 	claims := MyCustomClaims{
@@ -74,6 +93,7 @@ func (b *Browser) run() {
 		}
 	}
 }
+*/
 
 /*
 func (b *Browser) readWorker() {

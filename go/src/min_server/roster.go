@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type userID string
@@ -21,28 +22,28 @@ type Roster struct {
 }
 
 func (r *Roster) run(wg sync.WaitGroup) {
-	defer wg.Done()
-	fmt.Println("Roster.run() started.")
+	//defer wg.Done()
+	log.Debug("Roster.run() started.")
 	for {
 		select {
 		case client := <-r.join:
-			fmt.Println("roster registering client " + string(client.cid))
-			r.clients[client.cid] = client
-			r.users[client.browser.bid] = client.cid
-			fmt.Println(strconv.Itoa(len(r.clients)) + " total clients")
+			log.Debug("roster registering client " + string(client.idKey))
+			r.clients[client.idKey] = client
+			r.users[client.browserIdKey] = client.idKey
+			log.Debug(strconv.Itoa(len(r.clients)) + " total clients")
 		case client := <-r.leave:
-			fmt.Println("roster deleting client " + string(client.cid))
-			delete(r.clients, client.cid)
-			delete(r.users, client.browser.bid)
-			fmt.Println(strconv.Itoa(len(r.clients)) + " total clients")
+			log.Debug("roster deleting client " + string(client.idKey))
+			delete(r.clients, client.idKey)
+			delete(r.users, client.browserIdKey)
+			log.Debug(strconv.Itoa(len(r.clients)) + " total clients")
 		}
 	}
 }
 
-func (r *Roster) kick(cid clientID) {
-	if client, ok := r.clients[cid]; ok {
+func (r *Roster) kick(idKey clientID) {
+	if client, ok := r.clients[idKey]; ok {
 		r.leave <- client
-		fmt.Println("roster kicking " + string(cid[:3]) + " for total of " + strconv.Itoa(len(r.clients)) + " clients.")
+		log.Debug("roster kicking " + string(idKey[:3]) + " for total of " + strconv.Itoa(len(r.clients)) + " clients.")
 	}
 }
 

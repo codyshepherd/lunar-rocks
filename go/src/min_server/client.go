@@ -1,28 +1,64 @@
 package main
 
 import (
-	"fmt"
-	"math/rand"
-
-	jwt "github.com/dgrijalva/jwt-go"
+	log "github.com/sirupsen/logrus"
 )
-
-var return_phrases = [...]string{"JSON string from Client"}
 
 type clientID string
 
 type Client struct {
-	recv chan string
+	//recv chan string
+	recv chan []byte
 
-	send chan string
+	//send chan string
+	send chan []byte
 
-	cid clientID
+	//cid clientID
+	idKey clientID
+
+	username string
+
+	pw []byte
 
 	roster *Roster
 
-	browser *Browser
+	anon bool
+
+	//browser *Browser
+	browserIdKey browserID
 }
 
+func (c *Client) run() {
+	log.Debug(string(c.idKey[:3]) + " run() started")
+	for {
+		select {
+		case msg := <-c.recv:
+			log.Debug(msg)
+		case msg := <-c.send:
+			log.Debug(msg)
+		}
+	}
+}
+
+//var return_phrases = [...]string{"JSON string from Client"}
+
+//type clientID string
+
+/*
+func (c *Client) readWorker() {
+	for msg := range c.recv {
+		log.Debug("Client " + string(c.cid) + " :: received " + string(msg))
+	}
+}
+
+func (c *Client) writerWorker() {
+	for msg := range c.send {
+		c.browser.recv <- "Message from " + string(c.cid) + " :: " + msg
+	}
+}
+*/
+
+/*
 func (c *Client) testSend(msg string) {
 	c.browser.recv <- c.createSignedString(msg)
 }
@@ -40,7 +76,7 @@ func (c *Client) createSignedString(msg string) string {
 	if ss, err := tok.SignedString([]byte(c.cid)); err == nil {
 		return ss
 	} else {
-		fmt.Println("ERROR: ", err)
+		log.Debug("ERROR: ", err)
 		return "error"
 	}
 }
@@ -57,32 +93,33 @@ func (c *Client) parseValidateString(msg string) string {
 	if claims, ok := tok.Claims.(jwt.MapClaims); ok && tok.Valid {
 		return claims["msg"].(string)
 	} else {
-		fmt.Println("ERROR: ", err)
+		log.Debug("ERROR: ", err)
 		return "error"
 	}
 }
 
 func (c *Client) run() {
-	fmt.Println(string(c.cid[:3]) + " run() started")
+	log.Debug(string(c.cid[:3]) + " run() started")
 	for {
 		select {
 		case msg := <-c.recv:
 			validMsg := c.parseValidateString(msg)
-			fmt.Println("Client " + string(c.cid[:3]) + " received & parsed " + string(validMsg))
+			log.Debug("Client " + string(c.cid[:3]) + " received & parsed " + string(validMsg))
 			index := rand.Int() % len(return_phrases)
 			c.send <- return_phrases[index]
 		case msg := <-c.send:
 			signedMsg := c.createSignedString(msg)
-			fmt.Println("Client " + string(c.cid[:3]) + " sending signed message: " + string(msg))
+			log.Debug("Client " + string(c.cid[:3]) + " sending signed message: " + string(msg))
 			c.browser.recv <- signedMsg
 		}
 	}
 }
+*/
 
 /*
 func (c *Client) readWorker() {
 	for msg := range c.recv {
-		fmt.Println("Client " + string(c.cid) + " :: received " + string(msg))
+		log.Debug("Client " + string(c.cid) + " :: received " + string(msg))
 	}
 }
 
