@@ -1,19 +1,24 @@
 package main
 
 import (
+	"encoding/json"
+
 	log "github.com/sirupsen/logrus"
 )
+
+type fn func(*Client, Message)
+
+var dispatchTable = map[int]fn {
+	112: (*Client).handle_112,
+}
 
 type clientID string
 
 type Client struct {
-	//recv chan string
 	recv chan []byte
 
-	//send chan string
 	send chan []byte
 
-	//cid clientID
 	idKey clientID
 
 	username string
@@ -24,20 +29,42 @@ type Client struct {
 
 	anon bool
 
-	//browser *Browser
 	browserIdKey browserID
+
 }
 
 func (c *Client) run() {
 	log.Debug(string(c.idKey[:3]) + " run() started")
 	for {
 		select {
-		case msg := <-c.recv:
-			log.Debug(msg)
-		case msg := <-c.send:
-			log.Debug(msg)
+		case txt := <-c.recv:
+			log.Debug(string(c.idKey[:3]) + "received text")
+			var msg Message
+			json.Unmarshal(txt, &msg)
+			msgId := msg.MessageID
+			dispatchTable[msgId](c, msg)
+		case txt := <-c.send:
+			log.Debug(string(c.idKey[:3]) + "sending text", txt)
 		}
 	}
+}
+
+func (c *Client) handle_112(msg Message) {
+	log.Debug("112_handler started")
+
+	var creds Credentials
+	p := msg.Payload.(map[string]interface{})
+	creds.Username = p["Username"].(string)
+	creds.Hash = p["Hash"].(string)
+
+	log.Debug(msg.SourceID, msg.MessageID, creds.Username)
+
+	sid := msg.SourceID
+
+	//log.Debug(sid, creds.Username, creds.Hash)
+
+	//If Credentials portion of message exists, validate and return username as nick
+	//Otherwise,
 }
 
 //var return_phrases = [...]string{"JSON string from Client"}

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -46,19 +46,20 @@ func run(in chan []byte, roster *Roster) {
 	for {
 		select {
 		case msg := <-in:
-			var tp Message
-			json.Unmarshal(msg, &tp)
-
-			log.Debug("Unmarshalling complete")
-
-			id := tp.MessageID
-
-			log.Debug(tp.SourceID, tp.MessageID, tp.Payload.(string))
-
-			if id == 112 {
-				log.Debug("server.run() calling handle_112()")
-				handle_112(msg, roster)
+			uid, _ := uuid.NewRandom()
+			client := &Client{
+				recv: make(chan []byte, 1024),
+				send: make(chan []byte, 1024),
+				idKey: clientID(uid.String()),
+				username: "",
+				pw: nil,
+				roster: roster,
+				anon: false,
+				browserIdKey: browserID(""),
 			}
+			client.recv <- msg
+			client.run()
+			client.recv <- msg
 		}
 	}
 }
