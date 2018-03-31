@@ -23,5 +23,5 @@ type TrackObject struct {
 
 type Credentials struct {
 	Username string
-	Hash     []byte
+	Hash     string
 }

@@ -4,20 +4,18 @@ import (
 	"encoding/json"
 
 	crypto "golang.org/x/crypto/argon2"
+	log "github.com/sirupsen/logrus"
 )
 
 type browserID string
 
 type Browser struct {
-	//recv chan string
 	recv chan []byte // byte array channels are required for sending json-marshalled data
 
-	//send chan string
 	send chan []byte
 
 	client *Client
 
-	//bid browserID
 	idKey browserID
 
 	secret string
@@ -26,8 +24,16 @@ type Browser struct {
 }
 
 func (b *Browser) startSend(number int) {
-	hash := crypto.Key([]byte(b.secret), b.salt, 3, 32*1024, 4, 256)
-	startmsg := Message{0, 112, Credentials{"uname0", hash}}
+	log.Debug("browser.startSend() sending 112")
+
+	hash := string(crypto.Key([]byte(b.secret), b.salt, 3, 32*1024, 4, 256))
+	//log.Debug("browser sending hash: "+ hash)
+
+	startmsg := Message{
+		SourceID: 0, 
+		MessageID: 112, 
+		Payload: Credentials{Username: "uname0", Hash: hash},
+	}
 	m, _ := json.Marshal(startmsg)
 	b.send <- m
 }
