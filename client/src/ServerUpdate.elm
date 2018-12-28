@@ -199,6 +199,7 @@ serverUpdateTrack track boardUpdate clientId sessionId suId =
                 { trackId = track.trackId
                 , clientId = track.clientId
                 , username = track.username
+                , instrument = track.instrument
                 , grid = track.grid
                 }
                 (List.head
@@ -208,7 +209,12 @@ serverUpdateTrack track boardUpdate clientId sessionId suId =
         if track.clientId == clientId && suId == sessionId then
             track
         else
-            { track | grid = trackUpdate.grid, clientId = trackUpdate.clientId, username = trackUpdate.username }
+            { track
+                | clientId = trackUpdate.clientId
+                , username = trackUpdate.username
+                , instrument = trackUpdate.instrument
+                , grid = trackUpdate.grid
+            }
 
 
 serverUpdateScore : TrackUpdate -> Board -> Int -> ClientId -> SessionId -> SessionId -> Score
@@ -216,14 +222,6 @@ serverUpdateScore tu board tones clientId sessionId suId =
     let
         track =
             List.head (List.filter (\t -> t.trackId == tu.trackId) board)
-
-        instrument =
-            case track of
-                Just t ->
-                    t.instrument
-
-                Nothing ->
-                    "Marimba"
     in
         case sessionId of
             0 ->
@@ -238,8 +236,7 @@ serverUpdateScore tu board tones clientId sessionId suId =
                         Nothing ->
                             []
                 else
-                    -- TODO: change to tu.instrument when server tracks instrument changes
-                    readGrid tu.grid tu.trackId instrument tones
+                    readGrid tu.grid tu.trackId tu.instrument tones
 
 
 serverUpdateTrackStatus : ServerMessage -> Model -> Model

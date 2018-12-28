@@ -1,9 +1,9 @@
 .vscode
 
-
 # elm
 elm-stuff/
 main.js
+elm.js
 
 # python
 __pycache__/

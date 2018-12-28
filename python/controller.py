@@ -21,19 +21,20 @@ __status__ = "Alpha"
 
 DEFAULT_TONES = 13
 DEFAULT_BEATS = 8
-DEFAULT_INSTRUMENT = "Marimba"
+DEFAULT_INSTRUMENTS = ["Guitar", "Piano"]
 MAX_SESS_ID = 1000
 MIN_SESS_ID = 1
 DEFAULT_TEMPO = 8
 LOG_NAME = "server.log"
-TRACK_IDS = list(range(2))
-TIME_TO_LIVE = 60           # 60 minutes
+NUM_INITIAL_TRACKS = 2
+TRACK_IDS = list(range(NUM_INITIAL_TRACKS))
+TIME_TO_LIVE = 1           # 2 minutes
 
 LOGGER = logging.getLogger('root')
 
 class Track:
 
-    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENT):
+    def __init__(self, trackID, dimensions=(DEFAULT_TONES, DEFAULT_BEATS), tempo=DEFAULT_TEMPO, instrument=DEFAULT_INSTRUMENTS[0]):
         LOGGER.debug("Track " + str(trackID) + " created")
         self.trackID = trackID                  # Int
         self.clientID = ''                      # UUID String
@@ -96,6 +97,7 @@ class Track:
             "trackID": self.trackID,
             "clientID": self.clientID,
             "nickname": self.clientNick,
+            "instrument": self.instrument,
             "grid": self.grid
         }
 
@@ -108,7 +110,7 @@ class Session:
         self.trackIDs = TRACK_IDS           # [Int]
         self.tracks = {}                    # Int: Track
         for num in self.trackIDs:
-            self.tracks[num] = Track(num)
+            self.tracks[num] = Track(num, instrument=DEFAULT_INSTRUMENTS[num%len(DEFAULT_INSTRUMENTS)])
 
     def update(self, sess):
         """
@@ -326,7 +328,12 @@ class Controller:
         returns True if client still has time to live, false if the client isn't found or if the
         client has exceeded its time to live
         """
-        if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < 3600.0:
+        sock = self.sockets.get(cid)
+        if sock and sock.open:
+            self.set_TTL(cid)
+            return True
+
+        if self.client_TTL.get(cid) and time.time() - self.client_TTL.get(cid) < (60 * TIME_TO_LIVE):
             return True
         return False
 
@@ -432,8 +439,12 @@ class Controller:
         """
         LOGGER.debug("Controller.client_exit() started")
 
+        nick = self.clients.get(cid)
+        if nick is None:
+            nick = "NOT FOUND"
+
         if cid not in self.clients.keys():
-            LOGGER.error("cid " + str(cid) + " provided to Controller.client_exit() not in clients.keys()")
+            LOGGER.error("nick/cid " + nick + '--' + str(cid[:3]) + " provided to Controller.client_exit() not in clients.keys()")
             return False
 
         c_sessions = self.client_sessions[cid]

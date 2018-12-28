@@ -37,8 +37,8 @@ update msg model =
         IncomingMessage rawMessage ->
             let
                 serverMessage =
-                    -- case Debug.log "serverMessage" (Json.Decode.decodeString decodeServerMessage rawMessage) of
-                    case (Json.Decode.decodeString decodeServerMessage rawMessage) of
+                    case Debug.log "serverMessage" (Json.Decode.decodeString decodeServerMessage rawMessage) of
+                        -- case (Json.Decode.decodeString decodeServerMessage rawMessage) of
                         Ok m ->
                             Just m
 
