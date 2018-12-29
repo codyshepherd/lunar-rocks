@@ -4,6 +4,10 @@
 elm-stuff/
 main.js
 elm.js
+build/
+
+# node
+node_modules/
 
 # python
 __pycache__/
