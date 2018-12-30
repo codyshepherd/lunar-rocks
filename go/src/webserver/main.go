@@ -17,10 +17,10 @@ func main() {
 	r.Schemes("https")
 
 	// default page is the static login/landing page
-	r.Handle("/", http.FileServer(http.Dir("./views/")))
+	r.Handle("/", http.FileServer(http.Dir("../client/build/")))
 	// find static assets
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/",
-		http.FileServer(http.Dir("./static/"))))
+		http.FileServer(http.Dir("../client/build/static/"))))
 
 	// serve HTTPS on port 443
 	err := http.ListenAndServeTLS(":443", "server.crt", "server.key", r)
