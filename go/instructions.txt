@@ -1,0 +1,39 @@
+direnv @ https://direnv.net
+For installing direnv:
+
+export GOPATH=${GOPATH:-$HOME/go}
+mkdir -p $GOPATH/src/github.com/direnv
+git clone https://github.com/direnv/direnv.git $GOPATH/src/github.com/direnv/direnv
+cd $GOPATH/src/github.com/direnv/direnv
+make install
+
+To hook direnv into bash, add the following line at the end of ~/.bashrc:
+
+eval "$(direnv hook bash)"
+
+Project folder should have a file called .envrc exporting environment
+variables such as $GOPATH.
+
+load environment with `direnv allow .` or `direnv allow .envrc`
+
+can set variables automatically using the `layout` function:
+
+echo 'layout go' > .envrc
+
+==================================================
+
+To download dependencies and compile the server, navigate to the `go` directory and enter:
+
+go get webserver
+
+To run, from `go` directory:
+
+sudo ./bin/webserver
+
+Then navigate to `localhost:443`
+
+==================================================
+
+TODO
+
+compile & run script?
