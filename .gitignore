@@ -16,7 +16,10 @@ controller.log
 server.log
 
 # go
+server.crt
+server.key
 .envrc
 bin/
 pkg/
 src/github.com/
+src/golang.org/
