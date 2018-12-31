@@ -9,4 +9,5 @@ openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
 The certificate generation command (the second line) will require you to enter
 various metadata about your identity.
 
-These files must live at top level of `go` directory in the lunar rocks project
+These files must live in the `lunar-rocks/go/` directory in your local working
+tree of the project repository
