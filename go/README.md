@@ -92,7 +92,36 @@ Navigate to `localhost:1025/` in your favorite browser
 
 ### Accounts
 
-TODO
+__Local Development: Install Postgres:__
+
+Create a file in `lunar-rocks/go/` directory called `psql_creds.rc`. This file
+should contain two lines:
+
+```
+PSQLUSER=xxx
+PSQLPW=yyy
+```
+
+Where `xxx` is your desired local-dev username, and `yyy` is your desired local
+dev password.
+
+Next, run the `postgres_setup.sh` script, which will prompt you for your sudo
+password and install the required apt packages.
+
+This script should also import your devel credentials and set up a postgresql user
+with them, as well as create an Accounts schema in the default database and
+give your user permissions to create and alter tables in that schema.
+
+__Note:__
+
+You may want to also create a `.pgpass` file in your home directory with the
+following line:
+
+`localhost:*:postgres:psqluser:psqlpw`
+
+This will enable you to log into an interactive postgres prompt with your devel
+credentials for debugging or testing, though this can be avoided using the
+`-W` switch when running `psql` to force a password prompt.
 
 ==================================================
 
