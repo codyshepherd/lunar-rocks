@@ -4,8 +4,6 @@ The Lunar Rocks backend is comprised of several independent services. See the
 individual per-service sections in this document for brief discussions of
 those, and find more detailed READMEs in the subdirectory for each service.
 
-==================================================
-
 ## Direnv
 
 Direnv acts like a virtualenv for go development, and will help keep your local
@@ -45,13 +43,10 @@ to access your filesystem by running:
 
 This should conclude the setup process for direnv.
 
-==================================================
-
 ## Services
 
----
-
 ### Webserver
+---
 
 __Basic Compilation and Runtime__
 
@@ -85,12 +80,12 @@ to learn a bit more):
 `-port=#`: set the port for the server to listen on
 
 __Finally__
+`sudo ./bin/webserver`
 
 Navigate to `localhost:1025/` in your favorite browser
 
----
-
 ### Accounts
+---
 
 __Local Development: Install Postgres:__
 
@@ -105,8 +100,12 @@ PSQLPW=yyy
 Where `xxx` is your desired local-dev username, and `yyy` is your desired local
 dev password.
 
-Next, run the `postgres_setup.sh` script, which will prompt you for your sudo
-password and install the required apt packages.
+Next, run the postgres setup script with 
+
+`./postgres_setup.sh`
+
+which will prompt you for your sudo password and install the required apt
+packages.
 
 This script should also import your devel credentials and set up a postgresql user
 with them, as well as create an Accounts schema in the default database and
@@ -123,8 +122,6 @@ This will enable you to log into an interactive postgres prompt with your devel
 credentials for debugging or testing, though this can be avoided using the
 `-W` switch when running `psql` to force a password prompt.
 
-==================================================
-
-TODO
+## TODO
 
 compile & run script?
