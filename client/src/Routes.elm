@@ -1,16 +1,16 @@
 module Routes exposing (Route(..), fromUrl, routeParser)
 
 import Url
-import Url.Parser exposing ((</>), Parser, int, map, oneOf, s, top)
+import Url.Parser exposing ((</>), Parser, map, oneOf, s, string, top)
 
 
 type Route
     = NotFound
     | Home
     | Login
-    | Profile
+    | Profile String
     | Register
-    | Session Int
+    | MusicSession String String
 
 
 routeParser : Parser (Route -> a) a
@@ -18,9 +18,9 @@ routeParser =
     oneOf
         [ map Home top
         , map Login (s "login")
-        , map Profile (s "profile")
         , map Register (s "register")
-        , map Session (s "session" </> int)
+        , map MusicSession (string </> string)
+        , map Profile string
         ]
 
 

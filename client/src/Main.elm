@@ -1,32 +1,41 @@
 module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, viewLink)
 
--- import Html.Attributes exposing (..)
+{- This module is adapted from elm-tutorial-app: https://github.com/sporto/elm-tutorial-app/blob/master/src/Main.elm and
+   elm-spa-example: https://github.com/rtfeldman/elm-spa-example/blob/master/src/Main.elm
+-}
 
-import Api exposing (Flags)
+import Api
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Html exposing (Html)
+import Json.Decode as Decode exposing (Value)
 import Page.Home as Home
 import Page.Login as Login
+import Page.MusicSession as MusicSession
 import Page.Profile as Profile
 import Page.Register as Register
-import Page.Session as Session
 import Routes exposing (Route)
+import Session exposing (Session)
 import Url
+import User exposing (User)
+import Username
 
 
 
 -- MAIN
 
 
-main : Program () Model Msg
+{-| Our application is initialized in Api so that we can handle credentials there.
+-}
+main : Program Value Model Msg
 main =
-    Browser.application
+    Api.application User.decoder
         { init = init
         , view = view
         , update = update
@@ -41,8 +50,7 @@ main =
 
 
 type alias Model =
-    { flags : Flags
-    , key : Nav.Key
+    { session : Session
     , route : Route
     , page : Page
     }
@@ -54,62 +62,67 @@ type Page
     | Login Login.Model
     | Profile Profile.Model
     | Register Register.Model
-    | Session Session.Model
+    | MusicSession MusicSession.Model
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init flags url key =
+init : Maybe User -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init maybeUser _ navKey =
     let
+        dbg =
+            Debug.log "maybeUser: " maybeUser
+
+        session =
+            Session.fromUser navKey maybeUser
+
         model =
-            { flags = "placeholder"
-            , key = key
+            { session = session
             , route = Routes.Home
-            , page = Home 0
+            , page = Home { session = session, counter = 0 }
             }
     in
     ( model, Cmd.none )
-        |> loadCurrentPage
+        |> loadCurrentPage model.session
 
 
-loadCurrentPage : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-loadCurrentPage ( model, cmd ) =
+loadCurrentPage : Session -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+loadCurrentPage session ( model, cmd ) =
     let
         ( page, newCmd ) =
             case model.route of
                 Routes.Home ->
                     let
                         ( pageModel, pageCmd ) =
-                            Home.init model.flags
+                            Home.init session
                     in
                     ( Home pageModel, Cmd.map HomeMsg pageCmd )
 
                 Routes.Login ->
                     let
                         ( pageModel, pageCmd ) =
-                            Login.init
+                            Login.init session
                     in
                     ( Login pageModel, Cmd.map LoginMsg pageCmd )
 
-                Routes.Profile ->
+                Routes.Profile username ->
                     let
                         ( pageModel, pageCmd ) =
-                            Profile.init model.flags
+                            Profile.init
                     in
                     ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
 
                 Routes.Register ->
                     let
                         ( pageModel, pageCmd ) =
-                            Register.init
+                            Register.init session
                     in
                     ( Register pageModel, Cmd.map RegisterMsg pageCmd )
 
-                Routes.Session sessionId ->
+                Routes.MusicSession username sessionName ->
                     let
                         ( pageModel, pageCmd ) =
-                            Session.init model.flags
+                            MusicSession.init
                     in
-                    ( Session pageModel, Cmd.map SessionMsg pageCmd )
+                    ( MusicSession pageModel, Cmd.map MusicSessionMsg pageCmd )
 
                 Routes.NotFound ->
                     ( NotFound, Cmd.none )
@@ -124,11 +137,13 @@ loadCurrentPage ( model, cmd ) =
 type Msg
     = OnUrlRequest Browser.UrlRequest
     | OnUrlChange Url.Url
+    | GotSession Session
     | HomeMsg Home.Msg
     | LoginMsg Login.Msg
+    | Logout
     | ProfileMsg Profile.Msg
     | RegisterMsg Register.Msg
-    | SessionMsg Session.Msg
+    | MusicSessionMsg MusicSession.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,7 +152,7 @@ update msg model =
         ( OnUrlRequest urlRequest, _ ) ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+                    ( model, Nav.pushUrl (Session.navKey model.session) (Url.toString url) )
 
                 Browser.External href ->
                     ( model, Nav.load href )
@@ -146,7 +161,20 @@ update msg model =
             ( { model | route = Routes.fromUrl url }
             , Cmd.none
             )
-                |> loadCurrentPage
+                |> loadCurrentPage model.session
+
+        ( GotSession session, _ ) ->
+            -- It may be better to return to the previous page if the user
+            -- was viewing a session or a profile. Also, check if a user logs
+            -- out the session will be anonymous we may want to make sure they
+            -- must return to Home.
+            ( { model | session = session }
+            , Nav.replaceUrl (Session.navKey session) "/"
+            )
+                |> loadCurrentPage model.session
+
+        ( Logout, _ ) ->
+            ( model, Api.logout )
 
         ( HomeMsg subMsg, Home pageModel ) ->
             let
@@ -184,13 +212,13 @@ update msg model =
             , Cmd.map RegisterMsg newCmd
             )
 
-        ( SessionMsg subMsg, Session pageModel ) ->
+        ( MusicSessionMsg subMsg, MusicSession pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
-                    Session.update subMsg pageModel
+                    MusicSession.update subMsg pageModel
             in
-            ( { model | page = Session newPageModel }
-            , Cmd.map SessionMsg newCmd
+            ( { model | page = MusicSession newPageModel }
+            , Cmd.map MusicSessionMsg newCmd
             )
 
         ( _, _ ) ->
@@ -198,34 +226,32 @@ update msg model =
 
 
 
--- updateWith : Model -> Msg -> ( Model, Cmd msg ) -> Page -> ( Model, Cmd Msg )
--- updateWith model msg ( newPageModel, newCmd ) page =
---     ( { model | page = page newPageModel }
---     , Cmd.map msg newCmd
---     )
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.page of
-        Home pageModel ->
-            Sub.map HomeMsg (Home.subscriptions pageModel)
+    Sub.batch
+        [ Session.changes GotSession (Session.navKey model.session)
+        , case model.page of
+            Home pageModel ->
+                Sub.map HomeMsg (Home.subscriptions pageModel)
 
-        Login pageModel ->
-            Sub.none
+            Login _ ->
+                Sub.none
 
-        Profile pageModel ->
-            Sub.none
+            Profile _ ->
+                Sub.none
 
-        Register pageModel ->
-            Sub.none
+            Register _ ->
+                Sub.none
 
-        Session pageModel ->
-            Sub.map SessionMsg (Session.subscriptions pageModel)
+            MusicSession pageModel ->
+                Sub.map MusicSessionMsg (MusicSession.subscriptions pageModel)
 
-        NotFound ->
-            Sub.none
+            NotFound ->
+                Sub.none
+        ]
 
 
 
@@ -237,35 +263,35 @@ view model =
     case model.page of
         Home pageModel ->
             Element.map HomeMsg (Home.view pageModel)
-                |> viewWith "Home"
+                |> viewWith model.session "Home"
 
         Login pageModel ->
             Element.map LoginMsg (Login.view pageModel)
-                |> viewWith "Login"
+                |> viewWith model.session "Login"
 
         Profile pageModel ->
             Element.map ProfileMsg (Profile.view pageModel)
-                |> viewWith "Profile"
+                |> viewWith model.session "Profile"
 
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
-                |> viewWith "Register"
+                |> viewWith model.session "Register"
 
-        Session pageModel ->
-            Element.map SessionMsg (Session.view pageModel)
-                |> viewWith "Session"
+        MusicSession pageModel ->
+            Element.map MusicSessionMsg (MusicSession.view pageModel)
+                |> viewWith model.session "Session"
 
         NotFound ->
             { title = "Not Found"
             , body =
                 [ layout [] <|
-                    column [ width fill ] [ viewNav ]
+                    column [ width fill ] [ viewNav model.session ]
                 ]
             }
 
 
-viewWith : String -> Element Msg -> { title : String, body : List (Html Msg) }
-viewWith title content =
+viewWith : Session -> String -> Element Msg -> { title : String, body : List (Html Msg) }
+viewWith session title content =
     { title = title
     , body =
         [ layout
@@ -274,15 +300,15 @@ viewWith title content =
             ]
           <|
             column [ width fill, centerX ]
-                [ viewNav
+                [ viewNav session
                 , content
                 ]
         ]
     }
 
 
-viewNav : Element Msg
-viewNav =
+viewNav : Session -> Element Msg
+viewNav session =
     row
         [ width fill
         , paddingXY 0 15
@@ -295,14 +321,25 @@ viewNav =
                     [ viewLink "/" "Lunar Rocks"
                     ]
                 , column [ alignRight ]
-                    [ row [ spacing 15, Font.family Fonts.quattrocentoFont, Font.size 18 ]
-                        [ viewLink "/login" "Sign in"
-                        , viewLink "/register" "Sign up"
+                    [ row [ spacing 15, Font.family Fonts.quattrocentoFont, Font.size 18 ] <|
+                        case session of
+                            Session.LoggedIn _ user ->
+                                let
+                                    username =
+                                        Username.toString (User.username user)
+                                in
+                                [ viewLink ("/" ++ username) "Profile"
+                                , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
 
-                        -- , viewLink "/profile" "Profile"
-                        -- , viewLink "/session/1" "Session 1"
-                        -- , viewLink "/notFound"
-                        ]
+                                -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"
+                                ]
+
+                            Session.Anonymous _ ->
+                                [ viewLink "/login" "Sign in"
+                                , viewLink "/register" "Sign up"
+
+                                -- , viewLink "/notFound"
+                                ]
                     ]
                 ]
             ]

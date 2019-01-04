@@ -1,6 +1,9 @@
 module Page.Login exposing (Model, Msg(..), init, update, view)
 
-import Browser.Navigation as Nav
+{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Login.elm>
+-}
+
+import Api
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -8,17 +11,41 @@ import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
+import Http
+import Json.Encode as Encode
+import Session exposing (Session)
+import User exposing (User)
 
 
 type alias Model =
+    { session : Session
+    , problems : List Problem
+    , form : Form
+    }
+
+
+type Problem
+    = InvalidEntry String
+    | ServerError String
+
+
+type alias Form =
     { username : String
     , password : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model "" "", Cmd.none )
+init : Session -> ( Model, Cmd msg )
+init session =
+    ( { session = session
+      , problems = []
+      , form =
+            { username = ""
+            , password = ""
+            }
+      }
+    , Cmd.none
+    )
 
 
 
@@ -26,22 +53,46 @@ init =
 
 
 type Msg
-    = UpdateUsername String
-    | UpdatePassword String
-    | SignIn
+    = SubmittedForm
+    | EnteredUsername String
+    | EnteredPassword String
+    | CompletedLogin (Result Http.Error User)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UpdateUsername newUsername ->
-            ( { model | username = newUsername }, Cmd.none )
+        SubmittedForm ->
+            -- TODO: add form validation
+            ( { model | problems = [] }
+            , Http.send CompletedLogin (login model.form)
+            )
 
-        UpdatePassword newPassword ->
-            ( { model | password = newPassword }, Cmd.none )
+        EnteredUsername newUsername ->
+            updateForm (\form -> { form | username = newUsername }) model
 
-        SignIn ->
+        EnteredPassword newPassword ->
+            updateForm (\form -> { form | password = newPassword }) model
+
+        CompletedLogin (Err error) ->
+            let
+                debug =
+                    Debug.log "Server error: " error
+            in
+            -- TODO: decode server errors to display to user
             ( model, Cmd.none )
+
+        CompletedLogin (Ok user) ->
+            let
+                debug =
+                    Debug.log "Http OK with: " user
+            in
+            ( model, User.store user )
+
+
+updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
+updateForm transform model =
+    ( { model | form = transform model.form }, Cmd.none )
 
 
 
@@ -65,16 +116,16 @@ view model =
                 [ column [ centerX, width (px 300), spacing 20 ]
                     [ Input.username
                         [ spacing 12, Font.color (rgba 0 0 0 1) ]
-                        { text = model.username
+                        { text = model.form.username
                         , placeholder = Nothing
-                        , onChange = \newUsername -> UpdateUsername newUsername
+                        , onChange = \newUsername -> EnteredUsername newUsername
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
                         }
-                    , Input.newPassword
+                    , Input.currentPassword
                         [ spacing 12, Font.color (rgba 0 0 0 1) ]
-                        { text = model.password
+                        { text = model.form.password
                         , placeholder = Nothing
-                        , onChange = \newPassword -> UpdatePassword newPassword
+                        , onChange = \newPassword -> EnteredPassword newPassword
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Password")
                         , show = False
                         }
@@ -86,8 +137,8 @@ view model =
                         , Border.width 2
                         , width fill
                         ]
-                        { onPress = Just SignIn
-                        , label = text "Sign in"
+                        { onPress = Just SubmittedForm
+                        , label = el [ centerX ] <| text "Sign in"
                         }
                     ]
                 ]
@@ -95,6 +146,36 @@ view model =
         ]
 
 
+
+-- SUBSCRIPTIONS
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
+
+
+
+-- HTTP
+
+
+login : Form -> Http.Request User
+login form =
+    let
+        user =
+            Encode.object
+                [ ( "username", Encode.string form.username )
+                , ( "password", Encode.string form.password )
+                ]
+
+        body =
+            Encode.object [ ( "user", user ) ]
+                |> Http.jsonBody
+    in
+    Api.login body User.decoder
+
+
+
+-- fakeLogin : Form -> Cmd msg
+-- fakeLogin form =
+--     Api.fakeLogin form.username form.password
