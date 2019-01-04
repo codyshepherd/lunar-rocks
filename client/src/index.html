@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="/assets/favicon.ico" />
+    <title>Elm App</title>
+    </head>
+    <body>
+      <noscript>
+        You need to enable JavaScript to run this app.
+      </noscript>
+      <div id="root"></div>
+      <script src="elm.js"></script>
+      <script>
+        'use strict';
+
+        var authKey = "auth";
+        var flags = localStorage.getItem(authKey);
+
+        var app = Elm.Main.init({
+          node: document.getElementById('root'),
+          flags: flags
+        });
+
+        app.ports.storeAuth.subscribe(function(auth) {
+
+          // Remove username-token pair when user logs out, else update them
+          if (auth === null) {
+            localStorage.removeItem(authKey);
+          } else {
+            localStorage.setItem(authKey, JSON.stringify(auth));
+          }
+
+          // Report that the username-token pair was stored or removed
+          setTimeout(function() { app.ports.onAuthStoreChange.send(auth); }, 0);
+        });
+
+        // Whenever localStorage changes, report it if necessary.
+        window.addEventListener("storage", function(event) {
+          if (event.storageArea === localStorage && event.key === authKey) {
+            console.log (event.newValue);
+            app.ports.onAuthStoreChange.send(event.newValue);
+          }
+        }, false);
+
+      </script>
+    </body>
+</html>

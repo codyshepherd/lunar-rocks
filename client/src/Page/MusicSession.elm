@@ -1,6 +1,5 @@
-module Page.Session exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.MusicSession exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Api exposing (Flags)
 import Element exposing (..)
 import Element.Events exposing (..)
 import Element.Input as Input
@@ -10,8 +9,8 @@ type alias Model =
     Int
 
 
-init : Flags -> ( Model, Cmd Msg )
-init _ =
+init : ( Model, Cmd Msg )
+init =
     ( 0, Cmd.none )
 
 
