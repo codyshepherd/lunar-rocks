@@ -23,7 +23,7 @@ func main() {
 		http.FileServer(http.Dir("../client/build/static/"))))
 
 	// serve HTTPS on port 443
-	err := http.ListenAndServeTLS(":443", "server.crt", "server.key", r)
+	err := http.ListenAndServeTLS(":444", "server.crt", "server.key", r)
 
 	if err != nil {
 		log.Fatal("ListenandServeTLS: ", err)
