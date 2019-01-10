@@ -14,7 +14,7 @@ func main() {
 
 	// instantiate the web router
 	r := mux.NewRouter()
-	r.Schemes("https")
+	//r.Schemes("https")
 
 	// default page is the static login/landing page
 	r.Handle("/", http.FileServer(http.Dir("../client/build/")))
@@ -23,8 +23,9 @@ func main() {
 		http.FileServer(http.Dir("../client/build/static/"))))
 
 	// serve HTTPS on port 443
-	err := http.ListenAndServeTLS(":444", "server.crt", "server.key", r)
-
+	//err := http.ListenAndServeTLS(":444", "server.crt", "server.key", r)
+	err := http.ListenAndServe(":444", nil)
+	
 	if err != nil {
 		log.Fatal("ListenandServeTLS: ", err)
 	}
