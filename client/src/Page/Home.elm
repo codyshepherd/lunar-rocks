@@ -1,18 +1,26 @@
 module Page.Home exposing (Model, Msg(..), init, subscriptions, update, view)
 
-import Api exposing (Flags)
 import Element exposing (..)
 import Element.Events exposing (..)
+import Element.Font as Font
 import Element.Input as Input
+import Fonts
+import Session exposing (Session)
 
 
 type alias Model =
-    Int
+    { session : Session
+    , counter : Int
+    }
 
 
-init : Flags -> ( Model, Cmd Msg )
-init _ =
-    ( 0, Cmd.none )
+init : Session -> ( Model, Cmd Msg )
+init session =
+    ( { session = session
+      , counter = 0
+      }
+    , Cmd.none
+    )
 
 
 
@@ -28,10 +36,10 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment ->
-            ( model + 1, Cmd.none )
+            ( { model | counter = model.counter + 1 }, Cmd.none )
 
         Decrement ->
-            ( model - 1, Cmd.none )
+            ( { model | counter = model.counter - 1 }, Cmd.none )
 
 
 
@@ -41,10 +49,15 @@ update msg model =
 view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 10 ]
-        [ column [ centerX ]
-            [ Input.button [] { onPress = Just Increment, label = text "+" }
-            , text (String.fromInt model)
-            , Input.button [] { onPress = Just Decrement, label = text "-" }
+        [ column [ centerX, spacing 10, Font.family Fonts.quattrocentoFont ]
+            [ text "Viewing the home page"
+            , row [ width fill ]
+                [ column [ centerX ]
+                    [ Input.button [ centerX ] { onPress = Just Increment, label = text "+" }
+                    , el [ centerX ] <| text (String.fromInt model.counter)
+                    , Input.button [ centerX ] { onPress = Just Decrement, label = text "-" }
+                    ]
+                ]
             ]
         ]
 

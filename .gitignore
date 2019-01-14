@@ -1,10 +1,10 @@
+# ides
 .vscode
+.tern-port
 
 # elm
 elm-stuff/
-main.js
 elm.js
-build/
 
 # node
 node_modules/
@@ -16,7 +16,10 @@ controller.log
 server.log
 
 # go
+server.crt
+server.key
 .envrc
 bin/
 pkg/
 src/github.com/
+src/golang.org/
