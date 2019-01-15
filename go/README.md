@@ -15,10 +15,11 @@ where expected when testing locally.
 Documentation of Direnv can be found at: https://direnv.net
 
 ### To install direnv, run the following commands. Note that you can select
-a different directory to add to the GOPATH (other than $HOME/go) if you wish:
+a different directory to add to the GOPATH (other than $HOME/go) if you wish
+(though this is "unsupported" by me and may not be a simple substitution in
+these instructions):
 
 ```
-
 export GOPATH=${GOPATH:-$HOME/go}
 mkdir -p $GOPATH/src/github.com/direnv
 git clone https://github.com/direnv/direnv.git $GOPATH/src/github.com/direnv/direnv
@@ -52,23 +53,40 @@ This should conclude the setup process for direnv.
 
 ### Webserver
 
-The webserver requires certificates to serve HTTPS. For local development and
-testing, these will be self-signed certificates that must live in
-`lunar-rocks/go/` (the directory where this README lives). Instructions on
-how to generate these certificates can be found in
-`lunar-rocks/go/src/webserver/README.md`.
-
 __Basic Compilation and Runtime__
 
-To download dependencies and compile the server, navigate to the `go` directory and enter:
+Note the the following method only works well if your direnv is set up. If
+you find that the `go` build commands give you errors, re-check that you have
+a `.envrc` file in your `go` directory and that you have run `direnv allow`.
 
+To download dependencies, compile the server, and run it, navigate to the `go`
+directory and enter:
+
+```
 go get webserver
-
-To run, from `go` directory:
-
 sudo ./bin/webserver
+```
 
-Then navigate to `localhost:443` in your favorite browser
+__Or__
+
+If you already have all the dependencies, you can build to the local dir with:
+
+```
+go build webserver
+sudo ./webserver
+```
+
+__Note__
+
+The webserver supports the following command-line options (./webserver --help
+to learn a bit more):
+
+`-log={n, q, v, vvv}`: set log level
+`-port=#`: set the port for the server to listen on
+
+__Finally__
+
+Navigate to `localhost:1025/` in your favorite browser
 
 ---
 
