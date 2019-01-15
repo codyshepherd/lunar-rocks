@@ -59,27 +59,34 @@ Note the the following method only works well if your direnv is set up. If
 you find that the `go` build commands give you errors, re-check that you have
 a `.envrc` file in your `go` directory and that you have run `direnv allow`.
 
-To download dependencies and compile the server, navigate to the `go` directory and enter:
+To download dependencies, compile the server, and run it, navigate to the `go`
+directory and enter:
 
+```
 go get webserver
-
-To run, from `go` directory:
-
 sudo ./bin/webserver
+```
 
 __Or__
 
 If you already have all the dependencies, you can build to the local dir with:
 
-`go build webserver`
+```
+go build webserver
+sudo ./webserver
+```
 
-And run with:
+__Note__
 
-`sudo ./webserver`
+The webserver supports the following command-line options (./webserver --help
+to learn a bit more):
+
+`-log={n, q, v, vvv}`: set log level
+`-port=#`: set the port for the server to listen on
 
 __Finally__
 
-Navigate to `localhost:80/` in your favorite browser
+Navigate to `localhost:1025/` in your favorite browser
 
 ---
 
