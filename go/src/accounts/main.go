@@ -24,7 +24,7 @@ func main() {
 	var logLevel string
 	flag.StringVar(&credsFile, "creds", "psql_creds.rc",
 		"File to find Postgres credentials")
-	flag.StringVar(&listenPort, "port", "1025",
+	flag.StringVar(&listenPort, "port", "9000",
 		"port for server to listen on")
 	flag.StringVar(&logLevel, "log", "v",
 		"Log Levels\nn: Errors only\nq: Info\nv: Debug\nvvv: Trace")
@@ -51,7 +51,8 @@ func main() {
 	r := mux.NewRouter()
 
 	// Handle calls to index and elm.js with same function
-	r.HandleFunc("/register", registerHandle).Methods("POST")
+	// r.HandleFunc("/register", registerHandle).Methods("POST")
+	r.HandleFunc("/register", registerHandle)
 
 	// Serve and log
 	err := http.ListenAndServe(":"+listenPort, r)
@@ -63,6 +64,12 @@ func check(e error) {
 	if e != nil {
 		log.Fatal(e)
 	}
+}
+
+func enableCors(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length")
 }
 
 func dbInit(credsFile string) *sql.DB {
@@ -93,6 +100,16 @@ func dbInit(credsFile string) *sql.DB {
 }
 
 func registerHandle(w http.ResponseWriter, r *http.Request) {
+	log.Info("registerHandle called")
+	log.Info(r.Method)
+
+	enableCors(&w, r)
+	if r.Method == "OPTIONS" {
+		return
+	}
+
+	err := r.ParseForm()
+	check(err)
 	user := r.FormValue("user")
 	email := r.FormValue("email")
 	pw := r.FormValue("password")
