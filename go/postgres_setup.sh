@@ -27,13 +27,21 @@ else
     echo "postgres-contrib is already installed. Not installing..."
 fi
 
+sudo -u postgres psql -U postgres -c "CREATE DATABASE accounts;" || true
 # configure Postgres schema and local dev account permissions
-sudo -u postgres psql -U postgres -c "CREATE SCHEMA Accounts;" || true
+sudo -u postgres psql -U postgres -d accounts -c "CREATE SCHEMA registered_accounts;" || true
 set +x
-sudo -u postgres psql -U postgres -c "CREATE USER ${PSQLUSER} with PASSWORD '${PSQLPW}';"
+sudo -u postgres psql -U postgres -d accounts -c "CREATE USER ${PSQLUSER} with PASSWORD '${PSQLPW}';" || true
 set -x
-echo "Created user account ${PSQLUSER} for Account schema"
-sudo -u postgres psql -U postgres -c "GRANT ALL ON SCHEMA Accounts TO ${PSQLUSER};"
-sudo -u postgres psql -U postgres -c "GRANT ALL ON ALL TABLES IN SCHEMA Accounts TO ${PSQLUSER};"
+echo "Created user account ${PSQLUSER} for registered_accounts schema"
+sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accounts.registered 
+(id varchar(255) PRIMARY KEY,
+username varchar(255) UNIQUE NOT NULL,
+email varchar(255) NOT NULL,
+passHash bytea NOT NULL
+);" || true
+sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON DATABASE accounts TO ${PSQLUSER};"
+sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON SCHEMA registered_accounts TO ${PSQLUSER};"
+sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON ALL TABLES IN SCHEMA registered_accounts TO ${PSQLUSER};"
 
 echo "postgres setup complete!"

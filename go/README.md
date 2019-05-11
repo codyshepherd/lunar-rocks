@@ -116,7 +116,11 @@ __Note:__
 You may want to also create a `.pgpass` file in your home directory with the
 following line:
 
-`localhost:*:postgres:psqluser:psqlpw`
+`host:port:dbname:psqluser:psqlpw`
+
+e.g.
+
+`localhost:5433:accounts:guy:mypw`
 
 This will enable you to log into an interactive postgres prompt with your devel
 credentials for debugging or testing, though this can be avoided using the

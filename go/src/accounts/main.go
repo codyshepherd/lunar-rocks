@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -12,9 +13,15 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var db *sql.DB
+
+const registeredTableName = "registered"
+const schema = "registered_accounts"
+
+var idCounter = 0
 
 func main() {
 
@@ -43,7 +50,9 @@ func main() {
 		ll = log.TraceLevel
 	}
 	log.SetLevel(ll)
-	db = dbInit(credsFile)
+	dbName := "accounts"
+	db = dbInit(credsFile, dbName, registeredTableName)
+	defer db.Close()
 	log.Info("Webserver start")
 	log.Info("Lisening on port: " + listenPort)
 
@@ -67,52 +76,105 @@ func check(e error) {
 }
 
 func enableCors(w *http.ResponseWriter, req *http.Request) {
+	log.Debug("enableCors called")
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length")
 }
 
-func dbInit(credsFile string) *sql.DB {
+func dbInit(credsFile string, dbName string, tableName string) *sql.DB {
 	// open the creds file and read contents
-	prefix := "PSQLUSER=.*"
+	prefix := "^PSQLUSER=.*\n"
+	prefixlen := 9
+	pwprefix := "PSQLPW=.*"
+	pwprefixlen := 7
+
 	f, err := ioutil.ReadFile(credsFile)
 	check(err)
 	fileStr := string(f)
-	// use regex to find the username
+
+	// use regex to find the username & pw
 	re := regexp.MustCompile(prefix)
 	str := re.FindString(fileStr)
-	fmt.Println(str)
-	user := str[len(prefix):]
+	user := string(str[prefixlen:])
+
+	re = regexp.MustCompile(pwprefix)
+	str = re.FindString(fileStr)
+	pw := string(str[pwprefixlen:])
+
 	// connect to postgres
-	connStr := fmt.Sprintf("user=%s dbname=accounts sslmode=verify-full", user)
-	db, err := sql.Open("postgres", connStr)
+	connStr := fmt.Sprintf("host=localhost port=5433 dbname=%s user=%s password=%s sslmode=disable",
+		dbName, user, pw)
+	db, err := sql.Open("postgres", connStr) // This function does jack, so we need to Ping it
+	err = db.Ping()
 	check(err)
-	tables, err := db.Query("show tables")
-	if tables == nil {
-		db.Query(`create table registered (
-			username varchar(255),
-			email varchar(255),
-			passHash varchar(255)
-		)`)
+	log.Debug("DB opened")
+
+	// Check if our DB exists
+	rows, err := db.Query(`
+		SELECT EXISTS(
+ 			SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower($1)
+		);`, dbName)
+	check(err)
+
+	if rows == nil {
+		log.Panic(fmt.Sprintf("Database %s not found!"))
+	} else {
+		log.Info("Found DB ", dbName)
+	}
+
+	// Check if our schema.table exists
+	combined := fmt.Sprintf("%s.%s", schema, tableName)
+	query := fmt.Sprintf("SELECT * FROM %s;", combined)
+	log.Debug(query)
+	rows, err = db.Query(query)
+	check(err)
+
+	if rows == nil {
+		log.Panic("'registered' table does not exist!")
+	} else {
+		log.Debug(fmt.Sprintf("Table %s found, not creating.", tableName))
 	}
 	log.Info("Connect to postgres successful")
 	return db
 }
 
 func registerHandle(w http.ResponseWriter, r *http.Request) {
-	log.Info("registerHandle called")
-	log.Info(r.Method)
+	log.Debug("registerHandle called")
+	log.Debug(r.Method)
 
 	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
+		log.Info("Responding 200 to OPTIONS pre-flight check")
+		w.WriteHeader(200)
 		return
 	}
 
-	err := r.ParseForm()
+	log.Debug(r)
+	body, err := ioutil.ReadAll(r.Body)
 	check(err)
-	user := r.FormValue("user")
-	email := r.FormValue("email")
-	pw := r.FormValue("password")
-	log.Info(user, email, pw)
-	db.Query(fmt.Sprintf("insert into registered (%s, %s, %s)", user, email, pw))
+	defer r.Body.Close()
+	var acct Account
+
+	err = json.Unmarshal(body, &acct)
+	check(err)
+	hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0)
+	check(err)
+
+	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
+		acct.User.Email, hash))
+
+	// TODO: See if the user is in the DB first
+
+	query := fmt.Sprintf(`
+	INSERT INTO %s.registered (id, username, email, passhash)
+	VALUES ($1, $2, $3, $4)`, schema)
+
+	_, err = db.Exec(query,
+		idCounter,
+		acct.User.Username,
+		acct.User.Email,
+		hash)
+	check(err)
+	idCounter += 1 // TODO: change this to a uuid
 }
