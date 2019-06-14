@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 
+	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
@@ -51,6 +52,7 @@ func main() {
 	}
 	log.SetLevel(ll)
 	dbName := "accounts"
+
 	db = dbInit(credsFile, dbName, registeredTableName)
 	defer db.Close()
 	log.Info("Webserver start")
@@ -82,63 +84,6 @@ func enableCors(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length")
 }
 
-func dbInit(credsFile string, dbName string, tableName string) *sql.DB {
-	// open the creds file and read contents
-	prefix := "^PSQLUSER=.*\n"
-	prefixlen := 9
-	pwprefix := "PSQLPW=.*"
-	pwprefixlen := 7
-
-	f, err := ioutil.ReadFile(credsFile)
-	check(err)
-	fileStr := string(f)
-
-	// use regex to find the username & pw
-	re := regexp.MustCompile(prefix)
-	str := re.FindString(fileStr)
-	user := string(str[prefixlen:])
-
-	re = regexp.MustCompile(pwprefix)
-	str = re.FindString(fileStr)
-	pw := string(str[pwprefixlen:])
-
-	// connect to postgres
-	connStr := fmt.Sprintf("host=localhost port=5433 dbname=%s user=%s password=%s sslmode=disable",
-		dbName, user, pw)
-	db, err := sql.Open("postgres", connStr) // This function does jack, so we need to Ping it
-	err = db.Ping()
-	check(err)
-	log.Debug("DB opened")
-
-	// Check if our DB exists
-	rows, err := db.Query(`
-		SELECT EXISTS(
- 			SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower($1)
-		);`, dbName)
-	check(err)
-
-	if rows == nil {
-		log.Panic(fmt.Sprintf("Database %s not found!"))
-	} else {
-		log.Info("Found DB ", dbName)
-	}
-
-	// Check if our schema.table exists
-	combined := fmt.Sprintf("%s.%s", schema, tableName)
-	query := fmt.Sprintf("SELECT * FROM %s;", combined)
-	log.Debug(query)
-	rows, err = db.Query(query)
-	check(err)
-
-	if rows == nil {
-		log.Panic("'registered' table does not exist!")
-	} else {
-		log.Debug(fmt.Sprintf("Table %s found, not creating.", tableName))
-	}
-	log.Info("Connect to postgres successful")
-	return db
-}
-
 func registerHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debug("registerHandle called")
 	log.Debug(r.Method)
@@ -164,17 +109,6 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
 		acct.User.Email, hash))
 
-	// TODO: See if the user is in the DB first
+	d.InsertNewUser(acct, hash)
 
-	query := fmt.Sprintf(`
-	INSERT INTO %s.registered (id, username, email, passhash)
-	VALUES ($1, $2, $3, $4)`, schema)
-
-	_, err = db.Exec(query,
-		idCounter,
-		acct.User.Username,
-		acct.User.Email,
-		hash)
-	check(err)
-	idCounter += 1 // TODO: change this to a uuid
 }
