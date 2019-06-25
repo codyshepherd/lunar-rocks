@@ -40,6 +40,13 @@ username varchar(255) UNIQUE NOT NULL,
 email varchar(255) NOT NULL,
 passHash bytea NOT NULL
 );" || true
+sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accounts.tokens 
+(token varchar(255) PRIMARY KEY,
+type integer NOT NULL,
+valid boolean NOT NULL,
+expires TIMESTAMP WITH TIME ZONE NOT NULL,
+userid varchar(255) REFERENCES register(id)
+);" || true
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON DATABASE accounts TO ${PSQLUSER};"
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON SCHEMA registered_accounts TO ${PSQLUSER};"
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON ALL TABLES IN SCHEMA registered_accounts TO ${PSQLUSER};"

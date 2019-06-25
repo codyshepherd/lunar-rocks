@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
@@ -16,10 +17,11 @@ import (
 
 var db *Database
 
-const registeredTableName = "registered"
-const schema = "registered_accounts"
+var Tokens map[string]jwt.Token
 
-var idCounter = 0
+const tableNames = []string("registered", "tokens")
+const schema = "registered_accounts"
+const develKey = "sometypeofimportedsigningkey"
 
 func main() {
 
@@ -50,7 +52,7 @@ func main() {
 	log.SetLevel(ll)
 	dbName := "accounts"
 
-	db = dbInit(credsFile, dbName, registeredTableName)
+	db = dbInit(credsFile, dbName, tableNames)
 	defer db.Close()
 	log.Info("Webserver start")
 	log.Info("Lisening on port: " + listenPort)
@@ -94,7 +96,8 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Debug(r)
-	if body, err := ioutil.ReadAll(r.Body); err != nil {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		log.Error(err)
 		return
 	}
@@ -102,12 +105,13 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var acct Account
 
-	if err = json.Unmarshal(body, &acct); err != nil {
+	if err := json.Unmarshal(body, &acct); err != nil {
 		log.Error(err)
 		return
 	}
 
-	if hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0); err != nil {
+	hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0)
+	if err != nil {
 		log.Error(err)
 		return
 	}
@@ -115,10 +119,55 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
 		acct.User.Email, hash))
 
-	if err = db.InsertNewUser(&acct, hash); err != nil {
+	if err := db.InsertNewUser(&acct, hash); err != nil {
 		log.Error(err)
 		return
 	}
 
-	//return 200 + json
+	// return 200 + json
+	token := jwt.New(jwt.SigningMethodHS256)
+	tokString, err := token.SignedString([]byte(develKey))
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem generating a session token."))
+		return
+	}
+	log.Debug(fmt.Sprintf("Token generated successfully: %s", tokString))
+
+	// Store token in database along with type
+	tokStruct := Token{
+		TokenString: tokString,
+		Type:        Bigfoot,
+		Valid:       true,
+		Expires:     time.Now().AddDate(0, 0, 21),
+	}
+
+	if err := db.StoreNewTokenForUser(&acct, &tokStruct); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem recording token data."))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	payload := ResponseAccount{
+		User: ResponseUser{
+			Username: acct.User.Username,
+			Token:    tokString,
+		},
+	}
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem sending response data."))
+		return
+	}
+	log.Debug("Payload marshaled successfully")
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, string(bytes))
+	log.Debug("Registration OK response sent successfully")
+
 }

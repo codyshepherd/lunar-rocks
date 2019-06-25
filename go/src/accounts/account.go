@@ -9,3 +9,12 @@ type PostAccount struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+type ResponseAccount struct {
+	User ResponseUser `json:"user"`
+}
+
+type ResponseUser struct {
+	Username string `json:"username"`
+	Token    string `json:"token"`
+}
