@@ -1,15 +1,12 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 
-	uuid "github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
@@ -17,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var db *sql.DB
+var db *Database
 
 const registeredTableName = "registered"
 const schema = "registered_accounts"
@@ -66,12 +63,13 @@ func main() {
 	r.HandleFunc("/register", registerHandle)
 
 	// Serve and log
-	err := http.ListenAndServe(":"+listenPort, r)
-
-	check(err)
+	if err := http.ListenAndServe(":"+listenPort, r); err != nil {
+		log.Error(err)
+		return
+	}
 }
 
-func check(e error) {
+func ErrorFail(e error) {
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -90,25 +88,37 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 
 	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
-		log.Info("Responding 200 to OPTIONS pre-flight check")
+		log.Info("Responding 200 to OPTIONS pre-flight Check")
 		w.WriteHeader(200)
 		return
 	}
 
 	log.Debug(r)
-	body, err := ioutil.ReadAll(r.Body)
-	check(err)
+	if body, err := ioutil.ReadAll(r.Body); err != nil {
+		log.Error(err)
+		return
+	}
+
 	defer r.Body.Close()
 	var acct Account
 
-	err = json.Unmarshal(body, &acct)
-	check(err)
-	hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0)
-	check(err)
+	if err = json.Unmarshal(body, &acct); err != nil {
+		log.Error(err)
+		return
+	}
+
+	if hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0); err != nil {
+		log.Error(err)
+		return
+	}
 
 	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
 		acct.User.Email, hash))
 
-	d.InsertNewUser(acct, hash)
+	if err = db.InsertNewUser(&acct, hash); err != nil {
+		log.Error(err)
+		return
+	}
 
+	//return 200 + json
 }
