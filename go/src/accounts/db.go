@@ -194,26 +194,8 @@ func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 	}
 
 	// Check to see if username or uuid is already in DB
-	var count int
-	Check_query := fmt.Sprintf(`
-  SELECT COUNT(id) FROM %s.registered where id=$1 OR username=$2`,
-		schema)
-	exists, err := d.Db.Query(Check_query, insertRow.id, insertRow.username)
-	if err != nil {
-		return insertRow.id, err
-	}
-	nextExists := exists.Next()
-
-	log.Debug("Results of query to determine if user already exists:")
-	if nextExists == true {
-		exists.Scan(&count)
-		log.Debug(fmt.Sprintf("count: %d", count))
-	}
-
-	if count > 0 {
-		log.Error("User or UUID already exists")
-		return insertRow.id, errors.New("User or UUID already exists")
-	}
+	// We get this for free from psql setup; the DB will not duplicate uuids
+	// or usernames
 
 	// Insert new user into DB
 	query := fmt.Sprintf(`
@@ -236,6 +218,7 @@ func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 
 	exists, err = d.Db.Query(Check_query, insertRow.id, insertRow.username)
 	if err != nil {
+		log.Error("There was a problem with the insert verification query")
 		return insertRow.id, err
 	}
 
@@ -247,5 +230,5 @@ func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 		log.Debug("User added to DB successfully")
 	}
 
-	return insertRow.id, err
+	return insertRow.id, nil
 }

@@ -251,8 +251,8 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 		if droperr != nil {
 			log.Error(droperr)
 		}
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("There was a problem storing the new user."))
+		w.WriteHeader(http.StatusConflict) // HTTP status 409
+		w.Write([]byte("User could not be registered with that username."))
 		return
 	}
 
