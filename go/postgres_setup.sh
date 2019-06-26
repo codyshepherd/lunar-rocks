@@ -38,7 +38,7 @@ sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accoun
 (id varchar(255) PRIMARY KEY,
 username varchar(255) UNIQUE NOT NULL,
 email varchar(255) NOT NULL,
-passHash bytea NOT NULL
+passHash varchar(255) NOT NULL
 );" || true
 sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accounts.tokens 
 (token varchar(255) PRIMARY KEY,

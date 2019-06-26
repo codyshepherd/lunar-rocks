@@ -18,3 +18,12 @@ type ResponseUser struct {
 	Username string `json:"username"`
 	Token    string `json:"token"`
 }
+
+type SignInAccount struct {
+	User Login `json:"user"`
+}
+
+type Login struct {
+	Password string `json:"password"`
+	Username string `json:"username"`
+}
