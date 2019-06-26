@@ -13,8 +13,9 @@ const (
 )
 
 type Token struct {
-	TokenString string
-	Type        TokenType
-	Valid       bool
-	Expires     time.Time
+	TokenString  string
+	Type         TokenType
+	Valid        bool
+	Expires      time.Time
+	ForeignKeyID string
 }

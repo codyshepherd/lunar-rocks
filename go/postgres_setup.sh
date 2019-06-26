@@ -45,7 +45,7 @@ sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accoun
 type integer NOT NULL,
 valid boolean NOT NULL,
 expires TIMESTAMP WITH TIME ZONE NOT NULL,
-userid varchar(255) REFERENCES register(id)
+userid varchar(255) REFERENCES registered_accounts.registered(id)
 );" || true
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON DATABASE accounts TO ${PSQLUSER};"
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON SCHEMA registered_accounts TO ${PSQLUSER};"

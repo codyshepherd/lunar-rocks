@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
@@ -18,8 +19,8 @@ import (
 var db *Database
 
 var Tokens map[string]jwt.Token
+var tableNames = []string{"registered", "tokens"}
 
-const tableNames = []string("registered", "tokens")
 const schema = "registered_accounts"
 const develKey = "sometypeofimportedsigningkey"
 
@@ -119,12 +120,13 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
 		acct.User.Email, hash))
 
-	if err := db.InsertNewUser(&acct, hash); err != nil {
+	id, err := db.InsertNewUser(&acct, hash)
+	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	// return 200 + json
+	// generate and sign JWT
 	token := jwt.New(jwt.SigningMethodHS256)
 	tokString, err := token.SignedString([]byte(develKey))
 	if err != nil {
@@ -137,19 +139,21 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Store token in database along with type
 	tokStruct := Token{
-		TokenString: tokString,
-		Type:        Bigfoot,
-		Valid:       true,
-		Expires:     time.Now().AddDate(0, 0, 21),
+		TokenString:  tokString,
+		Type:         Bigfoot,
+		Valid:        true,
+		Expires:      time.Now().AddDate(0, 0, 21),
+		ForeignKeyID: id,
 	}
 
-	if err := db.StoreNewTokenForUser(&acct, &tokStruct); err != nil {
+	if err := db.StoreNewTokenForUser(&tokStruct); err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("There was a problem recording token data."))
 		return
 	}
 
+	// return 200 + json
 	w.Header().Set("Content-Type", "application/json")
 	payload := ResponseAccount{
 		User: ResponseUser{
