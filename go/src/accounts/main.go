@@ -16,13 +16,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var db *Database
+var db *Database // exposes our database functionality as function calls
 
-var Tokens map[string]jwt.Token
-var tableNames = []string{"tokens", "registered"}
+var tableNames = []string{"tokens", "registered"} // specifies current databse tables of concern to this service
 
-const schema = "registered_accounts"
-const develKey = "sometypeofimportedsigningkey"
+const schema = "registered_accounts"            // the database schema under which the tables live
+const develKey = "sometypeofimportedsigningkey" // placeholder signing key
 
 func main() {
 
@@ -72,12 +71,14 @@ func main() {
 	}
 }
 
+// Error checking function which causes program exit on error
 func ErrorFail(e error) {
 	if e != nil {
 		log.Fatal(e)
 	}
 }
 
+// enable Cross-Origin Resource Sharing
 func enableCors(w *http.ResponseWriter, req *http.Request) {
 	log.Debug("enableCors called")
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -85,6 +86,7 @@ func enableCors(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length")
 }
 
+// Handle POST requests to the /login endpoint
 func signInHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debug("signInHandle called")
 	log.Debug(r.Method)
@@ -198,6 +200,7 @@ func signInHandle(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// Handle POST requests to the /register endpoint
 func registerHandle(w http.ResponseWriter, r *http.Request) {
 	log.Debug("registerHandle called")
 	log.Debug(r.Method)

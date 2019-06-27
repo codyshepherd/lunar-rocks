@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -20,6 +19,7 @@ type Database struct {
 	Db *sql.DB
 }
 
+// acctRow represents a row/entry in the 'registered' DB Table
 type acctRow struct {
 	id       string
 	username string
@@ -28,6 +28,7 @@ type acctRow struct {
 	count    int
 }
 
+// Initialize DB and ensure a good connection
 func dbInit(credsFile string, dbName string, tableNames []string) *Database {
 	// open the creds file and read contents
 	prefix := "^PSQLUSER=.*\n"
@@ -85,16 +86,19 @@ func dbInit(credsFile string, dbName string, tableNames []string) *Database {
 	}
 	log.Info("Connect to postgres successful")
 
+	// Assign to module-level variable
 	d := Database{Db: nil}
 	log.Debug(reflect.TypeOf(db))
 	d.Db = db
 	return &d
 }
 
+// Close the DB
 func (d *Database) Close() {
 	d.Db.Close()
 }
 
+// Delete an entry/row from all tables, using `registered.id` as key
 func (d *Database) DeleteByID(id string) error {
 	var column string
 	for table := range tableNames {
@@ -116,6 +120,7 @@ func (d *Database) DeleteByID(id string) error {
 	return nil
 }
 
+// Retrieve 'registered.id' entry for a given plaintext username
 func (d *Database) GetIdByUsername(username string) (string, error) {
 	retrieve_query := fmt.Sprintf(`
 		SELECT id FROM %s.registered where username=$1`, schema)
@@ -139,8 +144,9 @@ func (d *Database) GetIdByUsername(username string) (string, error) {
 	}
 }
 
+// Pass in a plaintext password for comparison against the stored password hash
+// Returns true for match, false for mismatch
 func (d *Database) ComparePasswordHashByUsername(username string, attempt string) (bool, error) {
-	// true for match, false for mismatch
 	retrieve_query := fmt.Sprintf(`
 	  SELECT passHash from %s.registered where username=$1`, schema)
 
@@ -163,6 +169,9 @@ func (d *Database) ComparePasswordHashByUsername(username string, attempt string
 	}
 }
 
+// Store a token in the 'tokens' table
+// Token struct object must contain the id (foreign key) of the user to which
+// it applies
 func (d *Database) StoreNewTokenForUser(tok *Token) error {
 	log.Debug("StoreNewTokenForUser")
 	store_query := fmt.Sprintf(`
@@ -184,6 +193,7 @@ func (d *Database) StoreNewTokenForUser(tok *Token) error {
 	return nil
 }
 
+// Add a new user entry/row to the 'registered' table
 func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 	u := uuid.New()
 	insertRow := acctRow{
