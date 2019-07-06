@@ -38,7 +38,14 @@ sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accoun
 (id varchar(255) PRIMARY KEY,
 username varchar(255) UNIQUE NOT NULL,
 email varchar(255) NOT NULL,
-passHash bytea NOT NULL
+passHash varchar(255) NOT NULL
+);" || true
+sudo -u postgres psql -U postgres -d accounts -c "CREATE TABLE registered_accounts.tokens 
+(token varchar(255) PRIMARY KEY,
+type integer NOT NULL,
+valid boolean NOT NULL,
+expires TIMESTAMP WITH TIME ZONE NOT NULL,
+userid varchar(255) REFERENCES registered_accounts.registered(id)
 );" || true
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON DATABASE accounts TO ${PSQLUSER};"
 sudo -u postgres psql -U postgres -d accounts -c "GRANT ALL ON SCHEMA registered_accounts TO ${PSQLUSER};"

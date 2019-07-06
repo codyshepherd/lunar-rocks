@@ -1,14 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
+	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
@@ -16,12 +16,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var db *sql.DB
+var db *Database // exposes our database functionality as function calls
 
-const registeredTableName = "registered"
-const schema = "registered_accounts"
+var tableNames = []string{"tokens", "registered"} // specifies current databse tables of concern to this service
 
-var idCounter = 0
+const schema = "registered_accounts"            // the database schema under which the tables live
+const develKey = "sometypeofimportedsigningkey" // placeholder signing key
 
 func main() {
 
@@ -51,7 +51,8 @@ func main() {
 	}
 	log.SetLevel(ll)
 	dbName := "accounts"
-	db = dbInit(credsFile, dbName, registeredTableName)
+
+	db = dbInit(credsFile, dbName, tableNames)
 	defer db.Close()
 	log.Info("Webserver start")
 	log.Info("Lisening on port: " + listenPort)
@@ -60,21 +61,24 @@ func main() {
 	r := mux.NewRouter()
 
 	// Handle calls to index and elm.js with same function
-	// r.HandleFunc("/register", registerHandle).Methods("POST")
 	r.HandleFunc("/register", registerHandle)
+	r.HandleFunc("/login", signInHandle)
 
 	// Serve and log
-	err := http.ListenAndServe(":"+listenPort, r)
-
-	check(err)
+	if err := http.ListenAndServe(":"+listenPort, r); err != nil {
+		log.Error(err)
+		return
+	}
 }
 
-func check(e error) {
+// Error checking function which causes program exit on error
+func ErrorFail(e error) {
 	if e != nil {
 		log.Fatal(e)
 	}
 }
 
+// enable Cross-Origin Resource Sharing
 func enableCors(w *http.ResponseWriter, req *http.Request) {
 	log.Debug("enableCors called")
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
@@ -82,99 +86,243 @@ func enableCors(w *http.ResponseWriter, req *http.Request) {
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length")
 }
 
-func dbInit(credsFile string, dbName string, tableName string) *sql.DB {
-	// open the creds file and read contents
-	prefix := "^PSQLUSER=.*\n"
-	prefixlen := 9
-	pwprefix := "PSQLPW=.*"
-	pwprefixlen := 7
-
-	f, err := ioutil.ReadFile(credsFile)
-	check(err)
-	fileStr := string(f)
-
-	// use regex to find the username & pw
-	re := regexp.MustCompile(prefix)
-	str := re.FindString(fileStr)
-	user := string(str[prefixlen:])
-
-	re = regexp.MustCompile(pwprefix)
-	str = re.FindString(fileStr)
-	pw := string(str[pwprefixlen:])
-
-	// connect to postgres
-	connStr := fmt.Sprintf("host=localhost port=5433 dbname=%s user=%s password=%s sslmode=disable",
-		dbName, user, pw)
-	db, err := sql.Open("postgres", connStr) // This function does jack, so we need to Ping it
-	err = db.Ping()
-	check(err)
-	log.Debug("DB opened")
-
-	// Check if our DB exists
-	rows, err := db.Query(`
-		SELECT EXISTS(
- 			SELECT datname FROM pg_catalog.pg_database WHERE lower(datname) = lower($1)
-		);`, dbName)
-	check(err)
-
-	if rows == nil {
-		log.Panic(fmt.Sprintf("Database %s not found!"))
-	} else {
-		log.Info("Found DB ", dbName)
-	}
-
-	// Check if our schema.table exists
-	combined := fmt.Sprintf("%s.%s", schema, tableName)
-	query := fmt.Sprintf("SELECT * FROM %s;", combined)
-	log.Debug(query)
-	rows, err = db.Query(query)
-	check(err)
-
-	if rows == nil {
-		log.Panic("'registered' table does not exist!")
-	} else {
-		log.Debug(fmt.Sprintf("Table %s found, not creating.", tableName))
-	}
-	log.Info("Connect to postgres successful")
-	return db
-}
-
-func registerHandle(w http.ResponseWriter, r *http.Request) {
-	log.Debug("registerHandle called")
+// Handle POST requests to the /login endpoint
+func signInHandle(w http.ResponseWriter, r *http.Request) {
+	log.Debug("signInHandle called")
 	log.Debug(r.Method)
 
+	// Handle CORS
 	enableCors(&w, r)
 	if r.Method == "OPTIONS" {
-		log.Info("Responding 200 to OPTIONS pre-flight check")
+		log.Info("Responding 200 to OPTIONS pre-flight Check")
 		w.WriteHeader(200)
 		return
 	}
 
+	// Read and unmarshal request body
 	log.Debug(r)
 	body, err := ioutil.ReadAll(r.Body)
-	check(err)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem reading info from the client."))
+		return
+	}
+
+	defer r.Body.Close()
+	var acct SignInAccount
+
+	if err := json.Unmarshal(body, &acct); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem parsing info from the client."))
+		return
+	}
+
+	// Check the password against the stored hash
+	match, err := db.ComparePasswordHashByUsername(acct.User.Username, acct.User.Password)
+	if err != nil { // case: error
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem comparing the password."))
+		return
+	} else if !match { // case: no match
+		log.Info(fmt.Sprintf("Incorrect Password on login attempt for user %s", acct.User.Username))
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Incorrect password or username."))
+	} else { // case: match
+		// get user id
+		id, err := db.GetIdByUsername(acct.User.Username)
+		if err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("There was a problem finding the user."))
+			return
+		}
+		log.Info("Password hashes match")
+
+		// generate and sign JWT
+		expiry := time.Now().AddDate(0, 0, 21)
+		claims := jwt.StandardClaims{
+			Id:        id,
+			Issuer:    "Devel",
+			ExpiresAt: expiry.Unix(),
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokString, err := token.SignedString([]byte(develKey))
+		if err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("There was a problem generating a session token."))
+			return
+		}
+		log.Debug(fmt.Sprintf("Token generated successfully: %s", tokString))
+
+		// Store token in database along with type
+		tokStruct := Token{
+			TokenString:  tokString,
+			Type:         Bigfoot,
+			Valid:        true,
+			Expires:      expiry,
+			ForeignKeyID: id,
+		}
+
+		if err := db.StoreNewTokenForUser(&tokStruct); err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("There was a problem recording token data."))
+			return
+		}
+
+		// return 200 + json
+		w.Header().Set("Content-Type", "application/json")
+		payload := ResponseAccount{
+			User: ResponseUser{
+				Username: acct.User.Username,
+				Token:    tokString,
+			},
+		}
+		bytes, err := json.Marshal(payload)
+		if err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("There was a problem sending response data."))
+			return
+		}
+		log.Debug("Payload marshaled successfully")
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, string(bytes))
+		log.Debug("Registration OK response sent successfully")
+
+	}
+	log.Debug("SignInHandle finished")
+	return
+}
+
+// Handle POST requests to the /register endpoint
+func registerHandle(w http.ResponseWriter, r *http.Request) {
+	log.Debug("registerHandle called")
+	log.Debug(r.Method)
+
+	// Handle CORS
+	enableCors(&w, r)
+	if r.Method == "OPTIONS" {
+		log.Info("Responding 200 to OPTIONS pre-flight Check")
+		w.WriteHeader(200)
+		return
+	}
+
+	// Read and unmarshal request data
+	log.Debug(r)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem reading info from the client."))
+		return
+	}
+
 	defer r.Body.Close()
 	var acct Account
 
-	err = json.Unmarshal(body, &acct)
-	check(err)
-	hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0)
-	check(err)
+	if err := json.Unmarshal(body, &acct); err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem parsing info from the client."))
+		return
+	}
 
-	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %s, %b", acct.User.Username,
+	// Generate password hash and clear the plaintext pw
+	hash, err := bcrypt.GenerateFromPassword([]byte(acct.User.Password), 0)
+	acct.User.Password = ""
+	if err != nil {
+		log.Error(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem handling the password."))
+		return
+	}
+
+	log.Info(fmt.Sprintf("Received FormValues: %s, %s, %b", acct.User.Username,
 		acct.User.Email, hash))
 
-	// TODO: See if the user is in the DB first
+	// Store the new user
+	id, err := db.InsertNewUser(&acct, hash)
+	if err != nil {
+		log.Error(err)
+		droperr := db.DeleteByID(id, tableNames)
+		if droperr != nil {
+			log.Error(droperr)
+		}
+		w.WriteHeader(http.StatusConflict) // HTTP status 409
+		w.Write([]byte("User could not be registered with that username."))
+		return
+	}
 
-	query := fmt.Sprintf(`
-	INSERT INTO %s.registered (id, username, email, passhash)
-	VALUES ($1, $2, $3, $4)`, schema)
+	// generate and sign JWT
+	expiry := time.Now().AddDate(0, 0, 21)
+	claims := jwt.StandardClaims{
+		Id:        id,
+		Issuer:    "Devel",
+		ExpiresAt: expiry.Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokString, err := token.SignedString([]byte(develKey))
+	if err != nil {
+		log.Error(err)
+		droperr := db.DeleteByID(id, tableNames)
+		if droperr != nil {
+			log.Error(droperr)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem generating a session token."))
+		return
+	}
+	log.Debug(fmt.Sprintf("Token generated successfully: %s", tokString))
 
-	_, err = db.Exec(query,
-		idCounter,
-		acct.User.Username,
-		acct.User.Email,
-		hash)
-	check(err)
-	idCounter += 1 // TODO: change this to a uuid
+	// Store token in database along with type
+	tokStruct := Token{
+		TokenString:  tokString,
+		Type:         Bigfoot,
+		Valid:        true,
+		Expires:      expiry,
+		ForeignKeyID: id,
+	}
+
+	if err := db.StoreNewTokenForUser(&tokStruct); err != nil {
+		log.Error(err)
+		droperr := db.DeleteByID(id, tableNames)
+		if droperr != nil {
+			log.Error(droperr)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem recording token data."))
+		return
+	}
+
+	// return 200 + json
+	w.Header().Set("Content-Type", "application/json")
+	payload := ResponseAccount{
+		User: ResponseUser{
+			Username: acct.User.Username,
+			Token:    tokString,
+		},
+	}
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Error(err)
+		droperr := db.DeleteByID(id, tableNames)
+		if droperr != nil {
+			log.Error(droperr)
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("There was a problem sending response data."))
+		return
+	}
+	log.Debug("Payload marshaled successfully")
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, string(bytes))
+	log.Debug("Registration OK response sent successfully")
+
 }
