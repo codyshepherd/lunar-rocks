@@ -86,6 +86,41 @@ Navigate to `localhost:1025/` in your favorite browser
 
 ### Accounts
 ---
+__Basic Compilation and Runtime__
+
+Note the the following method only works well if your direnv is set up. If
+you find that the `go` build commands give you errors, re-check that you have
+a `.envrc` file in your `go` directory and that you have run `direnv allow`.
+
+To download dependencies, compile the accounts service, and run it, navigate to
+the `go` directory and enter:
+
+```
+go get accounts
+sudo ./bin/accounts
+```
+
+__Note__
+
+The accounts service supports the following command-line options 
+(`sudo ./bin/accounts --help` to learn a bit more):
+
+  -creds <string>
+        File to find Postgres credentials (default "psql_creds.rc")
+  -log <string>
+        Log Levels
+        n: Errors only
+        q: Info
+        v: Debug
+        vvv: Trace (default "v")
+  -port <string>
+        port for server to listen on (default "9000")
+
+
+__Finally__
+`sudo ./bin/accounts`
+
+Then run the client in a different terminal via the `./develop.sh` script.
 
 __Local Development: Install Postgres:__
 

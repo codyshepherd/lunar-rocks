@@ -14,13 +14,13 @@ source "${PWD}/${CREDSFILE}"
 set -x
 
 # Install postgres if it is not already present
-if [ `dpkg-query -l | grep -q postgresql` ]; then
+if [ -n `dpkg-query -l | grep -q postgresql` ]; then
     echo "postgres not found. Installing..."
     sudo apt-get install --assume-yes postgresql
 else
     echo "postgres is already installed. Not installing..."
 fi
-if [ `dpkg-query -l | grep -q postgresql-contrib` ]; then
+if [ -n `dpkg-query -l | grep -q postgresql-contrib` ]; then
     echo "postgres-contrib not found. Installing..."
     sudo apt-get install --assume-yes postgresql-contrib
 else

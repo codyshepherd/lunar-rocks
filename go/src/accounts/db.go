@@ -49,9 +49,11 @@ func dbInit(credsFile string, dbName string, tableNames []string) *Database {
 	pw := string(str[pwprefixlen:])
 
 	// connect to postgres
-	connStr := fmt.Sprintf("host=localhost port=5433 dbname=%s user=%s password=%s sslmode=disable",
+	log.Debug("Attempting to connect to and open DB")
+	connStr := fmt.Sprintf("host=localhost port=5432 dbname=%s user=%s password=%s sslmode=disable",
 		dbName, user, pw)
 	db, err := sql.Open("postgres", connStr) // This function does jack, so we need to Ping it
+	ErrorFail(err)
 	err = db.Ping()
 	ErrorFail(err)
 	log.Debug("DB opened")
