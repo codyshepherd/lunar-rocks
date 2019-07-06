@@ -250,7 +250,7 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	id, err := db.InsertNewUser(&acct, hash)
 	if err != nil {
 		log.Error(err)
-		droperr := db.DeleteByID(id)
+		droperr := db.DeleteByID(id, tableNames)
 		if droperr != nil {
 			log.Error(droperr)
 		}
@@ -270,7 +270,7 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	tokString, err := token.SignedString([]byte(develKey))
 	if err != nil {
 		log.Error(err)
-		droperr := db.DeleteByID(id)
+		droperr := db.DeleteByID(id, tableNames)
 		if droperr != nil {
 			log.Error(droperr)
 		}
@@ -291,7 +291,7 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 
 	if err := db.StoreNewTokenForUser(&tokStruct); err != nil {
 		log.Error(err)
-		droperr := db.DeleteByID(id)
+		droperr := db.DeleteByID(id, tableNames)
 		if droperr != nil {
 			log.Error(droperr)
 		}
@@ -311,7 +311,7 @@ func registerHandle(w http.ResponseWriter, r *http.Request) {
 	bytes, err := json.Marshal(payload)
 	if err != nil {
 		log.Error(err)
-		droperr := db.DeleteByID(id)
+		droperr := db.DeleteByID(id, tableNames)
 		if droperr != nil {
 			log.Error(droperr)
 		}

@@ -25,7 +25,6 @@ type acctRow struct {
 	username string
 	email    string
 	passhash []byte
-	count    int
 }
 
 // Initialize DB and ensure a good connection
@@ -99,9 +98,9 @@ func (d *Database) Close() {
 }
 
 // Delete an entry/row from all tables, using `registered.id` as key
-func (d *Database) DeleteByID(id string) error {
+func (d *Database) DeleteByID(id string, tableNames []string) error {
 	var column string
-	for table := range tableNames {
+	for _, table := range tableNames {
 		if table == "tokens" {
 			column = "userid"
 		} else {
@@ -212,7 +211,7 @@ func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 	INSERT INTO %s.registered (id, username, email, passhash)
 	VALUES ($1, $2, $3, $4)`, schema)
 
-	if _, err = d.Db.Exec(query,
+	if _, err := d.Db.Exec(query,
 		insertRow.id,
 		insertRow.username,
 		insertRow.email,
@@ -222,19 +221,20 @@ func (d *Database) InsertNewUser(acct *Account, hash []byte) (string, error) {
 	}
 
 	// Check that user was in fact added successfully
-	Check_query = fmt.Sprintf(`
+	Check_query := fmt.Sprintf(`
   SELECT COUNT(id) FROM %s.registered where id=$1 OR username=$2`,
 		schema)
 
-	exists, err = d.Db.Query(Check_query, insertRow.id, insertRow.username)
+	exists, err := d.Db.Query(Check_query, insertRow.id, insertRow.username)
 	if err != nil {
 		log.Error("There was a problem with the insert verification query")
 		return insertRow.id, err
 	}
 
-	nextExists = exists.Next()
+	var count int
+	nextExists := exists.Next()
 	exists.Scan(&count)
-	if count != 1 {
+	if (nextExists != false) && (count != 1) {
 		log.Error("Could not find new user after adding to DB")
 	} else {
 		log.Debug("User added to DB successfully")
