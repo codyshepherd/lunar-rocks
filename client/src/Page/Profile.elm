@@ -19,7 +19,9 @@ type alias Model =
 
 
 type alias Profile =
-    { email : String }
+    { username : String
+    , email : String
+    }
 
 
 init : Session -> String -> ( Model, Cmd Msg )
@@ -51,7 +53,7 @@ update msg model =
                 debug =
                     Debug.log "Error requesting profile: " error
             in
-            ( model, Cmd.none )
+            ( { model | profile = Nothing }, Cmd.none )
 
         CompletedProfileLoad (Ok profile) ->
             let
@@ -69,22 +71,20 @@ view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 10 ]
         [ column [ centerX, spacing 10, Font.family Fonts.quattrocentoFont ] <|
-            case model.profile of
-                Just profile ->
-                    [ row [ width fill ]
-                        [ column [ centerX ]
-                            [ el [ centerX ] <|
-                                text "Your email:"
-                            , el
-                                [ centerX ]
-                              <|
-                                text profile.email
-                            ]
+            [ column [ centerX ] <|
+                case model.profile of
+                    Just profile ->
+                        [ el [ centerX ] <|
+                            text ("username: " ++ profile.username)
+                        , el [ centerX ] <|
+                            text ("email: " ++ profile.email)
                         ]
-                    ]
 
-                Nothing ->
-                    []
+                    Nothing ->
+                        [ el [ centerX ] <|
+                            text "profile not found"
+                        ]
+            ]
         ]
 
 
@@ -114,4 +114,5 @@ fetchProfile session username =
 profileDecoder : Decoder Profile
 profileDecoder =
     Decode.succeed Profile
+        |> required "username" Decode.string
         |> required "email" Decode.string
