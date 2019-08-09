@@ -120,7 +120,8 @@ The accounts service supports the following command-line options
 __Finally__
 `sudo ./bin/accounts`
 
-Then run the client in a different terminal via the `./develop.sh` script.
+Then follow instructions in the `client/` readme to compile and serve the
+client
 
 __Local Development: Install Postgres:__
 
@@ -160,7 +161,3 @@ e.g.
 This will enable you to log into an interactive postgres prompt with your devel
 credentials for debugging or testing, though this can be avoided using the
 `-W` switch when running `psql` to force a password prompt.
-
-## TODO
-
-compile & run script?
