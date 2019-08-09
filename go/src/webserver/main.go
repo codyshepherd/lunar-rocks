@@ -92,5 +92,5 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		file = "/index.html"
 	}
 	log.Debug("Requested: " + file)
-	http.ServeFile(w, r, "../client/build"+file)
+	http.ServeFile(w, r, "../client/dist"+file)
 }

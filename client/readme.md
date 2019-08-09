@@ -6,12 +6,11 @@ The Lunar Rocks frontend is an Elm 0.19 application.
 
 ## Setup
 
-Install [Elm](https://guide.elm-lang.org/install.html),
-[elm-live](https://github.com/wking-io/elm-live), and
-[uglify-js](https://www.npmjs.com/package/uglify-js) globally.
+Install [Elm](https://guide.elm-lang.org/install.html) and
+[parcel](https://github.com/wking-io/elm-live)
 
 ```
-npm install -g elm elm-live uglify-js
+npm install -g elm parcel-bundler
 
 ```
 
@@ -22,34 +21,28 @@ npm install
 
 ## Develop 
 
-This script uses `elm-live` to compile and serve the client. 
+`parcel` provides a local webserver and hot reloading which are useful during
+local development.
 
 ```
-./develop.sh
+parcel src/index.html
 ```
-
-`elm-live` compiles and reloads the application when changes to static or Elm files are made.
-
-This script is useful when working on the client, but note that the Lunar Rocks
-webserver will not see changes to the client without running one of the build
-scripts below.
-
 
 ## Build
 
-Both build scripts emit the compiled application to the `build` directory for consumption
-by the webserver.
+Both `parcel` build commands emit compiled artifacts to the `dist` directory for
+consumption by the Lunar Rocks webserver.
 
 Compile a development build without optimization.
 
 ```
-./compile.sh
+parcel build src/index.html --no-minify
 ```
 
 Compile an optimized production build.
 
 ```
-./optimize.sh
+parcel build src/index.html
 ```
 
-Note that all debug statements must be removed for the optimized build.
+All debug statements must be removed for the optimized build.

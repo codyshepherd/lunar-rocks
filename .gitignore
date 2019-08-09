@@ -4,16 +4,11 @@
 
 # elm
 elm-stuff/
-elm.js
+dist/
+.cache/
 
 # node
 node_modules/
-
-# python
-__pycache__/
-venv/
-controller.log
-server.log
 
 # go
 server.crt
