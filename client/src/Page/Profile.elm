@@ -26,10 +26,6 @@ type alias Profile =
 
 init : Session -> String -> ( Model, Cmd Msg )
 init session username =
-    let
-        maybeCred =
-            Session.cred session
-    in
     ( { session = session
       , profile = Nothing
       }
