@@ -106,7 +106,7 @@ loadCurrentPage session ( model, cmd ) =
                 Routes.Profile username ->
                     let
                         ( pageModel, pageCmd ) =
-                            Profile.init
+                            Profile.init session username
                     in
                     ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
 

@@ -1,4 +1,4 @@
-port module Api exposing (Cred, Flags, application, fakeLogin, fakeRegister, login, logout, register, storeCredWith, userChanges, username)
+port module Api exposing (Cred, Flags, application, fakeLogin, fakeRegister, get, login, logout, register, storeCredWith, toUrl, userChanges, username)
 
 import Browser
 import Browser.Navigation as Nav
@@ -40,7 +40,7 @@ username (Cred uname _) =
 
 credHeader : Cred -> Http.Header
 credHeader (Cred _ str) =
-    Http.header "authorization" ("Token " ++ str)
+    Http.header "authorization" str
 
 
 credDecoder : Decoder Cred
