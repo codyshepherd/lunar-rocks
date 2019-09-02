@@ -7,7 +7,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-dev": "parcel build src/index.html --no-minify",
+    "build-prod": "parcel build src/index.html"
   },
   "keywords": [],
   "author": "Cody Shepherd and Brian Ginsburg",
@@ -16,7 +18,9 @@
     "waaclock": "^0.5.3"
   },
   "devDependencies": {
+    "elm": "^0.19.0-no-deps",
     "elm-hot": "^1.1.0",
-    "node-elm-compiler": "^5.0.3"
+    "node-elm-compiler": "^5.0.3",
+    "parcel-bundler": "^1.12.3"
   }
 }
