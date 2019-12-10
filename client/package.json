@@ -13,6 +13,7 @@
   "author": "Cody Shepherd and Brian Ginsburg",
   "license": "",
   "dependencies": {
+    "aws-amplify": "^2.2.0",
     "waaclock": "^0.5.3"
   },
   "devDependencies": {

@@ -1,9 +1,10 @@
-module Page.Register exposing (Model, Msg(..), init, update, view)
+module Page.Register exposing (Model, Msg(..), init, subscriptions, update, view)
 
 {-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Register.elm>
 -}
 
 import Api
+import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,6 +13,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import Http
+import Json.Decode as Decode exposing (Error)
 import Json.Encode as Encode
 import Session exposing (Session)
 import User exposing (User)
@@ -86,7 +88,8 @@ type Msg
     | EnteredEmail String
     | EnteredPassword String
     | EnteredPasswordConfirmation String
-    | CompletedLogin (Result Http.Error User)
+      -- | CompletedLogin (Result Decode.Error Api.AuthResult)
+    | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -95,7 +98,7 @@ update msg model =
         SubmittedForm ->
             -- TODO: add form validation
             ( { model | problems = [] }
-            , Http.send CompletedLogin (register model.form)
+            , register model.form
             )
 
         EnteredUsername username ->
@@ -111,19 +114,23 @@ update msg model =
             updateForm (\form -> { form | confirmPassword = password }) model
 
         CompletedLogin (Err error) ->
-            -- TODO: decode server errors to display to user
             let
                 debug =
-                    Debug.log "Server error: " error
+                    Debug.log "Error: " error
             in
-            ( model, Cmd.none )
+            case error of
+                Api.AuthError err ->
+                    ( model, Cmd.none )
 
-        CompletedLogin (Ok user) ->
+                Api.DecodeError err ->
+                    ( model, Cmd.none )
+
+        CompletedLogin (Ok authResult) ->
             let
                 debug =
-                    Debug.log "Http OK with: " user
+                    Debug.log "Auth Register OK with: " authResult
             in
-            ( model, User.store user )
+            ( model, Nav.pushUrl (Session.navKey model.session) "confirm" )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -208,35 +215,25 @@ view model =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
+subscriptions : Sub Msg
+subscriptions =
+    Api.authResponse (\authResult -> CompletedLogin authResult)
 
 
 
--- HTTP
+-- AUTH
 
 
-{-| register packages up the form data and returns an Http request that we call in SubmittedForm
+{-| register packages up the form data and calls the API to register a user
 -}
-register : Form -> Http.Request User
+register : Form -> Cmd msg
 register form =
     let
-        user =
+        json =
             Encode.object
                 [ ( "email", Encode.string form.email )
                 , ( "username", Encode.string form.username )
                 , ( "password", Encode.string form.password )
                 ]
-
-        body =
-            Encode.object [ ( "user", user ) ]
-                |> Http.jsonBody
     in
-    Api.register body User.decoder
-
-
-
--- fakeRegister : Form -> Cmd msg
--- fakeRegister form =
---     Api.fakeRegister form.username form.password
+    Api.register json

@@ -15,6 +15,7 @@ import Element.Font as Font
 import Fonts
 import Html exposing (Html)
 import Json.Decode as Decode exposing (Value)
+import Page.Confirm as Confirm
 import Page.Home as Home
 import Page.Login as Login
 import Page.MusicSession as MusicSession
@@ -62,15 +63,13 @@ type Page
     | Login Login.Model
     | Profile Profile.Model
     | Register Register.Model
+    | Confirm Confirm.Model
     | MusicSession MusicSession.Model
 
 
 init : Maybe User -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeUser _ navKey =
     let
-        dbg =
-            Debug.log "maybeUser: " maybeUser
-
         session =
             Session.fromUser navKey maybeUser
 
@@ -117,6 +116,13 @@ loadCurrentPage session ( model, cmd ) =
                     in
                     ( Register pageModel, Cmd.map RegisterMsg pageCmd )
 
+                Routes.Confirm ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            Confirm.init session
+                    in
+                    ( Confirm pageModel, Cmd.map ConfirmMsg pageCmd )
+
                 Routes.MusicSession username sessionName ->
                     let
                         ( pageModel, pageCmd ) =
@@ -143,6 +149,7 @@ type Msg
     | Logout
     | ProfileMsg Profile.Msg
     | RegisterMsg Register.Msg
+    | ConfirmMsg Confirm.Msg
     | MusicSessionMsg MusicSession.Msg
 
 
@@ -212,6 +219,15 @@ update msg model =
             , Cmd.map RegisterMsg newCmd
             )
 
+        ( ConfirmMsg subMsg, Confirm pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    Confirm.update subMsg pageModel
+            in
+            ( { model | page = Confirm newPageModel }
+            , Cmd.map ConfirmMsg newCmd
+            )
+
         ( MusicSessionMsg subMsg, MusicSession pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
@@ -238,13 +254,16 @@ subscriptions model =
                 Sub.map HomeMsg (Home.subscriptions pageModel)
 
             Login _ ->
-                Sub.none
+                Sub.map LoginMsg Login.subscriptions
 
             Profile _ ->
                 Sub.none
 
             Register _ ->
-                Sub.none
+                Sub.map RegisterMsg Register.subscriptions
+
+            Confirm _ ->
+                Sub.map ConfirmMsg Confirm.subscriptions
 
             MusicSession pageModel ->
                 Sub.map MusicSessionMsg (MusicSession.subscriptions pageModel)
@@ -276,6 +295,10 @@ view model =
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
                 |> viewWith model.session "Register"
+
+        Confirm pageModel ->
+            Element.map ConfirmMsg (Confirm.view pageModel)
+                |> viewWith model.session "Confirm"
 
         MusicSession pageModel ->
             Element.map MusicSessionMsg (MusicSession.view pageModel)

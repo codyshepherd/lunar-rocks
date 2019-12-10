@@ -1,4 +1,4 @@
-port module Api exposing (Cred, Flags, application, fakeLogin, fakeRegister, get, login, logout, register, storeCredWith, toUrl, userChanges, username)
+port module Api exposing (AuthError(..), AuthSuccess, Cred, Flags, application, authResponse, confirm, get, login, logout, register, toUrl, userChanges, username)
 
 import Browser
 import Browser.Navigation as Nav
@@ -83,28 +83,100 @@ decodeFromChange userDecoder val =
         |> Result.toMaybe
 
 
-storeCredWith : Cred -> Cmd msg
-storeCredWith (Cred uname token) =
-    let
-        json =
-            Encode.object
-                [ ( "user"
-                  , Encode.object
-                        [ ( "username", Username.encode uname )
-                        , ( "token", Encode.string token )
-                        ]
-                  )
-                ]
-    in
-    storeAuth (Just json)
+
+-- AUTH
+
+
+type AuthResponse
+    = Success
+    | Error String
+
+
+type AuthSuccess
+    = AuthSuccess
+
+
+type AuthError
+    = DecodeError Decode.Error
+    | AuthError String
+
+
+port cognitoRegister : Maybe Value -> Cmd msg
+
+
+port cognitoConfirm : Maybe Value -> Cmd msg
+
+
+port cognitoLogin : Maybe Value -> Cmd msg
+
+
+port cognitoLogout : () -> Cmd msg
+
+
+port onCognitoResponse : (Value -> msg) -> Sub msg
+
+
+port onConfirmationResponse : (Value -> msg) -> Sub msg
+
+
+register : Value -> Cmd msg
+register registration =
+    cognitoRegister (Just registration)
+
+
+confirm : Value -> Cmd msg
+confirm confirmationCode =
+    cognitoConfirm (Just confirmationCode)
+
+
+login : Value -> Cmd msg
+login creds =
+    cognitoLogin (Just creds)
 
 
 logout : Cmd msg
 logout =
-    storeAuth Nothing
+    cognitoLogout ()
 
 
-port storeAuth : Maybe Value -> Cmd msg
+authResponse : (Result AuthError AuthSuccess -> msg) -> Sub msg
+authResponse toMsg =
+    onCognitoResponse (\value -> toMsg (toAuthResult (Decode.decodeValue decodeAuthResponse value)))
+
+
+decodeAuthResponse : Decoder AuthResponse
+decodeAuthResponse =
+    Decode.field "response" Decode.string
+        |> Decode.andThen decodeAuthResult
+
+
+decodeAuthResult : String -> Decoder AuthResponse
+decodeAuthResult result =
+    case result of
+        "success" ->
+            Decode.succeed Success
+
+        "error" ->
+            Decode.field "message" Decode.string
+                |> Decode.andThen (\message -> Decode.succeed (Error message))
+
+        _ ->
+            Decode.fail <| "Something went wrong"
+
+
+toAuthResult : Result Decode.Error AuthResponse -> Result AuthError AuthSuccess
+toAuthResult result =
+    case result of
+        Err error ->
+            Err (DecodeError error)
+
+        Ok value ->
+            case value of
+                Success ->
+                    Ok AuthSuccess
+
+                Error err ->
+                    Err (AuthError err)
 
 
 
@@ -133,8 +205,7 @@ application userDecoder config =
         init flags url navKey =
             let
                 maybeUser =
-                    Decode.decodeValue Decode.string flags
-                        |> Result.andThen (Decode.decodeString (storageDecoder userDecoder))
+                    Decode.decodeValue (storageDecoder userDecoder) flags
                         |> Result.toMaybe
             in
             config.init maybeUser url navKey
@@ -215,26 +286,10 @@ toUrl paths queryParams =
     Url.Builder.crossOrigin "http://localhost:9000" paths queryParams
 
 
-login : Http.Body -> Decoder (Cred -> a) -> Http.Request a
-login body decoder =
-    post (toUrl [ "login" ] []) Nothing body (Decode.field "user" (decoderFromCred decoder))
 
-
-register : Http.Body -> Decoder (Cred -> a) -> Http.Request a
-register body decoder =
-    post (toUrl [ "register" ] []) Nothing body (Decode.field "user" (decoderFromCred decoder))
-
-
-{-| Fake login and register for testing without a server.
-
-TODO: Remove these when server integration is completed.
-
--}
-fakeLogin : String -> String -> Cmd msg
-fakeLogin uname password =
-    storeCredWith (Cred (Username.makeUsername uname) password)
-
-
-fakeRegister : String -> String -> Cmd msg
-fakeRegister =
-    fakeLogin
+-- fakeLogin : String -> String -> Cmd msg
+-- fakeLogin uname password =
+--     storeCredWith (Cred (Username.makeUsername uname) password)
+-- fakeRegister : String -> String -> Cmd msg
+-- fakeRegister =
+--     fakeLogin

@@ -1,9 +1,7 @@
-module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
-
-{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Login.elm>
--}
+module Page.Confirm exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Api
+import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,6 +10,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import Http
+import Json.Decode as Decode exposing (Error)
 import Json.Encode as Encode
 import Session exposing (Session)
 import User exposing (User)
@@ -31,7 +30,7 @@ type Problem
 
 type alias Form =
     { username : String
-    , password : String
+    , confirmationCode : String
     }
 
 
@@ -41,7 +40,7 @@ init session =
       , problems = []
       , form =
             { username = ""
-            , password = ""
+            , confirmationCode = ""
             }
       }
     , Cmd.none
@@ -55,8 +54,8 @@ init session =
 type Msg
     = SubmittedForm
     | EnteredUsername String
-    | EnteredPassword String
-    | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
+    | EnteredConfirmationCode String
+    | CompletedConfirmation (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,16 +64,16 @@ update msg model =
         SubmittedForm ->
             -- TODO: add form validation
             ( { model | problems = [] }
-            , login model.form
+            , confirm model.form
             )
 
         EnteredUsername newUsername ->
             updateForm (\form -> { form | username = newUsername }) model
 
-        EnteredPassword newPassword ->
-            updateForm (\form -> { form | password = newPassword }) model
+        EnteredConfirmationCode newConfirmationCode ->
+            updateForm (\form -> { form | confirmationCode = newConfirmationCode }) model
 
-        CompletedLogin (Err error) ->
+        CompletedConfirmation (Err error) ->
             let
                 debug =
                     Debug.log "Decode error: " error
@@ -86,13 +85,12 @@ update msg model =
                 Api.DecodeError err ->
                     ( model, Cmd.none )
 
-        CompletedLogin (Ok authResult) ->
+        CompletedConfirmation (Ok authResult) ->
             let
                 debug =
                     Debug.log "Auth Confirm OK with: " authResult
             in
-            -- navigation to home page handled by Session
-            ( model, Cmd.none )
+            ( model, Nav.pushUrl (Session.navKey model.session) "login" )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -108,7 +106,7 @@ view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
         [ column [ centerX, width (px 375), spacing 25 ]
-            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign in to Lunar Rocks" ]
+            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Confirm your registration" ]
             , row
                 [ centerX
                 , paddingXY 0 25
@@ -126,13 +124,12 @@ view model =
                         , onChange = \newUsername -> EnteredUsername newUsername
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
                         }
-                    , Input.currentPassword
+                    , Input.text
                         [ spacing 12, Font.color (rgba 0 0 0 1) ]
-                        { text = model.form.password
+                        { text = model.form.confirmationCode
                         , placeholder = Nothing
-                        , onChange = \newPassword -> EnteredPassword newPassword
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Password")
-                        , show = False
+                        , onChange = \newConfirmationCode -> EnteredConfirmationCode newConfirmationCode
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Confirmation Code")
                         }
                     , Input.button
                         [ Border.color (rgba 0.36 0.38 0.45 1)
@@ -143,7 +140,7 @@ view model =
                         , width fill
                         ]
                         { onPress = Just SubmittedForm
-                        , label = el [ centerX ] <| text "Sign in"
+                        , label = el [ centerX ] <| text "Confirm"
                         }
                     ]
                 ]
@@ -157,20 +154,20 @@ view model =
 
 subscriptions : Sub Msg
 subscriptions =
-    Api.authResponse (\authResult -> CompletedLogin authResult)
+    Api.authResponse (\authResult -> CompletedConfirmation authResult)
 
 
 
 -- AUTH
 
 
-login : Form -> Cmd msg
-login form =
+confirm : Form -> Cmd msg
+confirm form =
     let
         json =
             Encode.object
                 [ ( "username", Encode.string form.username )
-                , ( "password", Encode.string form.password )
+                , ( "code", Encode.string form.confirmationCode )
                 ]
     in
-    Api.login json
+    Api.confirm json

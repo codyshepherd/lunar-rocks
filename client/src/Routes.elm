@@ -6,6 +6,7 @@ import Url.Parser exposing ((</>), Parser, map, oneOf, s, string, top)
 
 type Route
     = NotFound
+    | Confirm
     | Home
     | Login
     | Profile String
@@ -16,7 +17,8 @@ type Route
 routeParser : Parser (Route -> a) a
 routeParser =
     oneOf
-        [ map Home top
+        [ map Confirm (s "confirm")
+        , map Home top
         , map Login (s "login")
         , map Register (s "register")
         , map MusicSession (string </> string)

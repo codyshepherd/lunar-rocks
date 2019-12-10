@@ -1,4 +1,4 @@
-module User exposing (User(..), cred, decoder, minPasswordChars, store, username)
+module User exposing (User(..), cred, decoder, minPasswordChars, username)
 
 {-| User is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Viewer.elm>
 
@@ -47,9 +47,3 @@ minPasswordChars =
 decoder : Decoder (Cred -> User)
 decoder =
     Decode.succeed User
-
-
-store : User -> Cmd msg
-store (User credVal) =
-    Api.storeCredWith
-        credVal
