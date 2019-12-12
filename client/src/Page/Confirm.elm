@@ -24,8 +24,8 @@ type alias Model =
 
 
 type Problem
-    = InvalidEntry String
-    | ServerError String
+    = InvalidEntry ValidatedField String
+    | AuthProblem String
 
 
 type alias Form =
@@ -62,10 +62,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SubmittedForm ->
-            -- TODO: add form validation
-            ( { model | problems = [] }
-            , confirm model.form
-            )
+            case validate model.form of
+                Ok validForm ->
+                    ( { model | problems = [] }
+                    , confirm model.form
+                    )
+
+                Err problems ->
+                    ( { model | problems = problems }
+                    , Cmd.none
+                    )
 
         EnteredUsername newUsername ->
             updateForm (\form -> { form | username = newUsername }) model
@@ -74,22 +80,18 @@ update msg model =
             updateForm (\form -> { form | confirmationCode = newConfirmationCode }) model
 
         CompletedConfirmation (Err error) ->
-            let
-                debug =
-                    Debug.log "Decode error: " error
-            in
             case error of
                 Api.AuthError err ->
-                    ( model, Cmd.none )
+                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
                 Api.DecodeError err ->
-                    ( model, Cmd.none )
+                    ( { model
+                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
+                      }
+                    , Cmd.none
+                    )
 
         CompletedConfirmation (Ok authResult) ->
-            let
-                debug =
-                    Debug.log "Auth Confirm OK with: " authResult
-            in
             ( model, Nav.pushUrl (Session.navKey model.session) "login" )
 
 
@@ -144,8 +146,25 @@ view model =
                         }
                     ]
                 ]
+            , row [ centerX ]
+                [ column [] (List.map viewProblem model.problems)
+                ]
             ]
         ]
+
+
+viewProblem : Problem -> Element msg
+viewProblem problem =
+    let
+        errorMessage =
+            case problem of
+                InvalidEntry _ error ->
+                    error
+
+                AuthProblem error ->
+                    error
+    in
+    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
 
 
 
@@ -155,6 +174,69 @@ view model =
 subscriptions : Sub Msg
 subscriptions =
     Api.authResponse (\authResult -> CompletedConfirmation authResult)
+
+
+
+-- FORM
+
+
+type TrimmedForm
+    = Trimmed Form
+
+
+type ValidatedField
+    = Username
+    | ConfirmationCode
+
+
+fieldsToValidate : List ValidatedField
+fieldsToValidate =
+    [ Username
+    , ConfirmationCode
+    ]
+
+
+{-| Trim the form and validate its fields. If there are problems, report them!
+-}
+validate : Form -> Result (List Problem) TrimmedForm
+validate form =
+    let
+        trimmedForm =
+            trimFields form
+    in
+    case List.concatMap (validateField trimmedForm) fieldsToValidate of
+        [] ->
+            Ok trimmedForm
+
+        problems ->
+            Err problems
+
+
+validateField : TrimmedForm -> ValidatedField -> List Problem
+validateField (Trimmed form) field =
+    List.map (InvalidEntry field) <|
+        case field of
+            Username ->
+                if String.isEmpty form.username then
+                    [ "Username can't be blank." ]
+
+                else
+                    []
+
+            ConfirmationCode ->
+                if String.isEmpty form.confirmationCode then
+                    [ "Cofirmation code can't be blank." ]
+
+                else
+                    []
+
+
+trimFields : Form -> TrimmedForm
+trimFields form =
+    Trimmed
+        { username = String.trim form.username
+        , confirmationCode = String.trim form.confirmationCode
+        }
 
 
 

@@ -2,7 +2,7 @@
 
 import { Elm } from "./Main.elm";
 import Amplify, { Auth } from "aws-amplify";
-import { awsconfig } from "../amplify/aws-exports";
+import { awsconfig } from "../aws/aws-exports";
 Amplify.configure(awsconfig);
 
 Auth.currentSession()

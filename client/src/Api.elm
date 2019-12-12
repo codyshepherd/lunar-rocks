@@ -87,9 +87,9 @@ decodeFromChange userDecoder val =
 -- AUTH
 
 
-type AuthResponse
-    = Success
-    | Error String
+type CognitoResponse
+    = CognitoSuccess
+    | CognitoError String
 
 
 type AuthSuccess
@@ -101,13 +101,13 @@ type AuthError
     | AuthError String
 
 
-port cognitoRegister : Maybe Value -> Cmd msg
+port cognitoRegister : Value -> Cmd msg
 
 
-port cognitoConfirm : Maybe Value -> Cmd msg
+port cognitoConfirm : Value -> Cmd msg
 
 
-port cognitoLogin : Maybe Value -> Cmd msg
+port cognitoLogin : Value -> Cmd msg
 
 
 port cognitoLogout : () -> Cmd msg
@@ -121,17 +121,17 @@ port onConfirmationResponse : (Value -> msg) -> Sub msg
 
 register : Value -> Cmd msg
 register registration =
-    cognitoRegister (Just registration)
+    cognitoRegister registration
 
 
 confirm : Value -> Cmd msg
 confirm confirmationCode =
-    cognitoConfirm (Just confirmationCode)
+    cognitoConfirm confirmationCode
 
 
 login : Value -> Cmd msg
 login creds =
-    cognitoLogin (Just creds)
+    cognitoLogin creds
 
 
 logout : Cmd msg
@@ -144,27 +144,27 @@ authResponse toMsg =
     onCognitoResponse (\value -> toMsg (toAuthResult (Decode.decodeValue decodeAuthResponse value)))
 
 
-decodeAuthResponse : Decoder AuthResponse
+decodeAuthResponse : Decoder CognitoResponse
 decodeAuthResponse =
     Decode.field "response" Decode.string
         |> Decode.andThen decodeAuthResult
 
 
-decodeAuthResult : String -> Decoder AuthResponse
+decodeAuthResult : String -> Decoder CognitoResponse
 decodeAuthResult result =
     case result of
         "success" ->
-            Decode.succeed Success
+            Decode.succeed CognitoSuccess
 
         "error" ->
             Decode.field "message" Decode.string
-                |> Decode.andThen (\message -> Decode.succeed (Error message))
+                |> Decode.andThen (\message -> Decode.succeed (CognitoError message))
 
         _ ->
             Decode.fail <| "Something went wrong"
 
 
-toAuthResult : Result Decode.Error AuthResponse -> Result AuthError AuthSuccess
+toAuthResult : Result Decode.Error CognitoResponse -> Result AuthError AuthSuccess
 toAuthResult result =
     case result of
         Err error ->
@@ -172,10 +172,10 @@ toAuthResult result =
 
         Ok value ->
             case value of
-                Success ->
+                CognitoSuccess ->
                     Ok AuthSuccess
 
-                Error err ->
+                CognitoError err ->
                     Err (AuthError err)
 
 

@@ -21,9 +21,7 @@ import User exposing (User)
 
 {-| We track session, problems, and form data in the model.
 
-Problems can come from form validation or some error reported by the server. The
-form requests email, username, password, and password confirmation from the
-user.
+Problems can come from form validation or some error reported by the Cognito.
 
 -}
 type alias Model =
@@ -34,8 +32,8 @@ type alias Model =
 
 
 type Problem
-    = InvalidEntry String
-    | ServerError String
+    = InvalidEntry ValidatedField String
+    | AuthProblem String
 
 
 type alias Form =
@@ -66,20 +64,10 @@ init session =
 
 
 {-| Update handles form submission, changes to content in input boxes,
-and server response to a new sign up request.
+and Cognito responses to a new sign up request.
 
-SubmittedForm sends the HTTP POST to sign in using register (defined at the end
-of this file). Form validation should be added here and a way to display
-validation errors should be added to view. Note the use of CompletedLogin here
-as the message we expect when we hear back from the server.
-
-Entered\* each update the corresponding field in the model when a user adds or
-deletes a character from an input.
-
-CompletedLogin handles Err and OK responses from the server. In the OK case,
-the server has sent us a username and token which we cache in localStorage. The
-Err case only logs server errors at this point, but we should add a way to
-display errors to the user.
+SubmittedForm sends a request to AWS Cognito (via Amplify in JavaScript) to register a user.
+We use CompletedRegistration after a response from Cognito.
 
 -}
 type Msg
@@ -88,7 +76,6 @@ type Msg
     | EnteredEmail String
     | EnteredPassword String
     | EnteredPasswordConfirmation String
-      -- | CompletedLogin (Result Decode.Error Api.AuthResult)
     | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
 
 
@@ -96,10 +83,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SubmittedForm ->
-            -- TODO: add form validation
-            ( { model | problems = [] }
-            , register model.form
-            )
+            case validate model.form of
+                Ok validForm ->
+                    ( { model | problems = [] }
+                    , register model.form
+                    )
+
+                Err problems ->
+                    ( { model | problems = problems }
+                    , Cmd.none
+                    )
 
         EnteredUsername username ->
             updateForm (\form -> { form | username = username }) model
@@ -114,22 +107,18 @@ update msg model =
             updateForm (\form -> { form | confirmPassword = password }) model
 
         CompletedLogin (Err error) ->
-            let
-                debug =
-                    Debug.log "Error: " error
-            in
             case error of
                 Api.AuthError err ->
-                    ( model, Cmd.none )
+                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
                 Api.DecodeError err ->
-                    ( model, Cmd.none )
+                    ( { model
+                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
+                      }
+                    , Cmd.none
+                    )
 
         CompletedLogin (Ok authResult) ->
-            let
-                debug =
-                    Debug.log "Auth Register OK with: " authResult
-            in
             ( model, Nav.pushUrl (Session.navKey model.session) "confirm" )
 
 
@@ -207,8 +196,25 @@ view model =
                         }
                     ]
                 ]
+            , row [ centerX ]
+                [ column [] (List.map viewProblem model.problems)
+                ]
             ]
         ]
+
+
+viewProblem : Problem -> Element msg
+viewProblem problem =
+    let
+        errorMessage =
+            case problem of
+                InvalidEntry _ error ->
+                    error
+
+                AuthProblem error ->
+                    error
+    in
+    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
 
 
 
@@ -218,6 +224,95 @@ view model =
 subscriptions : Sub Msg
 subscriptions =
     Api.authResponse (\authResult -> CompletedLogin authResult)
+
+
+
+-- FORM
+
+
+type TrimmedForm
+    = Trimmed Form
+
+
+type ValidatedField
+    = Username
+    | Email
+    | Password
+    | ConfirmPassword
+
+
+fieldsToValidate : List ValidatedField
+fieldsToValidate =
+    [ Username
+    , Email
+    , Password
+    , ConfirmPassword
+    ]
+
+
+{-| Trim the form and validate its fields. If there are problems, report them!
+-}
+validate : Form -> Result (List Problem) TrimmedForm
+validate form =
+    let
+        trimmedForm =
+            trimFields form
+    in
+    case List.concatMap (validateField trimmedForm) fieldsToValidate of
+        [] ->
+            Ok trimmedForm
+
+        problems ->
+            Err problems
+
+
+validateField : TrimmedForm -> ValidatedField -> List Problem
+validateField (Trimmed form) field =
+    List.map (InvalidEntry field) <|
+        case field of
+            Username ->
+                if String.isEmpty form.username then
+                    [ "Username can't be blank." ]
+
+                else
+                    []
+
+            Email ->
+                if String.isEmpty form.email then
+                    [ "Email can't be blank." ]
+
+                else
+                    []
+
+            Password ->
+                if String.isEmpty form.password then
+                    [ "Password can't be blank." ]
+
+                else if String.length form.password < User.minPasswordChars then
+                    [ "Password must be at least " ++ String.fromInt User.minPasswordChars ++ " characters long." ]
+
+                else
+                    []
+
+            ConfirmPassword ->
+                if String.isEmpty form.password then
+                    [ "Cofirm password can't be blank." ]
+
+                else if form.password /= form.confirmPassword then
+                    [ "Password and Confirm Password must be the same." ]
+
+                else
+                    []
+
+
+trimFields : Form -> TrimmedForm
+trimFields form =
+    Trimmed
+        { email = String.trim form.email
+        , username = String.trim form.username
+        , password = String.trim form.password
+        , confirmPassword = String.trim form.confirmPassword
+        }
 
 
 
