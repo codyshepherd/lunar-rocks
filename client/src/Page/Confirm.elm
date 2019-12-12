@@ -9,8 +9,9 @@ import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
+import Html.Events exposing (on)
 import Http
-import Json.Decode as Decode exposing (Error)
+import Json.Decode as Decode
 import Json.Encode as Encode
 import Session exposing (Session)
 import User exposing (User)
@@ -120,14 +121,14 @@ view model =
                 ]
                 [ column [ centerX, width (px 300), spacing 20 ]
                     [ Input.username
-                        [ spacing 12, Font.color (rgba 0 0 0 1) ]
+                        [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
                         { text = model.form.username
                         , placeholder = Nothing
                         , onChange = \newUsername -> EnteredUsername newUsername
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
                         }
                     , Input.text
-                        [ spacing 12, Font.color (rgba 0 0 0 1) ]
+                        [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
                         { text = model.form.confirmationCode
                         , placeholder = Nothing
                         , onChange = \newConfirmationCode -> EnteredConfirmationCode newConfirmationCode
@@ -165,6 +166,22 @@ viewProblem problem =
                     error
     in
     row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+
+
+onEnter : msg -> Element.Attribute msg
+onEnter msg =
+    Element.htmlAttribute <|
+        Html.Events.on "keyup"
+            (Decode.field "key" Decode.string
+                |> Decode.andThen
+                    (\key ->
+                        if key == "Enter" then
+                            Decode.succeed msg
+
+                        else
+                            Decode.fail "Not the enter key"
+                    )
+            )
 
 
 
