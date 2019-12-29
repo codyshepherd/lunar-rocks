@@ -10,6 +10,7 @@ type Route
     | Home
     | Login
     | Profile String
+    | Settings
     | Register
     | MusicSession String String
 
@@ -20,6 +21,7 @@ routeParser =
         [ map Confirm (s "confirm")
         , map Home top
         , map Login (s "login")
+        , map Settings (s "settings")
         , map Register (s "register")
         , map MusicSession (string </> string)
         , map Profile string

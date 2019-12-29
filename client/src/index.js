@@ -5,12 +5,15 @@ import Amplify, { Auth } from "aws-amplify";
 import { awsconfig } from "../aws/aws-exports";
 Amplify.configure(awsconfig);
 
-Auth.currentSession()
-  .then(session => {
+Auth.currentAuthenticatedUser()
+  .then(user => {
     init({
       user: {
-        username: session.accessToken.payload.username,
-        token: session.accessToken.jwtToken
+        token: user.signInUserSession.accessToken.jwtToken,
+        account: {
+          username: user.username,
+          email: user.attributes.email
+        }
       }
     });
   })
@@ -65,8 +68,11 @@ const init = flags => {
       .then(user => {
         app.ports.onAuthStoreChange.send({
           user: {
-            username: user.username,
-            token: user.signInUserSession.accessToken.jwtToken
+            token: user.signInUserSession.accessToken.jwtToken,
+            account: {
+              username: user.username,
+              email: user.attributes.email
+            }
           }
         });
       })
@@ -86,17 +92,70 @@ const init = flags => {
       .catch(() => {});
   });
 
+  app.ports.cognitoUpdatePassword.subscribe(passwords => {
+    Auth.currentAuthenticatedUser()
+      .then(user => {
+        return Auth.changePassword(
+          user,
+          passwords.oldPassword,
+          passwords.newPassword
+        );
+      })
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoUpdateEmail.subscribe(email => {
+    Auth.currentAuthenticatedUser()
+      .then(user => {
+        return Auth.updateUserAttributes(user, email);
+      })
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        console.log(err);
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoVerifyEmail.subscribe(code => {
+    Auth.verifyCurrentUserAttributeSubmit("email", code)
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
   // Whenever localStorage changes, report it to update all tabs.
   window.addEventListener(
     "storage",
     function(event) {
       if (event.storageArea === localStorage) {
-        Auth.currentSession()
-          .then(session => {
+        Auth.currentAuthenticatedUser()
+          .then(user => {
             app.ports.onAuthStoreChange.send({
               user: {
-                username: session.accessToken.payload.username,
-                token: session.accessToken.jwtToken
+                token: user.signInUserSession.accessToken.jwtToken,
+                account: {
+                  username: user.username,
+                  email: user.attributes.email
+                }
               }
             });
           })

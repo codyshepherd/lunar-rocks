@@ -1,4 +1,4 @@
-module User exposing (User(..), cred, decoder, minPasswordChars, username)
+module User exposing (User(..), account, cred, decoder, minPasswordChars)
 
 {-| User is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Viewer.elm>
 
@@ -8,9 +8,9 @@ application.
 
 -}
 
+import Account exposing (Account)
 import Api exposing (Cred)
 import Json.Decode as Decode exposing (Decoder)
-import Username exposing (Username)
 
 
 
@@ -30,9 +30,9 @@ cred (User val) =
     val
 
 
-username : User -> Username
-username (User val) =
-    Api.username val
+account : User -> Account
+account (User val) =
+    Api.account val
 
 
 minPasswordChars : Int

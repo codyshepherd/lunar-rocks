@@ -4,6 +4,7 @@ module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, v
    elm-spa-example: https://github.com/rtfeldman/elm-spa-example/blob/master/src/Main.elm
 -}
 
+import Account
 import Api
 import Browser
 import Browser.Navigation as Nav
@@ -21,11 +22,11 @@ import Page.Login as Login
 import Page.MusicSession as MusicSession
 import Page.Profile as Profile
 import Page.Register as Register
+import Page.Settings as Settings
 import Routes exposing (Route)
-import Session exposing (Session)
+import Session exposing (Session(..))
 import Url
 import User exposing (User)
-import Username
 
 
 
@@ -61,6 +62,7 @@ type Page
     = NotFound
     | Home Home.Model
     | Login Login.Model
+    | Settings Settings.Model
     | Profile Profile.Model
     | Register Register.Model
     | Confirm Confirm.Model
@@ -109,6 +111,22 @@ loadCurrentPage session ( model, cmd ) =
                     in
                     ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
 
+                Routes.Settings ->
+                    case session of
+                        LoggedIn _ user ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Settings.init session user
+                            in
+                            ( Settings pageModel, Cmd.map SettingsMsg pageCmd )
+
+                        Anonymous _ ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Home.init session
+                            in
+                            ( Home pageModel, Cmd.map HomeMsg pageCmd )
+
                 Routes.Register ->
                     let
                         ( pageModel, pageCmd ) =
@@ -148,6 +166,7 @@ type Msg
     | LoginMsg Login.Msg
     | Logout
     | ProfileMsg Profile.Msg
+    | SettingsMsg Settings.Msg
     | RegisterMsg Register.Msg
     | ConfirmMsg Confirm.Msg
     | MusicSessionMsg MusicSession.Msg
@@ -210,6 +229,15 @@ update msg model =
             , Cmd.map ProfileMsg newCmd
             )
 
+        ( SettingsMsg subMsg, Settings pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    Settings.update subMsg pageModel
+            in
+            ( { model | page = Settings newPageModel }
+            , Cmd.map SettingsMsg newCmd
+            )
+
         ( RegisterMsg subMsg, Register pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
@@ -259,6 +287,9 @@ subscriptions model =
             Profile _ ->
                 Sub.none
 
+            Settings pageModel ->
+                Sub.map SettingsMsg (Settings.subscriptions pageModel)
+
             Register _ ->
                 Sub.map RegisterMsg Register.subscriptions
 
@@ -291,6 +322,10 @@ view model =
         Profile pageModel ->
             Element.map ProfileMsg (Profile.view pageModel)
                 |> viewWith model.session "Profile"
+
+        Settings pageModel ->
+            Element.map SettingsMsg (Settings.view pageModel)
+                |> viewWith model.session "Settings"
 
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
@@ -349,10 +384,11 @@ viewNav session =
                             Session.LoggedIn _ user ->
                                 let
                                     username =
-                                        Username.toString (User.username user)
+                                        Account.username (User.account user)
                                 in
-                                [ viewLink ("/" ++ username) "Profile"
-                                , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
+                                [ el [ Events.onClick Logout, pointer ] <| text "Sign Out"
+                                , viewLink "/settings" "Settings"
+                                , viewLink ("/" ++ username) "Profile"
 
                                 -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"
                                 ]

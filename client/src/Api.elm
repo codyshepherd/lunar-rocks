@@ -1,5 +1,24 @@
-port module Api exposing (AuthError(..), AuthSuccess, Cred, Flags, application, authResponse, confirm, get, login, logout, register, toUrl, userChanges, username)
+port module Api exposing
+    ( AuthError(..)
+    , AuthSuccess
+    , Cred
+    , Flags
+    , account
+    , application
+    , authResponse
+    , confirm
+    , get
+    , login
+    , logout
+    , register
+    , toUrl
+    , updateEmail
+    , updatePassword
+    , userChanges
+    , verifyEmail
+    )
 
+import Account exposing (Account)
 import Browser
 import Browser.Navigation as Nav
 import Http exposing (Body)
@@ -8,7 +27,6 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import Url exposing (Url)
 import Url.Builder exposing (QueryParameter)
-import Username exposing (Username)
 
 
 
@@ -30,12 +48,12 @@ exposed and can be used in other modules.
 
 -}
 type Cred
-    = Cred Username String
+    = Cred Account String
 
 
-username : Cred -> Username
-username (Cred uname _) =
-    uname
+account : Cred -> Account
+account (Cred acct _) =
+    acct
 
 
 credHeader : Cred -> Http.Header
@@ -46,7 +64,7 @@ credHeader (Cred _ str) =
 credDecoder : Decoder Cred
 credDecoder =
     Decode.succeed Cred
-        |> required "username" Username.decoder
+        |> required "account" Account.decoder
         |> required "token" Decode.string
 
 
@@ -79,7 +97,9 @@ decodeFromChange userDecoder val =
     -- It's stored in localStorage as a JSON String;
     -- first decode the Value as a String, then
     -- decode that String as JSON.
-    Decode.decodeValue (storageDecoder userDecoder) val
+    Decode.decodeValue
+        (storageDecoder userDecoder)
+        val
         |> Result.toMaybe
 
 
@@ -113,10 +133,16 @@ port cognitoLogin : Value -> Cmd msg
 port cognitoLogout : () -> Cmd msg
 
 
+port cognitoUpdatePassword : Value -> Cmd msg
+
+
+port cognitoUpdateEmail : Value -> Cmd msg
+
+
+port cognitoVerifyEmail : Value -> Cmd msg
+
+
 port onCognitoResponse : (Value -> msg) -> Sub msg
-
-
-port onConfirmationResponse : (Value -> msg) -> Sub msg
 
 
 register : Value -> Cmd msg
@@ -137,6 +163,21 @@ login creds =
 logout : Cmd msg
 logout =
     cognitoLogout ()
+
+
+updatePassword : Value -> Cmd msg
+updatePassword passwords =
+    cognitoUpdatePassword passwords
+
+
+updateEmail : Value -> Cmd msg
+updateEmail email =
+    cognitoUpdateEmail email
+
+
+verifyEmail : Value -> Cmd msg
+verifyEmail confirmationCode =
+    cognitoVerifyEmail confirmationCode
 
 
 authResponse : (Result AuthError AuthSuccess -> msg) -> Sub msg
