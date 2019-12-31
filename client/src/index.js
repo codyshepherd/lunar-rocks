@@ -142,6 +142,36 @@ const init = flags => {
       });
   });
 
+  app.ports.cognitoForgotPassword.subscribe(username => {
+    Auth.forgotPassword(username)
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoResetPassword.subscribe(reset => {
+    Auth.forgotPasswordSubmit(
+      reset.username,
+      reset.confirmationCode,
+      reset.newPassword
+    )
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
   // Whenever localStorage changes, report it to update all tabs.
   window.addEventListener(
     "storage",

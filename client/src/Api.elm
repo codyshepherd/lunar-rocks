@@ -7,10 +7,12 @@ port module Api exposing
     , application
     , authResponse
     , confirm
+    , forgotPassword
     , get
     , login
     , logout
     , register
+    , resetPassword
     , toUrl
     , updateEmail
     , updatePassword
@@ -142,6 +144,12 @@ port cognitoUpdateEmail : Value -> Cmd msg
 port cognitoVerifyEmail : Value -> Cmd msg
 
 
+port cognitoForgotPassword : Value -> Cmd msg
+
+
+port cognitoResetPassword : Value -> Cmd msg
+
+
 port onCognitoResponse : (Value -> msg) -> Sub msg
 
 
@@ -178,6 +186,16 @@ updateEmail email =
 verifyEmail : Value -> Cmd msg
 verifyEmail confirmationCode =
     cognitoVerifyEmail confirmationCode
+
+
+forgotPassword : Value -> Cmd msg
+forgotPassword username =
+    cognitoForgotPassword username
+
+
+resetPassword : Value -> Cmd msg
+resetPassword resetInfo =
+    cognitoResetPassword resetInfo
 
 
 authResponse : (Result AuthError AuthSuccess -> msg) -> Sub msg

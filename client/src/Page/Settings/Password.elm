@@ -152,6 +152,15 @@ viewForm model =
                     , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Confirm New Password")
                     , show = False
                     }
+                , link
+                    [ alignLeft
+                    , Font.size 16
+                    , Font.color (rgb 0.47 0.61 0.93)
+                    , mouseOver [ Font.color (rgb 0.38 0.55 0.92) ]
+                    ]
+                    { url = "/forgot-password"
+                    , label = text "Forgot Password?"
+                    }
                 , row []
                     [ if List.isEmpty model.problems then
                         el [ Font.size 18 ] <|

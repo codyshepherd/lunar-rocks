@@ -17,11 +17,13 @@ import Fonts
 import Html exposing (Html)
 import Json.Decode as Decode exposing (Value)
 import Page.Confirm as Confirm
+import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
 import Page.MusicSession as MusicSession
 import Page.Profile as Profile
 import Page.Register as Register
+import Page.ResetPassword as ResetPassword
 import Page.Settings as Settings
 import Routes exposing (Route)
 import Session exposing (Session(..))
@@ -66,6 +68,8 @@ type Page
     | Profile Profile.Model
     | Register Register.Model
     | Confirm Confirm.Model
+    | ForgotPassword ForgotPassword.Model
+    | ResetPassword ResetPassword.Model
     | MusicSession MusicSession.Model
 
 
@@ -141,6 +145,20 @@ loadCurrentPage session ( model, cmd ) =
                     in
                     ( Confirm pageModel, Cmd.map ConfirmMsg pageCmd )
 
+                Routes.ForgotPassword ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            ForgotPassword.init session
+                    in
+                    ( ForgotPassword pageModel, Cmd.map ForgotPasswordMsg pageCmd )
+
+                Routes.ResetPassword ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            ResetPassword.init session
+                    in
+                    ( ResetPassword pageModel, Cmd.map ResetPasswordMsg pageCmd )
+
                 Routes.MusicSession username sessionName ->
                     let
                         ( pageModel, pageCmd ) =
@@ -169,6 +187,8 @@ type Msg
     | SettingsMsg Settings.Msg
     | RegisterMsg Register.Msg
     | ConfirmMsg Confirm.Msg
+    | ForgotPasswordMsg ForgotPassword.Msg
+    | ResetPasswordMsg ResetPassword.Msg
     | MusicSessionMsg MusicSession.Msg
 
 
@@ -256,6 +276,24 @@ update msg model =
             , Cmd.map ConfirmMsg newCmd
             )
 
+        ( ForgotPasswordMsg subMsg, ForgotPassword pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    ForgotPassword.update subMsg pageModel
+            in
+            ( { model | page = ForgotPassword newPageModel }
+            , Cmd.map ForgotPasswordMsg newCmd
+            )
+
+        ( ResetPasswordMsg subMsg, ResetPassword pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    ResetPassword.update subMsg pageModel
+            in
+            ( { model | page = ResetPassword newPageModel }
+            , Cmd.map ResetPasswordMsg newCmd
+            )
+
         ( MusicSessionMsg subMsg, MusicSession pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
@@ -296,6 +334,12 @@ subscriptions model =
             Confirm _ ->
                 Sub.map ConfirmMsg Confirm.subscriptions
 
+            ForgotPassword _ ->
+                Sub.map ForgotPasswordMsg ForgotPassword.subscriptions
+
+            ResetPassword _ ->
+                Sub.map ResetPasswordMsg ResetPassword.subscriptions
+
             MusicSession pageModel ->
                 Sub.map MusicSessionMsg (MusicSession.subscriptions pageModel)
 
@@ -334,6 +378,14 @@ view model =
         Confirm pageModel ->
             Element.map ConfirmMsg (Confirm.view pageModel)
                 |> viewWith model.session "Confirm"
+
+        ForgotPassword pageModel ->
+            Element.map ForgotPasswordMsg (ForgotPassword.view pageModel)
+                |> viewWith model.session "Forgot Password"
+
+        ResetPassword pageModel ->
+            Element.map ResetPasswordMsg (ResetPassword.view pageModel)
+                |> viewWith model.session "Reset Password"
 
         MusicSession pageModel ->
             Element.map MusicSessionMsg (MusicSession.view pageModel)

@@ -7,11 +7,13 @@ import Url.Parser exposing ((</>), Parser, map, oneOf, s, string, top)
 type Route
     = NotFound
     | Confirm
+    | ForgotPassword
     | Home
     | Login
     | Profile String
-    | Settings
     | Register
+    | ResetPassword
+    | Settings
     | MusicSession String String
 
 
@@ -19,10 +21,12 @@ routeParser : Parser (Route -> a) a
 routeParser =
     oneOf
         [ map Confirm (s "confirm")
+        , map ForgotPassword (s "forgot-password")
         , map Home top
         , map Login (s "login")
-        , map Settings (s "settings")
         , map Register (s "register")
+        , map ResetPassword (s "reset-password")
+        , map Settings (s "settings")
         , map MusicSession (string </> string)
         , map Profile string
         ]

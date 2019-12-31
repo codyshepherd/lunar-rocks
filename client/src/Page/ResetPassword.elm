@@ -1,9 +1,11 @@
-module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.ResetPassword exposing (Model, Msg(..), init, subscriptions, update, view)
 
-{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Login.elm>
+{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Register.elm>
 -}
 
+import Account
 import Api
+import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -14,12 +16,13 @@ import Fonts
 import Html.Events exposing (on)
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Session exposing (Session)
+import Session exposing (Session(..))
 import User exposing (User)
 
 
 type alias Model =
     { session : Session
+    , message : String
     , problems : List Problem
     , form : Form
     }
@@ -30,20 +33,39 @@ type Problem
     | AuthProblem String
 
 
+{-| The Cognito user pool will accept username or email, but we call it
+username in Form to match the Amplify API
+-}
 type alias Form =
     { username : String
+    , confirmationCode : String
     , password : String
+    , confirmPassword : String
     }
 
 
+{-| Initialize the page with username filled in for logged in users
+-}
 init : Session -> ( Model, Cmd msg )
 init session =
     ( { session = session
+      , message = ""
       , problems = []
       , form =
-            { username = ""
-            , password = ""
-            }
+            case Session.user session of
+                Just user ->
+                    { username = Account.email (User.account user)
+                    , confirmationCode = ""
+                    , password = ""
+                    , confirmPassword = ""
+                    }
+
+                Nothing ->
+                    { username = ""
+                    , confirmationCode = ""
+                    , password = ""
+                    , confirmPassword = ""
+                    }
       }
     , Cmd.none
     )
@@ -56,8 +78,10 @@ init session =
 type Msg
     = SubmittedForm
     | EnteredUsername String
+    | EnteredConfirmationCode String
     | EnteredPassword String
-    | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
+    | EnteredPasswordConfirmation String
+    | CompletedReset (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -65,9 +89,9 @@ update msg model =
     case msg of
         SubmittedForm ->
             case validate model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( { model | problems = [] }
-                    , login model.form
+                    , resetPassword form
                     )
 
                 Err problems ->
@@ -75,13 +99,19 @@ update msg model =
                     , Cmd.none
                     )
 
-        EnteredUsername newUsername ->
-            updateForm (\form -> { form | username = newUsername }) model
+        EnteredUsername username ->
+            updateForm (\form -> { form | username = username }) model
 
-        EnteredPassword newPassword ->
-            updateForm (\form -> { form | password = newPassword }) model
+        EnteredConfirmationCode confirmationCode ->
+            updateForm (\form -> { form | confirmationCode = confirmationCode }) model
 
-        CompletedLogin (Err error) ->
+        EnteredPassword password ->
+            updateForm (\form -> { form | password = password }) model
+
+        EnteredPasswordConfirmation password ->
+            updateForm (\form -> { form | confirmPassword = password }) model
+
+        CompletedReset (Err error) ->
             case error of
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
@@ -93,9 +123,13 @@ update msg model =
                     , Cmd.none
                     )
 
-        CompletedLogin (Ok authResult) ->
-            -- navigation to Home page handled by Session
-            ( model, Cmd.none )
+        CompletedReset (Ok authResult) ->
+            case model.session of
+                LoggedIn _ _ ->
+                    ( { model | message = "Your password has been updated." }, Cmd.none )
+
+                Anonymous _ ->
+                    ( model, Nav.pushUrl (Session.navKey model.session) "login" )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -111,7 +145,7 @@ view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
         [ column [ centerX, width (px 375), spacing 25 ]
-            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign in to Lunar Rocks" ]
+            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Reset Password" ]
             , row
                 [ centerX
                 , paddingXY 0 25
@@ -126,25 +160,31 @@ view model =
                         [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
                         { text = model.form.username
                         , placeholder = Nothing
-                        , onChange = \newUsername -> EnteredUsername newUsername
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
+                        , onChange = \username -> EnteredUsername username
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username or Email")
                         }
-                    , Input.currentPassword
+                    , Input.text
+                        [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
+                        { text = model.form.confirmationCode
+                        , placeholder = Nothing
+                        , onChange = \email -> EnteredConfirmationCode email
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Confirmation Code")
+                        }
+                    , Input.newPassword
                         [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
                         { text = model.form.password
                         , placeholder = Nothing
-                        , onChange = \newPassword -> EnteredPassword newPassword
+                        , onChange = \password -> EnteredPassword password
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Password")
                         , show = False
                         }
-                    , link
-                        [ alignLeft
-                        , Font.size 16
-                        , Font.color (rgb 0.47 0.61 0.93)
-                        , mouseOver [ Font.color (rgb 0.38 0.55 0.92) ]
-                        ]
-                        { url = "/forgot-password"
-                        , label = text "Forgot Password?"
+                    , Input.newPassword
+                        [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
+                        { text = model.form.confirmPassword
+                        , placeholder = Nothing
+                        , onChange = \password -> EnteredPasswordConfirmation password
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Confirm Password")
+                        , show = False
                         }
                     , Input.button
                         [ Border.color (rgba 0.36 0.38 0.45 1)
@@ -153,14 +193,21 @@ view model =
                         , Border.rounded 3
                         , Border.width 2
                         , width fill
+                        , Font.family Fonts.cinzelFont
                         ]
                         { onPress = Just SubmittedForm
-                        , label = el [ centerX ] <| text "Sign in"
+                        , label = el [ centerX ] <| text "Submit"
                         }
                     ]
                 ]
             , row [ centerX ]
-                [ column [] (List.map viewProblem model.problems)
+                [ if List.isEmpty model.problems then
+                    el [ Font.size 18 ] <|
+                        text model.message
+
+                  else
+                    column [ spacing 10 ] <|
+                        List.map viewProblem model.problems
                 ]
             ]
         ]
@@ -177,7 +224,7 @@ viewProblem problem =
                 AuthProblem error ->
                     error
     in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+    row [ centerX ] [ el [ Font.size 18 ] <| text errorMessage ]
 
 
 onEnter : msg -> Element.Attribute msg
@@ -202,7 +249,7 @@ onEnter msg =
 
 subscriptions : Sub Msg
 subscriptions =
-    Api.authResponse (\authResult -> CompletedLogin authResult)
+    Api.authResponse (\authResult -> CompletedReset authResult)
 
 
 
@@ -215,13 +262,17 @@ type TrimmedForm
 
 type ValidatedField
     = Username
+    | ConfirmationCode
     | Password
+    | ConfirmPassword
 
 
 fieldsToValidate : List ValidatedField
 fieldsToValidate =
     [ Username
+    , ConfirmationCode
     , Password
+    , ConfirmPassword
     ]
 
 
@@ -252,6 +303,13 @@ validateField (Trimmed form) field =
                 else
                     []
 
+            ConfirmationCode ->
+                if String.isEmpty form.confirmationCode then
+                    [ "Confirmation code can't be blank." ]
+
+                else
+                    []
+
             Password ->
                 if String.isEmpty form.password then
                     [ "Password can't be blank." ]
@@ -262,12 +320,24 @@ validateField (Trimmed form) field =
                 else
                     []
 
+            ConfirmPassword ->
+                if String.isEmpty form.password then
+                    [ "Cofirm password can't be blank." ]
+
+                else if form.password /= form.confirmPassword then
+                    [ "Password and Confirm Password must be the same." ]
+
+                else
+                    []
+
 
 trimFields : Form -> TrimmedForm
 trimFields form =
     Trimmed
         { username = String.trim form.username
+        , confirmationCode = String.trim form.confirmationCode
         , password = String.trim form.password
+        , confirmPassword = String.trim form.confirmPassword
         }
 
 
@@ -275,13 +345,14 @@ trimFields form =
 -- AUTH
 
 
-login : Form -> Cmd msg
-login form =
+resetPassword : Form -> Cmd msg
+resetPassword form =
     let
         json =
             Encode.object
                 [ ( "username", Encode.string form.username )
-                , ( "password", Encode.string form.password )
+                , ( "confirmationCode", Encode.string form.confirmationCode )
+                , ( "newPassword", Encode.string form.password )
                 ]
     in
-    Api.login json
+    Api.resetPassword json
