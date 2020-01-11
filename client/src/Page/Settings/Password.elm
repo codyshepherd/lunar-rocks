@@ -33,6 +33,9 @@ type alias Form =
     }
 
 
+{-| Account is not used in init or update, but it is kept as an enforcement paramenter.
+We need an Account to be here.
+-}
 init : Account -> ( Model, Cmd Msg )
 init account =
     ( { message =

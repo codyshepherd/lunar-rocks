@@ -1,8 +1,5 @@
 module Page.Register exposing (Model, Msg(..), init, subscriptions, update, view)
 
-{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Register.elm>
--}
-
 import Api
 import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
@@ -13,16 +10,15 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import Html.Events exposing (on)
-import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Session exposing (Session)
-import User exposing (User)
+import User
 
 
 {-| We track session, problems, and form data in the model.
 
-Problems can come from form validation or some error reported by the Cognito.
+Problems can come from form validation or an error reported by the Cognito.
 
 -}
 type alias Model =

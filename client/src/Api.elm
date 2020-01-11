@@ -24,15 +24,10 @@ import Account exposing (Account)
 import Browser
 import Browser.Navigation as Nav
 import Http exposing (Body)
-import Json.Decode as Decode exposing (Decoder, Value, decodeString, field, string)
+import Json.Decode as Decode exposing (Decoder, Value, field, string)
 import Json.Decode.Pipeline exposing (required)
-import Json.Encode as Encode
 import Url exposing (Url)
 import Url.Builder exposing (QueryParameter)
-
-
-
-{- This module is adapted from the elm-spa-example: https://github.com/rtfeldman/elm-spa-example/blob/master/src/Api.elm -}
 
 
 type alias Flags =

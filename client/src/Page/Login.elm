@@ -1,8 +1,5 @@
 module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
 
-{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Login.elm>
--}
-
 import Api
 import Element exposing (..)
 import Element.Background as Background
@@ -15,7 +12,7 @@ import Html.Events exposing (on)
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Session exposing (Session)
-import User exposing (User)
+import User
 
 
 type alias Model =

@@ -1,8 +1,5 @@
 module Page.ForgotPassword exposing (Model, Msg(..), init, subscriptions, update, view)
 
-{-| This module is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Login.elm>
--}
-
 import Account
 import Api
 import Browser.Navigation as Nav exposing (pushUrl)

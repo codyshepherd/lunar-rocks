@@ -7,7 +7,6 @@ import Element.Font as Font
 import Fonts
 import Page.Settings.Email as Email
 import Page.Settings.Password as Password
-import Session exposing (Session)
 import User exposing (User)
 
 

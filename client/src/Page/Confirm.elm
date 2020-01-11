@@ -10,11 +10,9 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import Html.Events exposing (on)
-import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Session exposing (Session)
-import User exposing (User)
 
 
 type alias Model =

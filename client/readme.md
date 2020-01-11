@@ -53,3 +53,9 @@ parcel build src/index.html
 ```
 
 All debug statements must be removed for the optimized build.
+
+## Attribution
+
+Many of the modules in this application are based on the [elm-spa-example](https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Register.elm), and the Main module is partly based on the [elm-tutorial-app](https://github.com/sporto/elm-tutorial-app/blob/master/src/Main.elm).
+
+

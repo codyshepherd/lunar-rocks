@@ -1,9 +1,5 @@
 module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, viewLink)
 
-{- This module is adapted from elm-tutorial-app: https://github.com/sporto/elm-tutorial-app/blob/master/src/Main.elm and
-   elm-spa-example: https://github.com/rtfeldman/elm-spa-example/blob/master/src/Main.elm
--}
-
 import Account
 import Api
 import Browser
@@ -15,7 +11,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Html exposing (Html)
-import Json.Decode as Decode exposing (Value)
+import Json.Decode exposing (Value)
 import Page.Confirm as Confirm
 import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home

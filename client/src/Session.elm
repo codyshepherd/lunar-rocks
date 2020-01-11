@@ -1,8 +1,5 @@
 module Session exposing (Session(..), changes, cred, fromUser, navKey, user)
 
-{-| Session is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Session.elm>
--}
-
 import Api exposing (Cred)
 import Browser.Navigation as Nav
 import User exposing (User)

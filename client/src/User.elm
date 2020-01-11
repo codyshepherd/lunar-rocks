@@ -1,11 +1,8 @@
 module User exposing (User(..), account, cred, decoder, minPasswordChars)
 
-{-| User is adapted from the elm-spa-example: <https://github.com/rtfeldman/elm-spa-example/blob/master/src/Viewer.elm>
-
-User wraps Cred, and we can't have a logged in user without credentials. Cred
-stores username which is accessed through this module in the rest of the
-application.
-
+{- User wraps Cred. We can't have a logged in user without credentials.
+   Cred stores username which is accessed through this module in the rest of the
+   application.
 -}
 
 import Account exposing (Account)
