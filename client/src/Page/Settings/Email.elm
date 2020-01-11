@@ -331,7 +331,7 @@ validateField (Trimmed form) field =
 
             ConfirmationCode ->
                 if String.isEmpty form.confirmationCode then
-                    [ "Confirmation Code can't be blank." ]
+                    [ "Invalid verification code provided, please try again." ]
 
                 else
                     []

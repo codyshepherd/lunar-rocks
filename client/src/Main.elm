@@ -421,7 +421,7 @@ viewNav session =
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
         , Border.color (rgba 0.11 0.12 0.14 1)
         ]
-        [ column [ centerX, width (px 800) ]
+        [ column [ centerX, width fill, paddingXY 30 0 ]
             [ row [ width fill ]
                 [ column [ alignLeft, Font.family Fonts.cinzelFont, Font.size 36 ]
                     [ viewLink "/" "Lunar Rocks"
@@ -434,9 +434,9 @@ viewNav session =
                                     username =
                                         Account.username (User.account user)
                                 in
-                                [ el [ Events.onClick Logout, pointer ] <| text "Sign Out"
+                                [ viewLink ("/" ++ username) "Profile"
                                 , viewLink "/settings" "Settings"
-                                , viewLink ("/" ++ username) "Profile"
+                                , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
 
                                 -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"
                                 ]

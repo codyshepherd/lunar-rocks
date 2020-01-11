@@ -272,11 +272,8 @@ validateField (Trimmed form) field =
     List.map (InvalidEntry field) <|
         case field of
             OldPassword ->
-                if String.isEmpty form.oldPassword then
-                    [ "Old password can't be blank." ]
-
-                else if String.length form.oldPassword < User.minPasswordChars then
-                    [ "Old password must have been at least " ++ String.fromInt User.minPasswordChars ++ " characters long." ]
+                if String.length form.oldPassword < User.minPasswordChars then
+                    [ "Incorrect old password." ]
 
                 else
                     []

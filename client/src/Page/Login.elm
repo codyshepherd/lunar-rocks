@@ -124,7 +124,7 @@ view model =
                         { text = model.form.username
                         , placeholder = Nothing
                         , onChange = \newUsername -> EnteredUsername newUsername
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username or Email")
                         }
                     , Input.currentPassword
                         [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
@@ -244,17 +244,14 @@ validateField (Trimmed form) field =
         case field of
             Username ->
                 if String.isEmpty form.username then
-                    [ "Username can't be blank." ]
+                    [ "Incorrect username or password." ]
 
                 else
                     []
 
             Password ->
-                if String.isEmpty form.password then
-                    [ "Password can't be blank." ]
-
-                else if String.length form.password < User.minPasswordChars then
-                    [ "Password must be at least " ++ String.fromInt User.minPasswordChars ++ " characters long." ]
+                if String.length form.password < User.minPasswordChars then
+                    [ "Incorrect username or password." ]
 
                 else
                     []
