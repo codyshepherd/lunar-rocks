@@ -113,14 +113,14 @@ update msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedReset (Ok authResult) ->
+        CompletedReset (Ok _) ->
             case model.session of
                 LoggedIn _ _ ->
                     ( { model | message = "Your password has been updated." }, Cmd.none )

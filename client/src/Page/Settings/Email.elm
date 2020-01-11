@@ -76,9 +76,9 @@ update account msg model =
     case msg of
         SubmittedEmailForm ->
             case validate emailFields model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( model
-                    , updateEmail model.form
+                    , updateEmail form
                     )
 
                 Err problems ->
@@ -94,14 +94,14 @@ update account msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedEmailUpdate (Ok authResult) ->
+        CompletedEmailUpdate (Ok _) ->
             ( { model
                 | message = "We sent a confirmation code to your new email."
                 , problems = []
@@ -112,9 +112,9 @@ update account msg model =
 
         SubmittedConfirmationForm ->
             case validate confirmationFields model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( model
-                    , verifyEmail model.form
+                    , verifyEmail form
                     )
 
                 Err problems ->
@@ -130,14 +130,14 @@ update account msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedEmailConfirmation (Ok authResult) ->
+        CompletedEmailConfirmation (Ok _) ->
             ( { model
                 | form = (\form -> { form | email = Account.email account, confirmationCode = "" }) model.form
                 , message = "Your email has been updated."

@@ -62,9 +62,9 @@ update msg model =
     case msg of
         SubmittedForm ->
             case validate model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( { model | problems = [] }
-                    , login model.form
+                    , login form
                     )
 
                 Err problems ->
@@ -83,14 +83,14 @@ update msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedLogin (Ok authResult) ->
+        CompletedLogin (Ok _) ->
             -- navigation to Home page handled by Session
             ( model, Cmd.none )
 

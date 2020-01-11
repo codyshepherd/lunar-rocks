@@ -32,8 +32,8 @@ type ActiveForm
     | EmailForm
 
 
-init : Session -> User -> ( Model, Cmd Msg )
-init session user =
+init : User -> ( Model, Cmd Msg )
+init user =
     let
         account =
             User.account user

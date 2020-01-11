@@ -116,7 +116,7 @@ loadCurrentPage session ( model, cmd ) =
                         LoggedIn _ user ->
                             let
                                 ( pageModel, pageCmd ) =
-                                    Settings.init session user
+                                    Settings.init user
                             in
                             ( Settings pageModel, Cmd.map SettingsMsg pageCmd )
 

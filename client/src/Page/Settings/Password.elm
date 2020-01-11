@@ -66,9 +66,9 @@ update account msg model =
     case msg of
         SubmittedForm ->
             case validate model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( model
-                    , updatePassword model.form
+                    , updatePassword form
                     )
 
                 Err problems ->
@@ -90,14 +90,14 @@ update account msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedPasswordUpdate (Ok authResult) ->
+        CompletedPasswordUpdate (Ok _) ->
             ( { model
                 | message = "Your password has been updated."
                 , problems = []

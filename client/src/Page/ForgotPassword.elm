@@ -90,14 +90,14 @@ update msg model =
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedResetRequest (Ok authResult) ->
+        CompletedResetRequest (Ok _) ->
             ( model, Nav.pushUrl (Session.navKey model.session) "reset-password" )
 
 

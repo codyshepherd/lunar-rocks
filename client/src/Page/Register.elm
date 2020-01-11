@@ -73,7 +73,7 @@ type Msg
     | EnteredEmail String
     | EnteredPassword String
     | EnteredPasswordConfirmation String
-    | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
+    | CompletedRegistration (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -81,9 +81,9 @@ update msg model =
     case msg of
         SubmittedForm ->
             case validate model.form of
-                Ok validForm ->
+                Ok (Trimmed form) ->
                     ( { model | problems = [] }
-                    , register model.form
+                    , register form
                     )
 
                 Err problems ->
@@ -103,19 +103,19 @@ update msg model =
         EnteredPasswordConfirmation password ->
             updateForm (\form -> { form | confirmPassword = password }) model
 
-        CompletedLogin (Err error) ->
+        CompletedRegistration (Err error) ->
             case error of
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
 
-                Api.DecodeError err ->
+                Api.DecodeError _ ->
                     ( { model
                         | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
                       }
                     , Cmd.none
                     )
 
-        CompletedLogin (Ok authResult) ->
+        CompletedRegistration (Ok _) ->
             ( model, Nav.pushUrl (Session.navKey model.session) "confirm" )
 
 
@@ -236,7 +236,7 @@ onEnter msg =
 
 subscriptions : Sub Msg
 subscriptions =
-    Api.authResponse (\authResult -> CompletedLogin authResult)
+    Api.authResponse (\authResult -> CompletedRegistration authResult)
 
 
 
