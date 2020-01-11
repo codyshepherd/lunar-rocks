@@ -2,6 +2,7 @@
 
 from typing import Dict
 import boto3
+import click
 
 
 def write_amplify_config(stack: Dict):
@@ -26,8 +27,12 @@ def write_amplify_config(stack: Dict):
     except KeyError as ex:
         print('The stack was not configured properly. A {} key could not be found'.format(ex))
 
-if __name__ == '__main__':
-    cloudformation = boto3.client('cloudformation', region_name='us-west-2')
+@click.command()
+@click.option('-p', '--profile', type=str, default='default',
+              help='the aws profile to use')
+def start(profile):
+    session = boto3.session.Session(profile_name=profile)
+    cloudformation = session.client('cloudformation', region_name='us-west-2')
     stacks = cloudformation.describe_stacks(StackName='LunarRocksStack')
 
     try:
@@ -36,3 +41,6 @@ if __name__ == '__main__':
 
     except KeyError:
         print('Stack does not exist')
+
+if __name__ == '__main__':
+    start()
