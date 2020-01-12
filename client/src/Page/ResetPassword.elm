@@ -1,5 +1,6 @@
-module Page.Register exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.ResetPassword exposing (Model, Msg(..), init, subscriptions, update, view)
 
+import Account
 import Api
 import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
@@ -12,17 +13,13 @@ import Fonts
 import Html.Events exposing (on)
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Session exposing (Session)
+import Session exposing (Session(..))
 import User
 
 
-{-| We track session, problems, and form data in the model.
-
-Problems can come from form validation or an error reported by the Cognito.
-
--}
 type alias Model =
     { session : Session
+    , message : String
     , problems : List Problem
     , form : Form
     }
@@ -33,24 +30,39 @@ type Problem
     | AuthProblem String
 
 
+{-| The Cognito user pool will accept username or email, but we call it
+username in Form to match the Amplify API
+-}
 type alias Form =
-    { email : String
-    , username : String
+    { username : String
+    , confirmationCode : String
     , password : String
     , confirmPassword : String
     }
 
 
+{-| Initialize the page with username filled in for logged in users
+-}
 init : Session -> ( Model, Cmd msg )
 init session =
     ( { session = session
+      , message = ""
       , problems = []
       , form =
-            { email = ""
-            , username = ""
-            , password = ""
-            , confirmPassword = ""
-            }
+            case Session.user session of
+                Just user ->
+                    { username = Account.email (User.account user)
+                    , confirmationCode = ""
+                    , password = ""
+                    , confirmPassword = ""
+                    }
+
+                Nothing ->
+                    { username = ""
+                    , confirmationCode = ""
+                    , password = ""
+                    , confirmPassword = ""
+                    }
       }
     , Cmd.none
     )
@@ -60,20 +72,13 @@ init session =
 -- UPDATE
 
 
-{-| Update handles form submission, changes to content in input boxes,
-and Cognito responses to a new sign up request.
-
-SubmittedForm sends a request to AWS Cognito (via Amplify in JavaScript) to register a user.
-We use CompletedRegistration after a response from Cognito.
-
--}
 type Msg
     = SubmittedForm
     | EnteredUsername String
-    | EnteredEmail String
+    | EnteredConfirmationCode String
     | EnteredPassword String
     | EnteredPasswordConfirmation String
-    | CompletedRegistration (Result Api.AuthError Api.AuthSuccess)
+    | CompletedReset (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -83,7 +88,7 @@ update msg model =
             case validate model.form of
                 Ok (Trimmed form) ->
                     ( { model | problems = [] }
-                    , register form
+                    , resetPassword form
                     )
 
                 Err problems ->
@@ -94,8 +99,8 @@ update msg model =
         EnteredUsername username ->
             updateForm (\form -> { form | username = username }) model
 
-        EnteredEmail email ->
-            updateForm (\form -> { form | email = email }) model
+        EnteredConfirmationCode confirmationCode ->
+            updateForm (\form -> { form | confirmationCode = confirmationCode }) model
 
         EnteredPassword password ->
             updateForm (\form -> { form | password = password }) model
@@ -103,7 +108,7 @@ update msg model =
         EnteredPasswordConfirmation password ->
             updateForm (\form -> { form | confirmPassword = password }) model
 
-        CompletedRegistration (Err error) ->
+        CompletedReset (Err error) ->
             case error of
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
@@ -115,8 +120,13 @@ update msg model =
                     , Cmd.none
                     )
 
-        CompletedRegistration (Ok _) ->
-            ( model, Nav.pushUrl (Session.navKey model.session) "confirm" )
+        CompletedReset (Ok _) ->
+            case model.session of
+                LoggedIn _ _ ->
+                    ( { model | message = "Your password has been updated." }, Cmd.none )
+
+                Anonymous _ ->
+                    ( model, Nav.pushUrl (Session.navKey model.session) "login" )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -128,18 +138,11 @@ updateForm transform model =
 -- VIEW
 
 
-{-| View displays the sign up form.
-
-This form needs to be expanded to display problems to users. Beyond that, it
-could use design improvements. The current version was borrowed from Login and
-is probably to cramped for a sign up form.
-
--}
 view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
         [ column [ centerX, width (px 375), spacing 25 ]
-            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign up for Lunar Rocks" ]
+            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Reset Password" ]
             , row
                 [ centerX
                 , paddingXY 0 25
@@ -155,14 +158,14 @@ view model =
                         { text = model.form.username
                         , placeholder = Nothing
                         , onChange = \username -> EnteredUsername username
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username")
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username or Email")
                         }
-                    , Input.email
+                    , Input.text
                         [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
-                        { text = model.form.email
+                        { text = model.form.confirmationCode
                         , placeholder = Nothing
-                        , onChange = \email -> EnteredEmail email
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Email")
+                        , onChange = \email -> EnteredConfirmationCode email
+                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Confirmation Code")
                         }
                     , Input.newPassword
                         [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
@@ -187,14 +190,21 @@ view model =
                         , Border.rounded 3
                         , Border.width 2
                         , width fill
+                        , Font.family Fonts.cinzelFont
                         ]
                         { onPress = Just SubmittedForm
-                        , label = el [ centerX ] <| text "Sign up"
+                        , label = el [ centerX ] <| text "Submit"
                         }
                     ]
                 ]
             , row [ centerX ]
-                [ column [] (List.map viewProblem model.problems)
+                [ if List.isEmpty model.problems then
+                    el [ Font.size 18 ] <|
+                        text model.message
+
+                  else
+                    column [ spacing 10 ] <|
+                        List.map viewProblem model.problems
                 ]
             ]
         ]
@@ -211,7 +221,7 @@ viewProblem problem =
                 AuthProblem error ->
                     error
     in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+    row [ centerX ] [ el [ Font.size 18 ] <| text errorMessage ]
 
 
 onEnter : msg -> Element.Attribute msg
@@ -236,7 +246,7 @@ onEnter msg =
 
 subscriptions : Sub Msg
 subscriptions =
-    Api.authResponse (\authResult -> CompletedRegistration authResult)
+    Api.authResponse (\authResult -> CompletedReset authResult)
 
 
 
@@ -249,7 +259,7 @@ type TrimmedForm
 
 type ValidatedField
     = Username
-    | Email
+    | ConfirmationCode
     | Password
     | ConfirmPassword
 
@@ -257,7 +267,7 @@ type ValidatedField
 fieldsToValidate : List ValidatedField
 fieldsToValidate =
     [ Username
-    , Email
+    , ConfirmationCode
     , Password
     , ConfirmPassword
     ]
@@ -290,9 +300,9 @@ validateField (Trimmed form) field =
                 else
                     []
 
-            Email ->
-                if String.isEmpty form.email then
-                    [ "Email can't be blank." ]
+            ConfirmationCode ->
+                if String.isEmpty form.confirmationCode then
+                    [ "Confirmation code can't be blank." ]
 
                 else
                     []
@@ -321,8 +331,8 @@ validateField (Trimmed form) field =
 trimFields : Form -> TrimmedForm
 trimFields form =
     Trimmed
-        { email = String.trim form.email
-        , username = String.trim form.username
+        { username = String.trim form.username
+        , confirmationCode = String.trim form.confirmationCode
         , password = String.trim form.password
         , confirmPassword = String.trim form.confirmPassword
         }
@@ -332,16 +342,14 @@ trimFields form =
 -- AUTH
 
 
-{-| register packages up the form data and calls the API to register a user
--}
-register : Form -> Cmd msg
-register form =
+resetPassword : Form -> Cmd msg
+resetPassword form =
     let
         json =
             Encode.object
-                [ ( "email", Encode.string form.email )
-                , ( "username", Encode.string form.username )
-                , ( "password", Encode.string form.password )
+                [ ( "username", Encode.string form.username )
+                , ( "confirmationCode", Encode.string form.confirmationCode )
+                , ( "newPassword", Encode.string form.password )
                 ]
     in
-    Api.register json
+    Api.resetPassword json

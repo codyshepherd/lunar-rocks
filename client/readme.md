@@ -6,15 +6,22 @@ The Lunar Rocks frontend is an Elm 0.19 application.
 
 ## Setup
 
-Install [Elm](https://guide.elm-lang.org/install.html) and
-[parcel](https://github.com/wking-io/elm-live)
+Install `elm` and `elm-test` at version `0.19.0`. 
+
+```
+npm install -g elm@0.19.0
+npm install -g elm-test@0.19.0
+```
+
+Install `parcel`.
 
 ```
 npm install -g elm parcel-bundler
-
 ```
 
-Install npm packages in the `client` directory.
+
+Install the npm packages from the `client` directory.
+
 ```
 npm install
 ```
@@ -46,3 +53,9 @@ parcel build src/index.html
 ```
 
 All debug statements must be removed for the optimized build.
+
+## Attribution
+
+Many of the modules in this application are based on the [elm-spa-example](https://github.com/rtfeldman/elm-spa-example/blob/master/src/Page/Register.elm), and the Main module is partly based on the [elm-tutorial-app](https://github.com/sporto/elm-tutorial-app/blob/master/src/Main.elm).
+
+

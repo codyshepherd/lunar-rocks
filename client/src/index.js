@@ -1,33 +1,199 @@
-'use strict';
+"use strict";
 
-import { Elm } from './Main.elm';
+import { Elm } from "./Main.elm";
+import Amplify, { Auth } from "aws-amplify";
+import { awsconfig } from "../aws/aws-exports";
+Amplify.configure(awsconfig);
 
-var authKey = "auth";
-var flags = localStorage.getItem(authKey);
+Auth.currentAuthenticatedUser()
+  .then(user => {
+    init({
+      user: {
+        token: user.signInUserSession.accessToken.jwtToken,
+        account: {
+          username: user.username,
+          email: user.attributes.email
+        }
+      }
+    });
+  })
+  .catch(() => {
+    init(null);
+  });
 
-var app = Elm.Main.init({
-  node: document.getElementById('root'),
-  flags: flags
-});
+const init = flags => {
+  const app = Elm.Main.init({
+    node: document.getElementById("root"),
+    flags: flags
+  });
 
-app.ports.storeAuth.subscribe(function(auth) {
+  app.ports.cognitoRegister.subscribe(registration => {
+    Auth.signUp({
+      username: registration.username,
+      password: registration.password,
+      attributes: {
+        email: registration.email
+      },
+      validationData: []
+    })
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
 
-  // Remove username-token pair when user logs out, else update them
-  if (auth === null) {
-    localStorage.removeItem(authKey);
-  } else {
-    localStorage.setItem(authKey, JSON.stringify(auth));
-  }
+  app.ports.cognitoConfirm.subscribe(confirmation => {
+    Auth.confirmSignUp(confirmation.username, confirmation.code, {})
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
 
-  // Report that the username-token pair was stored or removed
-  setTimeout(function() { app.ports.onAuthStoreChange.send(auth); }, 0);
-});
+  app.ports.cognitoLogin.subscribe(creds => {
+    Auth.signIn({
+      username: creds.username,
+      password: creds.password
+    })
+      .then(user => {
+        app.ports.onAuthStoreChange.send({
+          user: {
+            token: user.signInUserSession.accessToken.jwtToken,
+            account: {
+              username: user.username,
+              email: user.attributes.email
+            }
+          }
+        });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
 
-// Whenever localStorage changes, report it if necessary.
-window.addEventListener("storage", function(event) {
-  if (event.storageArea === localStorage && event.key === authKey) {
-    console.log (event.newValue);
-    app.ports.onAuthStoreChange.send(event.newValue);
-  }
-}, false);
+  app.ports.cognitoLogout.subscribe(() => {
+    Auth.signOut()
+      .then(() => {
+        app.ports.onAuthStoreChange.send();
+      })
+      .catch(() => {});
+  });
 
+  app.ports.cognitoUpdatePassword.subscribe(passwords => {
+    Auth.currentAuthenticatedUser()
+      .then(user => {
+        return Auth.changePassword(
+          user,
+          passwords.oldPassword,
+          passwords.newPassword
+        );
+      })
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoUpdateEmail.subscribe(email => {
+    Auth.currentAuthenticatedUser()
+      .then(user => {
+        return Auth.updateUserAttributes(user, email);
+      })
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        console.log(err);
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoVerifyEmail.subscribe(code => {
+    Auth.verifyCurrentUserAttributeSubmit("email", code)
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoForgotPassword.subscribe(username => {
+    Auth.forgotPassword(username)
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoResetPassword.subscribe(reset => {
+    Auth.forgotPasswordSubmit(
+      reset.username,
+      reset.confirmationCode,
+      reset.newPassword
+    )
+      .then(() => {
+        app.ports.onCognitoResponse.send({ response: "success" });
+      })
+      .catch(err => {
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  // Whenever localStorage changes, report it to update all tabs.
+  window.addEventListener(
+    "storage",
+    function(event) {
+      if (event.storageArea === localStorage) {
+        Auth.currentAuthenticatedUser()
+          .then(user => {
+            app.ports.onAuthStoreChange.send({
+              user: {
+                token: user.signInUserSession.accessToken.jwtToken,
+                account: {
+                  username: user.username,
+                  email: user.attributes.email
+                }
+              }
+            });
+          })
+          .catch(() => {
+            app.ports.onAuthStoreChange.send();
+          });
+      }
+    },
+    false
+  );
+};

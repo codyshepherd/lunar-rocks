@@ -1,9 +1,6 @@
 module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, viewLink)
 
-{- This module is adapted from elm-tutorial-app: https://github.com/sporto/elm-tutorial-app/blob/master/src/Main.elm and
-   elm-spa-example: https://github.com/rtfeldman/elm-spa-example/blob/master/src/Main.elm
--}
-
+import Account
 import Api
 import Browser
 import Browser.Navigation as Nav
@@ -14,17 +11,20 @@ import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Html exposing (Html)
-import Json.Decode as Decode exposing (Value)
+import Json.Decode exposing (Value)
+import Page.Confirm as Confirm
+import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
 import Page.MusicSession as MusicSession
 import Page.Profile as Profile
 import Page.Register as Register
+import Page.ResetPassword as ResetPassword
+import Page.Settings as Settings
 import Routes exposing (Route)
-import Session exposing (Session)
+import Session exposing (Session(..))
 import Url
 import User exposing (User)
-import Username
 
 
 
@@ -60,17 +60,18 @@ type Page
     = NotFound
     | Home Home.Model
     | Login Login.Model
+    | Settings Settings.Model
     | Profile Profile.Model
     | Register Register.Model
+    | Confirm Confirm.Model
+    | ForgotPassword ForgotPassword.Model
+    | ResetPassword ResetPassword.Model
     | MusicSession MusicSession.Model
 
 
 init : Maybe User -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init maybeUser _ navKey =
     let
-        dbg =
-            Debug.log "maybeUser: " maybeUser
-
         session =
             Session.fromUser navKey maybeUser
 
@@ -110,12 +111,49 @@ loadCurrentPage session ( model, cmd ) =
                     in
                     ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
 
+                Routes.Settings ->
+                    case session of
+                        LoggedIn _ user ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Settings.init user
+                            in
+                            ( Settings pageModel, Cmd.map SettingsMsg pageCmd )
+
+                        Anonymous _ ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Home.init session
+                            in
+                            ( Home pageModel, Cmd.map HomeMsg pageCmd )
+
                 Routes.Register ->
                     let
                         ( pageModel, pageCmd ) =
                             Register.init session
                     in
                     ( Register pageModel, Cmd.map RegisterMsg pageCmd )
+
+                Routes.Confirm ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            Confirm.init session
+                    in
+                    ( Confirm pageModel, Cmd.map ConfirmMsg pageCmd )
+
+                Routes.ForgotPassword ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            ForgotPassword.init session
+                    in
+                    ( ForgotPassword pageModel, Cmd.map ForgotPasswordMsg pageCmd )
+
+                Routes.ResetPassword ->
+                    let
+                        ( pageModel, pageCmd ) =
+                            ResetPassword.init session
+                    in
+                    ( ResetPassword pageModel, Cmd.map ResetPasswordMsg pageCmd )
 
                 Routes.MusicSession username sessionName ->
                     let
@@ -142,7 +180,11 @@ type Msg
     | LoginMsg Login.Msg
     | Logout
     | ProfileMsg Profile.Msg
+    | SettingsMsg Settings.Msg
     | RegisterMsg Register.Msg
+    | ConfirmMsg Confirm.Msg
+    | ForgotPasswordMsg ForgotPassword.Msg
+    | ResetPasswordMsg ResetPassword.Msg
     | MusicSessionMsg MusicSession.Msg
 
 
@@ -203,6 +245,15 @@ update msg model =
             , Cmd.map ProfileMsg newCmd
             )
 
+        ( SettingsMsg subMsg, Settings pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    Settings.update subMsg pageModel
+            in
+            ( { model | page = Settings newPageModel }
+            , Cmd.map SettingsMsg newCmd
+            )
+
         ( RegisterMsg subMsg, Register pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
@@ -210,6 +261,33 @@ update msg model =
             in
             ( { model | page = Register newPageModel }
             , Cmd.map RegisterMsg newCmd
+            )
+
+        ( ConfirmMsg subMsg, Confirm pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    Confirm.update subMsg pageModel
+            in
+            ( { model | page = Confirm newPageModel }
+            , Cmd.map ConfirmMsg newCmd
+            )
+
+        ( ForgotPasswordMsg subMsg, ForgotPassword pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    ForgotPassword.update subMsg pageModel
+            in
+            ( { model | page = ForgotPassword newPageModel }
+            , Cmd.map ForgotPasswordMsg newCmd
+            )
+
+        ( ResetPasswordMsg subMsg, ResetPassword pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    ResetPassword.update subMsg pageModel
+            in
+            ( { model | page = ResetPassword newPageModel }
+            , Cmd.map ResetPasswordMsg newCmd
             )
 
         ( MusicSessionMsg subMsg, MusicSession pageModel ) ->
@@ -238,13 +316,25 @@ subscriptions model =
                 Sub.map HomeMsg (Home.subscriptions pageModel)
 
             Login _ ->
-                Sub.none
+                Sub.map LoginMsg Login.subscriptions
 
             Profile _ ->
                 Sub.none
 
+            Settings pageModel ->
+                Sub.map SettingsMsg (Settings.subscriptions pageModel)
+
             Register _ ->
-                Sub.none
+                Sub.map RegisterMsg Register.subscriptions
+
+            Confirm _ ->
+                Sub.map ConfirmMsg Confirm.subscriptions
+
+            ForgotPassword _ ->
+                Sub.map ForgotPasswordMsg ForgotPassword.subscriptions
+
+            ResetPassword _ ->
+                Sub.map ResetPasswordMsg ResetPassword.subscriptions
 
             MusicSession pageModel ->
                 Sub.map MusicSessionMsg (MusicSession.subscriptions pageModel)
@@ -273,9 +363,25 @@ view model =
             Element.map ProfileMsg (Profile.view pageModel)
                 |> viewWith model.session "Profile"
 
+        Settings pageModel ->
+            Element.map SettingsMsg (Settings.view pageModel)
+                |> viewWith model.session "Settings"
+
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
                 |> viewWith model.session "Register"
+
+        Confirm pageModel ->
+            Element.map ConfirmMsg (Confirm.view pageModel)
+                |> viewWith model.session "Confirm"
+
+        ForgotPassword pageModel ->
+            Element.map ForgotPasswordMsg (ForgotPassword.view pageModel)
+                |> viewWith model.session "Forgot Password"
+
+        ResetPassword pageModel ->
+            Element.map ResetPasswordMsg (ResetPassword.view pageModel)
+                |> viewWith model.session "Reset Password"
 
         MusicSession pageModel ->
             Element.map MusicSessionMsg (MusicSession.view pageModel)
@@ -315,7 +421,7 @@ viewNav session =
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
         , Border.color (rgba 0.11 0.12 0.14 1)
         ]
-        [ column [ centerX, width (px 800) ]
+        [ column [ centerX, width fill, paddingXY 30 0 ]
             [ row [ width fill ]
                 [ column [ alignLeft, Font.family Fonts.cinzelFont, Font.size 36 ]
                     [ viewLink "/" "Lunar Rocks"
@@ -326,9 +432,10 @@ viewNav session =
                             Session.LoggedIn _ user ->
                                 let
                                     username =
-                                        Username.toString (User.username user)
+                                        Account.username (User.account user)
                                 in
                                 [ viewLink ("/" ++ username) "Profile"
+                                , viewLink "/settings" "Settings"
                                 , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
 
                                 -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"

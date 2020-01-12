@@ -1,6 +1,8 @@
-module Page.Login exposing (Model, Msg(..), init, subscriptions, update, view)
+module Page.ForgotPassword exposing (Model, Msg(..), init, subscriptions, update, view)
 
+import Account
 import Api
+import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -27,20 +29,29 @@ type Problem
     | AuthProblem String
 
 
+{-| The Cognito user pool will accept username or email, but we call it
+username in Form to match the Amplify API
+-}
 type alias Form =
     { username : String
-    , password : String
     }
 
 
+{-| Initialize the page with username filled in for logged in users
+-}
 init : Session -> ( Model, Cmd msg )
 init session =
     ( { session = session
       , problems = []
       , form =
-            { username = ""
-            , password = ""
-            }
+            case Session.user session of
+                Just user ->
+                    { username = Account.email (User.account user)
+                    }
+
+                Nothing ->
+                    { username = ""
+                    }
       }
     , Cmd.none
     )
@@ -53,8 +64,7 @@ init session =
 type Msg
     = SubmittedForm
     | EnteredUsername String
-    | EnteredPassword String
-    | CompletedLogin (Result Api.AuthError Api.AuthSuccess)
+    | CompletedResetRequest (Result Api.AuthError Api.AuthSuccess)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -64,7 +74,7 @@ update msg model =
             case validate model.form of
                 Ok (Trimmed form) ->
                     ( { model | problems = [] }
-                    , login form
+                    , forgotPassword form
                     )
 
                 Err problems ->
@@ -75,10 +85,7 @@ update msg model =
         EnteredUsername newUsername ->
             updateForm (\form -> { form | username = newUsername }) model
 
-        EnteredPassword newPassword ->
-            updateForm (\form -> { form | password = newPassword }) model
-
-        CompletedLogin (Err error) ->
+        CompletedResetRequest (Err error) ->
             case error of
                 Api.AuthError err ->
                     ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
@@ -90,9 +97,8 @@ update msg model =
                     , Cmd.none
                     )
 
-        CompletedLogin (Ok _) ->
-            -- navigation to Home page handled by Session
-            ( model, Cmd.none )
+        CompletedResetRequest (Ok _) ->
+            ( model, Nav.pushUrl (Session.navKey model.session) "reset-password" )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -108,7 +114,7 @@ view : Model -> Element Msg
 view model =
     row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
         [ column [ centerX, width (px 375), spacing 25 ]
-            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign in to Lunar Rocks" ]
+            [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Request Password Reset" ]
             , row
                 [ centerX
                 , paddingXY 0 25
@@ -126,23 +132,15 @@ view model =
                         , onChange = \newUsername -> EnteredUsername newUsername
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username or Email")
                         }
-                    , Input.currentPassword
-                        [ onEnter SubmittedForm, spacing 12, Font.color (rgba 0 0 0 1) ]
-                        { text = model.form.password
-                        , placeholder = Nothing
-                        , onChange = \newPassword -> EnteredPassword newPassword
-                        , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Password")
-                        , show = False
-                        }
-                    , link
-                        [ alignLeft
-                        , Font.size 16
-                        , Font.color (rgb 0.47 0.61 0.93)
-                        , mouseOver [ Font.color (rgb 0.38 0.55 0.92) ]
+                    , row [ width (px 300) ]
+                        [ if List.isEmpty model.problems then
+                            el [ Font.size 18 ] <|
+                                text "We will send a reset code to your email."
+
+                          else
+                            column [ spacing 10 ] <|
+                                List.map viewProblem model.problems
                         ]
-                        { url = "/forgot-password"
-                        , label = text "Forgot Password?"
-                        }
                     , Input.button
                         [ Border.color (rgba 0.36 0.38 0.45 1)
                         , mouseOver [ Border.color (rgba 0.42 0.44 0.51 1) ]
@@ -150,14 +148,12 @@ view model =
                         , Border.rounded 3
                         , Border.width 2
                         , width fill
+                        , Font.family Fonts.cinzelFont
                         ]
                         { onPress = Just SubmittedForm
-                        , label = el [ centerX ] <| text "Sign in"
+                        , label = el [ centerX ] <| text "Submit"
                         }
                     ]
-                ]
-            , row [ centerX ]
-                [ column [] (List.map viewProblem model.problems)
                 ]
             ]
         ]
@@ -174,7 +170,7 @@ viewProblem problem =
                 AuthProblem error ->
                     error
     in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+    row [ centerX ] [ el [ Font.size 18 ] <| text errorMessage ]
 
 
 onEnter : msg -> Element.Attribute msg
@@ -199,7 +195,7 @@ onEnter msg =
 
 subscriptions : Sub Msg
 subscriptions =
-    Api.authResponse (\authResult -> CompletedLogin authResult)
+    Api.authResponse (\authResult -> CompletedResetRequest authResult)
 
 
 
@@ -212,13 +208,11 @@ type TrimmedForm
 
 type ValidatedField
     = Username
-    | Password
 
 
 fieldsToValidate : List ValidatedField
 fieldsToValidate =
     [ Username
-    , Password
     ]
 
 
@@ -244,14 +238,7 @@ validateField (Trimmed form) field =
         case field of
             Username ->
                 if String.isEmpty form.username then
-                    [ "Incorrect username or password." ]
-
-                else
-                    []
-
-            Password ->
-                if String.length form.password < User.minPasswordChars then
-                    [ "Incorrect username or password." ]
+                    [ "Please enter your username or email." ]
 
                 else
                     []
@@ -261,7 +248,6 @@ trimFields : Form -> TrimmedForm
 trimFields form =
     Trimmed
         { username = String.trim form.username
-        , password = String.trim form.password
         }
 
 
@@ -269,13 +255,10 @@ trimFields form =
 -- AUTH
 
 
-login : Form -> Cmd msg
-login form =
+forgotPassword : Form -> Cmd msg
+forgotPassword form =
     let
-        json =
-            Encode.object
-                [ ( "username", Encode.string form.username )
-                , ( "password", Encode.string form.password )
-                ]
+        username =
+            Encode.string form.username
     in
-    Api.login json
+    Api.forgotPassword username
