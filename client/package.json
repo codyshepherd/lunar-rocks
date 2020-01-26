@@ -18,6 +18,14 @@
   },
   "devDependencies": {
     "elm-hot": "^1.1.0",
-    "node-elm-compiler": "^5.0.4"
-  }
+    "node-elm-compiler": "^5.0.4",
+    "parcel-plugin-static-files-copy": "^2.3.1"
+  },
+  "staticFiles": {
+    "staticPath": {
+      "staticPath": "src/assets",
+      "staticOutDir": "assets"
+    },
+    "watcherGlob": "**"
+}
 }

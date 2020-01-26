@@ -1,6 +1,7 @@
 "use strict";
 
 import { Elm } from "./Main.elm";
+import { sine, square, triangle } from "./assets/svg-exports"; // regitser default avatars with parcel
 import Amplify, { Auth } from "aws-amplify";
 import { awsconfig } from "../aws/aws-exports";
 Amplify.configure(awsconfig);

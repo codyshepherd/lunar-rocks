@@ -2,6 +2,7 @@ module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, v
 
 import Account
 import Api
+import Avatar
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
@@ -424,7 +425,7 @@ viewNav session =
         [ column [ centerX, width fill, paddingXY 30 0 ]
             [ row [ width fill ]
                 [ column [ alignLeft, Font.family Fonts.cinzelFont, Font.size 36 ]
-                    [ viewLink "/" "Lunar Rocks"
+                    [ viewLink "/" <| text "Lunar Rocks"
                     ]
                 , column [ alignRight ]
                     [ row [ spacing 15, Font.family Fonts.quattrocentoFont, Font.size 18 ] <|
@@ -434,16 +435,20 @@ viewNav session =
                                     username =
                                         Account.username (User.account user)
                                 in
-                                [ viewLink ("/" ++ username) "Profile"
-                                , viewLink "/settings" "Settings"
+                                -- [ viewLink ("/" ++ username) "Profile"
+                                [ viewLink "/settings" <|
+                                    row [ spacing 7 ]
+                                        [ el [] <| image [ height (px 30), Border.rounded 50, clip ] (Avatar.imageMeta Avatar.noAvatar)
+                                        , el [] <| text username
+                                        ]
                                 , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
 
                                 -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"
                                 ]
 
                             Session.Anonymous _ ->
-                                [ viewLink "/login" "Sign in"
-                                , viewLink "/register" "Sign up"
+                                [ viewLink "/login" <| text "Sign in"
+                                , viewLink "/register" <| text "Sign up"
 
                                 -- , viewLink "/notFound"
                                 ]
@@ -453,9 +458,9 @@ viewNav session =
         ]
 
 
-viewLink : String -> String -> Element msg
+viewLink : String -> Element msg -> Element msg
 viewLink path label =
     link []
         { url = path
-        , label = text label
+        , label = label
         }
