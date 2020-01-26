@@ -22,6 +22,7 @@ import Page.Profile as Profile
 import Page.Register as Register
 import Page.ResetPassword as ResetPassword
 import Page.Settings as Settings
+import Page.Settings.Profile as ProfileSettings
 import Routes exposing (Route)
 import Session exposing (Session(..))
 import Url
@@ -63,6 +64,7 @@ type Page
     | Login Login.Model
     | Settings Settings.Model
     | Profile Profile.Model
+    | ProfileSettings ProfileSettings.Model
     | Register Register.Model
     | Confirm Confirm.Model
     | ForgotPassword ForgotPassword.Model
@@ -111,6 +113,22 @@ loadCurrentPage session ( model, cmd ) =
                             Profile.init session username
                     in
                     ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
+
+                Routes.ProfileSettings ->
+                    case session of
+                        LoggedIn _ user ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    ProfileSettings.init user
+                            in
+                            ( ProfileSettings pageModel, Cmd.map ProfileSettingsMsg pageCmd )
+
+                        Anonymous _ ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Home.init session
+                            in
+                            ( Home pageModel, Cmd.map HomeMsg pageCmd )
 
                 Routes.Settings ->
                     case session of
@@ -181,6 +199,7 @@ type Msg
     | LoginMsg Login.Msg
     | Logout
     | ProfileMsg Profile.Msg
+    | ProfileSettingsMsg ProfileSettings.Msg
     | SettingsMsg Settings.Msg
     | RegisterMsg Register.Msg
     | ConfirmMsg Confirm.Msg
@@ -244,6 +263,15 @@ update msg model =
             in
             ( { model | page = Profile newPageModel }
             , Cmd.map ProfileMsg newCmd
+            )
+
+        ( ProfileSettingsMsg subMsg, ProfileSettings pageModel ) ->
+            let
+                ( newPageModel, newCmd ) =
+                    ProfileSettings.update subMsg pageModel
+            in
+            ( { model | page = ProfileSettings newPageModel }
+            , Cmd.map ProfileSettingsMsg newCmd
             )
 
         ( SettingsMsg subMsg, Settings pageModel ) ->
@@ -322,6 +350,9 @@ subscriptions model =
             Profile _ ->
                 Sub.none
 
+            ProfileSettings pageModel ->
+                Sub.map ProfileSettingsMsg (ProfileSettings.subscriptions pageModel)
+
             Settings pageModel ->
                 Sub.map SettingsMsg (Settings.subscriptions pageModel)
 
@@ -363,6 +394,10 @@ view model =
         Profile pageModel ->
             Element.map ProfileMsg (Profile.view pageModel)
                 |> viewWith model.session "Profile"
+
+        ProfileSettings pageModel ->
+            Element.map ProfileSettingsMsg (ProfileSettings.view pageModel)
+                |> viewWith model.session "Profile Settings"
 
         Settings pageModel ->
             Element.map SettingsMsg (Settings.view pageModel)
