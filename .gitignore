@@ -11,13 +11,14 @@ dist/
 node_modules/
 
 # go
-server.crt
-server.key
-.envrc
-bin/
-pkg/
-src/github.com/
-src/golang.org/
+go/.envrc
+go/psql_creds.rc
+go/server.crt
+go/server.key
+go/bin/
+go/pkg/
+go/src/github.com/
+go/src/golang.org/
 
 # aws
 venv/
