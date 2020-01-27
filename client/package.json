@@ -23,7 +23,7 @@
   },
   "staticFiles": {
     "staticPath": {
-      "staticPath": "src/assets",
+      "staticPath": "assets",
       "staticOutDir": "assets"
     },
     "watcherGlob": "**"

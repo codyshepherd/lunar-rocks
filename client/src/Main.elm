@@ -21,7 +21,7 @@ import Page.MusicSession as MusicSession
 import Page.Profile as Profile
 import Page.Register as Register
 import Page.ResetPassword as ResetPassword
-import Page.Settings as Settings
+import Page.Settings.Account as AccountSettings
 import Page.Settings.Profile as ProfileSettings
 import Routes exposing (Route)
 import Session exposing (Session(..))
@@ -62,7 +62,7 @@ type Page
     = NotFound
     | Home Home.Model
     | Login Login.Model
-    | Settings Settings.Model
+    | AccountSettings AccountSettings.Model
     | Profile Profile.Model
     | ProfileSettings ProfileSettings.Model
     | Register Register.Model
@@ -130,14 +130,14 @@ loadCurrentPage session ( model, cmd ) =
                             in
                             ( Home pageModel, Cmd.map HomeMsg pageCmd )
 
-                Routes.Settings ->
+                Routes.AccountSettings ->
                     case session of
                         LoggedIn _ user ->
                             let
                                 ( pageModel, pageCmd ) =
-                                    Settings.init user
+                                    AccountSettings.init user
                             in
-                            ( Settings pageModel, Cmd.map SettingsMsg pageCmd )
+                            ( AccountSettings pageModel, Cmd.map AccountSettingsMsg pageCmd )
 
                         Anonymous _ ->
                             let
@@ -200,7 +200,7 @@ type Msg
     | Logout
     | ProfileMsg Profile.Msg
     | ProfileSettingsMsg ProfileSettings.Msg
-    | SettingsMsg Settings.Msg
+    | AccountSettingsMsg AccountSettings.Msg
     | RegisterMsg Register.Msg
     | ConfirmMsg Confirm.Msg
     | ForgotPasswordMsg ForgotPassword.Msg
@@ -274,13 +274,13 @@ update msg model =
             , Cmd.map ProfileSettingsMsg newCmd
             )
 
-        ( SettingsMsg subMsg, Settings pageModel ) ->
+        ( AccountSettingsMsg subMsg, AccountSettings pageModel ) ->
             let
                 ( newPageModel, newCmd ) =
-                    Settings.update subMsg pageModel
+                    AccountSettings.update subMsg pageModel
             in
-            ( { model | page = Settings newPageModel }
-            , Cmd.map SettingsMsg newCmd
+            ( { model | page = AccountSettings newPageModel }
+            , Cmd.map AccountSettingsMsg newCmd
             )
 
         ( RegisterMsg subMsg, Register pageModel ) ->
@@ -353,8 +353,8 @@ subscriptions model =
             ProfileSettings pageModel ->
                 Sub.map ProfileSettingsMsg (ProfileSettings.subscriptions pageModel)
 
-            Settings pageModel ->
-                Sub.map SettingsMsg (Settings.subscriptions pageModel)
+            AccountSettings pageModel ->
+                Sub.map AccountSettingsMsg (AccountSettings.subscriptions pageModel)
 
             Register _ ->
                 Sub.map RegisterMsg Register.subscriptions
@@ -399,9 +399,9 @@ view model =
             Element.map ProfileSettingsMsg (ProfileSettings.view pageModel)
                 |> viewWith model.session "Profile Settings"
 
-        Settings pageModel ->
-            Element.map SettingsMsg (Settings.view pageModel)
-                |> viewWith model.session "Settings"
+        AccountSettings pageModel ->
+            Element.map AccountSettingsMsg (AccountSettings.view pageModel)
+                |> viewWith model.session "Account Settings"
 
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
@@ -471,7 +471,7 @@ viewNav session =
                                         Account.username (User.account user)
                                 in
                                 -- [ viewLink ("/" ++ username) "Profile"
-                                [ viewLink "/settings" <|
+                                [ viewLink "/settings/account" <|
                                     row [ spacing 7 ]
                                         [ el [] <| image [ height (px 30), Border.rounded 50, clip ] (Avatar.imageMeta Avatar.noAvatar)
                                         , el [] <| text username

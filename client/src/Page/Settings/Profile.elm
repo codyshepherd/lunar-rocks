@@ -146,12 +146,12 @@ settingsNav =
             , Border.widthEach { bottom = 2, left = 0, right = 0, top = 0 }
             , width fill
             ]
-            { url = "/settings", label = text "Account" }
+            { url = "/settings/account", label = text "Account" }
         , link
             [ paddingXY 16 16
             , width fill
             ]
-            { url = "/profile", label = text "Profile" }
+            { url = "/settings/profile", label = text "Profile" }
         ]
 
 

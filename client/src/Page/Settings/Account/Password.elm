@@ -1,4 +1,4 @@
-module Page.Settings.Password exposing (Model, Msg, init, subscriptions, update, viewForm)
+module Page.Settings.Account.Password exposing (Model, Msg, init, subscriptions, update, viewForm)
 
 import Account exposing (Account)
 import Api

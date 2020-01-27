@@ -14,7 +14,7 @@ type Route
     | ProfileSettings
     | Register
     | ResetPassword
-    | Settings
+    | AccountSettings
     | MusicSession String String
 
 
@@ -27,8 +27,8 @@ routeParser =
         , map Login (s "login")
         , map Register (s "register")
         , map ResetPassword (s "reset-password")
-        , map ProfileSettings (s "profile")
-        , map Settings (s "settings")
+        , map ProfileSettings (s "settings" </> s "profile")
+        , map AccountSettings (s "settings" </> s "account")
         , map MusicSession (string </> string)
         , map Profile string
         ]

@@ -26,7 +26,7 @@ defaultAvatar =
 image : { filename : String, description : String } -> Image
 image { filename, description } =
     Image
-        { src = "./assets/" ++ filename
+        { src = "/assets/" ++ filename
         , description = description
         }
 
