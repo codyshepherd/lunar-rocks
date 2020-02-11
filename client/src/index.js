@@ -2,9 +2,11 @@
 
 import { Elm } from "./Main.elm";
 import { sine, square, triangle } from "../assets/svg-exports"; // regitser default avatars with parcel
-import Amplify, { Auth } from "aws-amplify";
+import Amplify, { Auth, Storage } from "aws-amplify";
 import { awsconfig } from "../aws/aws-exports";
 Amplify.configure(awsconfig);
+
+// window.LOG_LEVEL = "DEBUG";
 
 Auth.currentAuthenticatedUser()
   .then(user => {
@@ -13,7 +15,11 @@ Auth.currentAuthenticatedUser()
         token: user.signInUserSession.accessToken.jwtToken,
         account: {
           username: user.username,
-          email: user.attributes.email
+          email: user.attributes.email,
+          avatar: {
+            url: "",
+            description: user.username + "'s avatar"
+          }
         }
       }
     });
@@ -72,7 +78,11 @@ const init = flags => {
             token: user.signInUserSession.accessToken.jwtToken,
             account: {
               username: user.username,
-              email: user.attributes.email
+              email: user.attributes.email,
+              avatar: {
+                url: "",
+                description: user.username + "'s avatar"
+              }
             }
           }
         });
@@ -185,7 +195,11 @@ const init = flags => {
                 token: user.signInUserSession.accessToken.jwtToken,
                 account: {
                   username: user.username,
-                  email: user.attributes.email
+                  email: user.attributes.email,
+                  avatar: {
+                    url: "",
+                    description: user.username + "'s avatar"
+                  }
                 }
               }
             });

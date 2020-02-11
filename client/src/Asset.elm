@@ -1,4 +1,7 @@
-module Asset exposing (Image, ImageMeta, defaultAvatar, imageMeta)
+module Asset exposing (Image, ImageMeta, defaultAvatar, imageMeta, imageMetaDecoder)
+
+import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Pipeline exposing (hardcoded, required)
 
 
 type Image
@@ -18,7 +21,7 @@ type alias ImageMeta =
 defaultAvatar : Image
 defaultAvatar =
     image
-        { filename = "sine.svg"
+        { filename = "triangle.svg"
         , description = "Default avatar"
         }
 
@@ -37,6 +40,17 @@ remoteImage { url, description } =
         { src = url
         , description = description
         }
+
+
+
+-- CREATE IMAGES
+
+
+imageMetaDecoder : Decoder ImageMeta
+imageMetaDecoder =
+    Decode.succeed ImageMeta
+        |> required "url" Decode.string
+        |> required "description" Decode.string
 
 
 

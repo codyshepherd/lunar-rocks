@@ -21,6 +21,7 @@ port module Api exposing
     )
 
 import Account exposing (Account)
+import Avatar exposing (Avatar)
 import Browser
 import Browser.Navigation as Nav
 import Http exposing (Body)

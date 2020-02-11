@@ -1,4 +1,4 @@
-module Avatar exposing (Avatar, imageMeta, noAvatar)
+module Avatar exposing (Avatar, decoder, imageMeta)
 
 import Asset exposing (ImageMeta)
 import Json.Decode as Decode exposing (Decoder)
@@ -15,14 +15,11 @@ type Avatar
 
 
 -- CREATE
--- decoder : Decoder Avatar
--- decoder =
---     Decode.map Avatar (Decode.nullable Decode.string)
 
 
-noAvatar : Avatar
-noAvatar =
-    Avatar Nothing
+decoder : Decoder Avatar
+decoder =
+    Decode.map Avatar (Decode.nullable Asset.imageMetaDecoder)
 
 
 

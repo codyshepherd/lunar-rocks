@@ -69,7 +69,7 @@ view model =
                         ]
                     ]
                   <|
-                    { url = "/" ++ Account.username model.account, label = text "View Profile" }
+                    { url = "/" ++ Account.username model.account, label = text "View Public Profile" }
                 ]
             , row [ spacing 20 ]
                 [ column [ alignTop, width (px 500), spacing 15 ]
@@ -113,7 +113,10 @@ view model =
                         , Border.widthEach { bottom = 1, left = 1, right = 1, top = 1 }
                         , Border.color (rgb 0.22 0.24 0.28)
                         ]
-                        [ el [] <| image [ height (px 200), clip ] (Avatar.imageMeta Avatar.noAvatar)
+                        [ el [] <|
+                            image [ height (px 200), clip ] <|
+                                Avatar.imageMeta <|
+                                    Account.avatar model.account
                         ]
                     ]
                 ]

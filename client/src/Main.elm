@@ -2,7 +2,7 @@ module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, v
 
 import Account
 import Api
-import Avatar
+import Avatar exposing (Avatar)
 import Browser
 import Browser.Navigation as Nav
 import Element exposing (..)
@@ -194,6 +194,7 @@ loadCurrentPage session ( model, cmd ) =
 type Msg
     = OnUrlRequest Browser.UrlRequest
     | OnUrlChange Url.Url
+    | GotAvatar Avatar
     | GotSession Session
     | HomeMsg Home.Msg
     | LoginMsg Login.Msg
@@ -224,6 +225,9 @@ update msg model =
             , Cmd.none
             )
                 |> loadCurrentPage model.session
+
+        ( GotAvatar avatar, _ ) ->
+            ( model, Cmd.none )
 
         ( GotSession session, _ ) ->
             -- It may be better to return to the previous page if the user
@@ -467,13 +471,19 @@ viewNav session =
                         case session of
                             Session.LoggedIn _ user ->
                                 let
+                                    account =
+                                        User.account user
+
                                     username =
-                                        Account.username (User.account user)
+                                        Account.username account
+
+                                    avatar =
+                                        Account.avatar account
                                 in
                                 -- [ viewLink ("/" ++ username) "Profile"
                                 [ viewLink "/settings/account" <|
                                     row [ spacing 7 ]
-                                        [ el [] <| image [ height (px 30), Border.rounded 50, clip ] (Avatar.imageMeta Avatar.noAvatar)
+                                        [ el [] <| image [ height (px 30), Border.rounded 50, clip ] (Avatar.imageMeta avatar)
                                         , el [] <| text username
                                         ]
                                 , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
