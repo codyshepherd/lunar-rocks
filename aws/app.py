@@ -16,7 +16,18 @@ class LunarRocksStack(core.Stack):
             self, 'UserPool',
             auto_verified_attributes=['email'],
             alias_attributes=['email'],
-            schema=[{'attributeDataType': 'String', 'name': 'email', 'required': True, 'mutable': True}],
+            schema=[
+                {'attributeDataType': 'String', 'name': 'email', 'required': True, 'mutable': True},
+                {'attributeDataType': 'String', 'name': 'picture', 'required': False, 'mutable': True},
+                {'attributeDataType': 'String', 'name': 'nickname', 'required': False, 'mutable': True},
+                {'attributeDataType': 'String', 'name': 'website', 'required': False, 'mutable': True},
+                {'attributeDataType': 'String', 'name': 'bio', 'required': False, 'mutable': True, 
+                 'stringAttributeConstraints': {'minLength' : '0', 'maxLength' : '2048'}
+                },
+                {'attributeDataType': 'String', 'name': 'location', 'required': False, 'mutable': True,
+                 'stringAttributeConstraints': {'minLength' : '0', 'maxLength' : '2048'}
+                },
+                ],
             policies={'passwordPolicy': {'minimumLength': 16}},
             user_pool_name='lunar-rocks',
             user_pool_tags={'Site': "lunar.rocks", 'Project': "Lunar Rocks"}
