@@ -41,7 +41,7 @@ class LunarRocksStack(core.Stack):
             refresh_token_validity=30,
             generate_secret=False,
             prevent_user_existence_errors='ENABLED',
-            write_attributes=['email']
+            write_attributes=['email','nickname','picture','website','custom:bio','custom:location']
         )
 
         user_pool_output = core.CfnOutput(
