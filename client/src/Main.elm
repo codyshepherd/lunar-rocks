@@ -23,6 +23,7 @@ import Page.Register as Register
 import Page.ResetPassword as ResetPassword
 import Page.Settings.Account as AccountSettings
 import Page.Settings.Profile as ProfileSettings
+import Profile
 import Routes exposing (Route)
 import Session exposing (Session(..))
 import Url
@@ -229,18 +230,31 @@ update msg model =
         ( GotAvatar avatar, _ ) ->
             ( model, Cmd.none )
 
-        ( GotSession session, _ ) ->
-            -- It may be better to return to the previous page if the user
-            -- was viewing a session or a profile. Also, check if a user logs
-            -- out the session will be anonymous we may want to make sure they
-            -- must return to Home.
+        ( GotSession session, Login pageModel ) ->
             ( { model | session = session }
             , Nav.replaceUrl (Session.navKey session) "/"
             )
-                |> loadCurrentPage model.session
+
+        ( GotSession session, _ ) ->
+            case session of
+                LoggedIn _ _ ->
+                    ( { model | session = session }
+                    , Cmd.none
+                    )
+                        |> loadCurrentPage session
+
+                Anonymous _ ->
+                    ( { model | session = session }
+                    , Nav.replaceUrl (Session.navKey session) "/"
+                    )
 
         ( Logout, _ ) ->
-            ( model, Api.logout )
+            ( model
+            , Cmd.batch
+                [ Nav.replaceUrl (Session.navKey model.session) "/"
+                , Api.logout
+                ]
+            )
 
         ( HomeMsg subMsg, Home pageModel ) ->
             let
@@ -478,7 +492,8 @@ viewNav session =
                                         Account.username account
 
                                     avatar =
-                                        Account.avatar account
+                                        Profile.avatar <|
+                                            User.profile user
                                 in
                                 -- [ viewLink ("/" ++ username) "Profile"
                                 [ viewLink "/settings/account" <|

@@ -1,6 +1,5 @@
-module Account exposing (Account, avatar, decoder, email, username)
+module Account exposing (Account, decoder, email, username)
 
-import Avatar exposing (Avatar)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
 
@@ -12,7 +11,6 @@ import Json.Decode.Pipeline exposing (required)
 type alias Account =
     { username : String
     , email : String
-    , avatar : Avatar
     }
 
 
@@ -25,7 +23,6 @@ decoder =
     Decode.succeed Account
         |> required "username" Decode.string
         |> required "email" Decode.string
-        |> required "avatar" Avatar.decoder
 
 
 
@@ -40,8 +37,3 @@ username account =
 email : Account -> String
 email account =
     account.email
-
-
-avatar : Account -> Avatar
-avatar account =
-    account.avatar

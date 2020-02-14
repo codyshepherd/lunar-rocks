@@ -1,6 +1,7 @@
 module Page.Settings.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Account exposing (Account)
+import Api
 import Avatar
 import Element exposing (..)
 import Element.Background as Background
@@ -8,21 +9,50 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
+import Page.Settings.Profile.About as About
+import Page.Settings.Profile.Avatar as Avatar
+import Page.Settings.Profile.DisplayName as DisplayName
+import Profile exposing (Profile)
 import User exposing (User)
 
 
 type alias Model =
     { account : Account
+    , profile : Profile
+    , aboutForm : About.Model
+    , avatarForm : Avatar.Model
+    , displayNameForm : DisplayName.Model
+    , activeForm : ActiveForm
     }
+
+
+type ActiveForm
+    = AboutForm
+    | AvatarForm
+    | DisplayNameForm
 
 
 init : User -> ( Model, Cmd Msg )
 init user =
     let
-        account =
-            User.account user
+        profile =
+            User.profile user
+
+        ( aboutModel, _ ) =
+            About.init profile
+
+        ( avatarModel, _ ) =
+            Avatar.init profile
+
+        ( displayNameModel, _ ) =
+            DisplayName.init profile
     in
-    ( { account = account
+    ( { account = User.account user
+      , profile = User.profile user
+      , aboutForm = aboutModel
+      , avatarForm = avatarModel
+      , displayNameForm = displayNameModel
+      , activeForm = AvatarForm
       }
     , Cmd.none
     )
@@ -33,14 +63,40 @@ init user =
 
 
 type Msg
-    = Nop
+    = GotAboutMsg About.Msg
+    | GotAvatarMsg Avatar.Msg
+    | GotDisplayNameMsg DisplayName.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Nop ->
-            ( model, Cmd.none )
+        GotAboutMsg subMsg ->
+            let
+                ( newAboutForm, subCmd ) =
+                    About.update model.profile subMsg model.aboutForm
+            in
+            ( { model | aboutForm = newAboutForm, activeForm = AboutForm }
+            , Cmd.map GotAboutMsg subCmd
+            )
+
+        GotAvatarMsg subMsg ->
+            let
+                ( newAvatarForm, subCmd ) =
+                    Avatar.update model.profile subMsg model.avatarForm
+            in
+            ( { model | avatarForm = newAvatarForm, activeForm = AvatarForm }
+            , Cmd.map GotAvatarMsg subCmd
+            )
+
+        GotDisplayNameMsg subMsg ->
+            let
+                ( newDisplayNameForm, subCmd ) =
+                    DisplayName.update model.profile subMsg model.displayNameForm
+            in
+            ( { model | displayNameForm = newDisplayNameForm, activeForm = DisplayNameForm }
+            , Cmd.map GotDisplayNameMsg subCmd
+            )
 
 
 view : Model -> Element Msg
@@ -71,54 +127,20 @@ view model =
                   <|
                     { url = "/" ++ Account.username model.account, label = text "View Public Profile" }
                 ]
-            , row [ spacing 20 ]
-                [ column [ alignTop, width (px 500), spacing 15 ]
-                    [ row
-                        [ width fill
-                        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                        , Border.color (rgba 0.22 0.24 0.28 1)
-                        ]
-                        [ el [ Font.size 28, paddingXY 0 10, Font.family Fonts.cinzelFont ] (text "Display Name")
-                        ]
-                    , paragraph []
-                        [ el [ Font.size 18 ] <|
-                            text <|
-                                "Your username is "
-                                    ++ Account.username model.account
-                                    ++ ". We will add a display name option soon."
-                        ]
-                    , row
-                        [ width fill
-                        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                        , Border.color (rgba 0.22 0.24 0.28 1)
-                        ]
-                        [ el [ Font.size 28, paddingXY 0 10, Font.family Fonts.cinzelFont ] (text "About You")
-                        ]
-                    , paragraph []
-                        [ el [ Font.size 18 ] <| text "Fields for bio, location, and website will go here."
-                        ]
+            , row [ width fill, spacing 20 ]
+                [ column [ alignTop, width (px 500), spacing 30 ]
+                    [ DisplayName.viewForm model.displayNameForm
+                        |> Element.map GotDisplayNameMsg
+
+                    -- , About.viewForm model.aboutForm
+                    --     |> Element.map GotAboutMsg
                     ]
-                , column [ alignTop, width (px 240), spacing 15 ]
-                    [ row
-                        [ width fill
-                        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                        , Border.color (rgba 0.22 0.24 0.28 1)
-                        ]
-                        [ el [ Font.size 28, paddingXY 0 10, Font.family Fonts.cinzelFont ] (text "Profile Picture")
-                        ]
-                    , row
-                        [ centerX
-                        , width (px 200)
-                        , height (px 200)
-                        , Border.widthEach { bottom = 1, left = 1, right = 1, top = 1 }
-                        , Border.color (rgb 0.22 0.24 0.28)
-                        ]
-                        [ el [] <|
-                            image [ height (px 200), clip ] <|
-                                Avatar.imageMeta <|
-                                    Account.avatar model.account
-                        ]
-                    ]
+                , Avatar.viewForm model.avatarForm
+                    |> Element.map GotAvatarMsg
+                ]
+            , row [ width fill ]
+                [ About.viewForm model.aboutForm
+                    |> Element.map GotAboutMsg
                 ]
             ]
         ]
@@ -164,4 +186,16 @@ settingsNav =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model.activeForm of
+        AboutForm ->
+            Sub.map GotAboutMsg (About.subscriptions model.aboutForm)
+
+        AvatarForm ->
+            Sub.map GotAvatarMsg (Avatar.subscriptions model.avatarForm)
+
+        DisplayNameForm ->
+            Sub.map GotDisplayNameMsg (DisplayName.subscriptions model.displayNameForm)
+
+
+
+-- FORM

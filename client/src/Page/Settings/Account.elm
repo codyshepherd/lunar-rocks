@@ -152,8 +152,6 @@ settingsNav page =
             , width fill
             ]
             { url = "/settings/profile", label = text "Profile" }
-
-        -- el [ Font.size 20, paddingXY 0 10 ] (text "Username")
         ]
 
 

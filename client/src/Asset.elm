@@ -1,7 +1,7 @@
 module Asset exposing (Image, ImageMeta, defaultAvatar, imageMeta, imageMetaDecoder)
 
 import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Pipeline exposing (hardcoded, required)
+import Json.Decode.Pipeline exposing (optional, required)
 
 
 type Image
@@ -49,7 +49,7 @@ remoteImage { url, description } =
 imageMetaDecoder : Decoder ImageMeta
 imageMetaDecoder =
     Decode.succeed ImageMeta
-        |> required "url" Decode.string
+        |> optional "url" Decode.string ""
         |> required "description" Decode.string
 
 

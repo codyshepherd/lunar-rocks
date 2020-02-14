@@ -11,9 +11,12 @@ port module Api exposing
     , get
     , login
     , logout
+    , profile
     , register
     , resetPassword
     , toUrl
+    , updateAbout
+    , updateDisplayName
     , updateEmail
     , updatePassword
     , userChanges
@@ -27,6 +30,7 @@ import Browser.Navigation as Nav
 import Http exposing (Body)
 import Json.Decode as Decode exposing (Decoder, Value, field, string)
 import Json.Decode.Pipeline exposing (required)
+import Profile exposing (Profile)
 import Url exposing (Url)
 import Url.Builder exposing (QueryParameter)
 
@@ -46,16 +50,21 @@ exposed and can be used in other modules.
 
 -}
 type Cred
-    = Cred Account String
+    = Cred Account Profile String
 
 
 account : Cred -> Account
-account (Cred acct _) =
+account (Cred acct _ _) =
     acct
 
 
+profile : Cred -> Profile
+profile (Cred _ prof _) =
+    prof
+
+
 credHeader : Cred -> Http.Header
-credHeader (Cred _ str) =
+credHeader (Cred _ _ str) =
     Http.header "authorization" str
 
 
@@ -63,6 +72,7 @@ credDecoder : Decoder Cred
 credDecoder =
     Decode.succeed Cred
         |> required "account" Account.decoder
+        |> required "profile" Profile.decoder
         |> required "token" Decode.string
 
 
@@ -95,9 +105,7 @@ decodeFromChange userDecoder val =
     -- It's stored in localStorage as a JSON String;
     -- first decode the Value as a String, then
     -- decode that String as JSON.
-    Decode.decodeValue
-        (storageDecoder userDecoder)
-        val
+    Decode.decodeValue (storageDecoder userDecoder) val
         |> Result.toMaybe
 
 
@@ -146,6 +154,12 @@ port cognitoForgotPassword : Value -> Cmd msg
 port cognitoResetPassword : Value -> Cmd msg
 
 
+port cognitoUpdateDisplayName : Value -> Cmd msg
+
+
+port cognitoUpdateAbout : Value -> Cmd msg
+
+
 port onCognitoResponse : (Value -> msg) -> Sub msg
 
 
@@ -192,6 +206,16 @@ forgotPassword username =
 resetPassword : Value -> Cmd msg
 resetPassword resetInfo =
     cognitoResetPassword resetInfo
+
+
+updateDisplayName : Value -> Cmd msg
+updateDisplayName displayName =
+    cognitoUpdateDisplayName displayName
+
+
+updateAbout : Value -> Cmd msg
+updateAbout about =
+    cognitoUpdateAbout about
 
 
 authResponse : (Result AuthError AuthSuccess -> msg) -> Sub msg
