@@ -3,14 +3,12 @@ module Page.Settings.Profile.About exposing (Model, Msg(..), init, subscriptions
 import Api
 import Element exposing (..)
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import FormHelpers exposing (onEnter)
 import Json.Encode as Encode
 import Profile exposing (Profile)
-import User exposing (User)
 
 
 type alias Model =
@@ -29,7 +27,6 @@ type alias Form =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 init : Profile -> ( Model, Cmd msg )
@@ -82,23 +79,11 @@ update profile msg model =
         EnteredWebsite website ->
             updateForm (\form -> { form | website = website }) model
 
-        CompletedAboutUpdate (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedAboutUpdate (Err _) ->
+            ( model, Cmd.none )
 
         CompletedAboutUpdate (Ok _) ->
-            ( { model
-                | message = "We have updated your profile."
-                , problems = []
-              }
+            ( { model | problems = [] }
             , Cmd.none
             )
 
@@ -169,17 +154,12 @@ viewForm model =
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 

@@ -6,14 +6,15 @@ import Browser.Navigation as Nav exposing (pushUrl)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
-import Html.Events exposing (on)
-import Json.Decode as Decode
+import FormHelpers exposing (onEnter)
+import Infobar exposing (Infobar)
 import Json.Encode as Encode
+import Process
 import Session exposing (Session)
+import Task
 import User
 
 
@@ -21,12 +22,12 @@ type alias Model =
     { session : Session
     , problems : List Problem
     , form : Form
+    , infobar : Maybe Infobar
     }
 
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 {-| The Cognito user pool will accept username or email, but we call it
@@ -52,6 +53,7 @@ init session =
                 Nothing ->
                     { username = ""
                     }
+      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -65,6 +67,7 @@ type Msg
     = SubmittedForm
     | EnteredUsername String
     | CompletedResetRequest (Result Api.AuthError Api.AuthSuccess)
+    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -86,19 +89,24 @@ update msg model =
             updateForm (\form -> { form | username = newUsername }) model
 
         CompletedResetRequest (Err error) ->
-            case error of
+            ( case error of
                 Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
+                    { model
+                        | infobar = Just <| Infobar.error err
+                    }
 
                 Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+                    { model
+                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
+                    }
+            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
+            )
 
         CompletedResetRequest (Ok _) ->
             ( model, Nav.pushUrl (Session.navKey model.session) "reset-password" )
+
+        ClearInfobar ->
+            ( { model | infobar = Nothing }, Cmd.none )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -112,8 +120,22 @@ updateForm transform model =
 
 view : Model -> Element Msg
 view model =
-    row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
-        [ column [ centerX, width (px 375), spacing 25 ]
+    row
+        [ centerX
+        , width fill
+        , height fill
+        , paddingXY 0 150
+        , Font.family Fonts.quattrocentoFont
+        , inFront <|
+            case model.infobar of
+                Just infobar ->
+                    row [ alignBottom, width fill, paddingXY 0 30 ]
+                        [ Infobar.view infobar ClearInfobar ]
+
+                Nothing ->
+                    el [] none
+        ]
+        [ column [ centerX, alignTop, width (px 375), spacing 25 ]
             [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Request Password Reset" ]
             , row
                 [ centerX
@@ -132,15 +154,8 @@ view model =
                         , onChange = \newUsername -> EnteredUsername newUsername
                         , label = Input.labelAbove [ alignLeft, Font.size 18, Font.color (rgba 1 1 1 1) ] (text "Username or Email")
                         }
-                    , row [ width (px 300) ]
-                        [ if List.isEmpty model.problems then
-                            el [ Font.size 18 ] <|
-                                text "We will send a reset code to your email."
-
-                          else
-                            column [ spacing 10 ] <|
-                                List.map viewProblem model.problems
-                        ]
+                    , el [ Font.size 18 ] <|
+                        text "We will send you a reset code."
                     , Input.button
                         [ Border.color (rgba 0.36 0.38 0.45 1)
                         , mouseOver [ Border.color (rgba 0.42 0.44 0.51 1) ]
@@ -155,38 +170,20 @@ view model =
                         }
                     ]
                 ]
+            , row [ centerX ]
+                [ column [ spacing 10 ] (List.map viewProblem model.problems)
+                ]
             ]
         ]
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ centerX ] [ el [ Font.size 18 ] <| text errorMessage ]
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute <|
-        Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 

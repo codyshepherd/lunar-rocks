@@ -1,6 +1,6 @@
 port module Api exposing
     ( AuthError(..)
-    , AuthSuccess
+    , AuthSuccess(..)
     , Cred
     , Flags
     , account
@@ -114,12 +114,12 @@ decodeFromChange userDecoder val =
 
 
 type CognitoResponse
-    = CognitoSuccess
+    = CognitoSuccess (Maybe String)
     | CognitoError String
 
 
 type AuthSuccess
-    = AuthSuccess
+    = AuthSuccess (Maybe String)
 
 
 type AuthError
@@ -233,7 +233,9 @@ decodeAuthResult : String -> Decoder CognitoResponse
 decodeAuthResult result =
     case result of
         "success" ->
-            Decode.succeed CognitoSuccess
+            -- Decode.succeed CognitoSuccess
+            Decode.field "message" (Decode.nullable Decode.string)
+                |> Decode.andThen (\message -> Decode.succeed (CognitoSuccess message))
 
         "error" ->
             Decode.field "message" Decode.string
@@ -251,8 +253,8 @@ toAuthResult result =
 
         Ok value ->
             case value of
-                CognitoSuccess ->
-                    Ok AuthSuccess
+                CognitoSuccess msg ->
+                    Ok (AuthSuccess msg)
 
                 CognitoError err ->
                     Err (AuthError err)

@@ -11,6 +11,21 @@ Amplify.configure(awsconfig);
 // helper to convert missing attributes to nulls
 const nullUndefOrVal = val => (val === undefined ? null : val);
 
+// adapted from https://stackoverflow.com/a/7616484/6513123
+const hashCode = str => {
+  var hash = 0,
+    i,
+    chr;
+  if (str.length === 0) return hash;
+  for (i = 0; i < str.length; i++) {
+    chr = str.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
+// get the current user from the Cognito service and the token in localStorage
 async function getCurrentUser() {
   var accessToken = await Auth.currentAuthenticatedUser()
     .then(user => {
@@ -27,6 +42,20 @@ async function getCurrentUser() {
     .catch(() => {
       return null;
     });
+
+  // stores a user hash to track user changes that only exist in Cognito
+  // a user hash change triggers a refresh in unfocused tabs, which also calls getCurrentUser
+  // the hash prevents recrusive calls and gives us some local sense of user changes
+  if (user !== null) {
+    const userHash = hashCode(JSON.stringify(user));
+    const storedUserHash = +window.localStorage.getItem("userHash");
+
+    if (userHash !== storedUserHash) {
+      localStorage.setItem("userHash", userHash);
+    }
+  } else {
+    localStorage.removeItem("userHash");
+  }
 
   if (accessToken !== null && user !== null) {
     return {
@@ -53,38 +82,6 @@ async function getCurrentUser() {
   }
 }
 
-// Auth.currentAuthenticatedUser()
-//   .then(user => {
-//     init({
-//       user: {
-//         token: user.signInUserSession.accessToken.jwtToken,
-//         account: {
-//           username: user.username,
-//           email: user.attributes.email
-//         },
-//         profile: {
-//           avatar: {
-//             url: nullUndefOrVal(user.attributes.picture),
-//             description: user.username + "'s avatar"
-//           },
-//           displayName: nullUndefOrVal(user.attributes.nickname),
-//           bio: nullUndefOrVal(user.attributes["custom:bio"]),
-//           location: nullUndefOrVal(user.attributes["custom:location"]),
-//           website: nullUndefOrVal(user.attributes.website)
-//         }
-//       }
-//     });
-//   })
-//   .catch(() => {
-//     init(null);
-//   });
-
-// const init = flags => {
-// const app = Elm.Main.init({
-//   node: document.getElementById("root"),
-//   flags: flags
-// });
-
 const init = async () => {
   const currentUser = await getCurrentUser();
   const app = Elm.Main.init({
@@ -102,7 +99,10 @@ const init = async () => {
       validationData: []
     })
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: null
+        });
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -115,7 +115,10 @@ const init = async () => {
   app.ports.cognitoConfirm.subscribe(confirmation => {
     Auth.confirmSignUp(confirmation.username, confirmation.code, {})
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: null
+        });
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -177,7 +180,10 @@ const init = async () => {
         );
       })
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: "Password updated successfully"
+        });
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -193,10 +199,30 @@ const init = async () => {
         return Auth.updateUserAttributes(user, email);
       })
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: "Confirmation code sent to your new email"
+        });
       })
       .catch(err => {
-        console.log(err);
+        app.ports.onCognitoResponse.send({
+          response: "error",
+          message: err.message
+        });
+      });
+  });
+
+  app.ports.cognitoVerifyEmail.subscribe(code => {
+    Auth.verifyCurrentUserAttributeSubmit("email", code)
+      .then(async () => {
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: "Email updated successfully"
+        });
+        const user = await getCurrentUser();
+        app.ports.onAuthStoreChange.send(user);
+      })
+      .catch(err => {
         app.ports.onCognitoResponse.send({
           response: "error",
           message: err.message
@@ -210,13 +236,14 @@ const init = async () => {
         return Auth.updateUserAttributes(user, displayName);
       })
       .then(async () => {
-        // works, but refreshes the page wiping out the success message
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: "Display name updated successfully"
+        });
         const user = await getCurrentUser();
         app.ports.onAuthStoreChange.send(user);
       })
       .catch(err => {
-        console.log(err);
         app.ports.onCognitoResponse.send({
           response: "error",
           message: err.message
@@ -229,22 +256,13 @@ const init = async () => {
       .then(user => {
         return Auth.updateUserAttributes(user, about);
       })
-      .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
-      })
-      .catch(err => {
-        console.log(err);
+      .then(async () => {
         app.ports.onCognitoResponse.send({
-          response: "error",
-          message: err.message
+          response: "success",
+          message: "Profile updated successfully"
         });
-      });
-  });
-
-  app.ports.cognitoVerifyEmail.subscribe(code => {
-    Auth.verifyCurrentUserAttributeSubmit("email", code)
-      .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        const user = await getCurrentUser();
+        app.ports.onAuthStoreChange.send(user);
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -257,7 +275,10 @@ const init = async () => {
   app.ports.cognitoForgotPassword.subscribe(username => {
     Auth.forgotPassword(username)
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: null
+        });
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -274,7 +295,10 @@ const init = async () => {
       reset.newPassword
     )
       .then(() => {
-        app.ports.onCognitoResponse.send({ response: "success" });
+        app.ports.onCognitoResponse.send({
+          response: "success",
+          message: null
+        });
       })
       .catch(err => {
         app.ports.onCognitoResponse.send({
@@ -300,42 +324,6 @@ const init = async () => {
     },
     false
   );
-
-  // Whenever localStorage changes, report it to update all tabs.
-  // window.addEventListener(
-  //   "storage",
-  //   function(event) {
-  //     if (event.storageArea === localStorage) {
-  //       Auth.currentAuthenticatedUser()
-  //         .then(user => {
-  //           console.log(user);
-  //           app.ports.onAuthStoreChange.send({
-  //             user: {
-  //               token: user.signInUserSession.accessToken.jwtToken,
-  //               account: {
-  //                 username: user.username,
-  //                 email: user.attributes.email
-  //               },
-  //               profile: {
-  //                 avatar: {
-  //                   url: nullUndefOrVal(user.attributes.picture),
-  //                   description: user.username + "'s avatar"
-  //                 },
-  //                 displayName: nullUndefOrVal(user.attributes.nickname),
-  //                 bio: nullUndefOrVal(user.attributes["custom:bio"]),
-  //                 location: nullUndefOrVal(user.attributes["custom:location"]),
-  //                 website: nullUndefOrVal(user.attributes.website)
-  //               }
-  //             }
-  //           });
-  //         })
-  //         .catch(() => {
-  //           app.ports.onAuthStoreChange.send();
-  //         });
-  //     }
-  //   },
-  //   false
-  // );
 };
 
 init();

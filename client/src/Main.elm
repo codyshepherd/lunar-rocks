@@ -230,7 +230,7 @@ update msg model =
         ( GotAvatar avatar, _ ) ->
             ( model, Cmd.none )
 
-        ( GotSession session, Login pageModel ) ->
+        ( GotSession session, Login _ ) ->
             ( { model | session = session }
             , Nav.replaceUrl (Session.navKey session) "/"
             )
@@ -241,8 +241,8 @@ update msg model =
                     ( { model | session = session }
                     , Cmd.none
                     )
-                        |> loadCurrentPage session
 
+                -- |> loadCurrentPage session
                 Anonymous _ ->
                     ( { model | session = session }
                     , Nav.replaceUrl (Session.navKey session) "/"
@@ -459,7 +459,11 @@ viewWith session title content =
             , Font.color (rgba 1 1 1 1)
             ]
           <|
-            column [ width fill, centerX ]
+            column
+                [ width fill
+                , height fill
+                , centerX
+                ]
                 [ viewNav session
                 , content
                 ]

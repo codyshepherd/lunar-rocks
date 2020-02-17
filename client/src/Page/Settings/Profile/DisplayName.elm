@@ -3,7 +3,6 @@ module Page.Settings.Profile.DisplayName exposing (Model, Msg(..), init, subscri
 import Api
 import Element exposing (..)
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
@@ -26,7 +25,6 @@ type alias Form =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 init : Profile -> ( Model, Cmd msg )
@@ -68,23 +66,11 @@ update profile msg model =
         EnteredDisplayName displayName ->
             updateForm (\form -> { form | displayName = displayName }) model
 
-        CompletedDisplayNameUpdate (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedDisplayNameUpdate (Err _) ->
+            ( model, Cmd.none )
 
         CompletedDisplayNameUpdate (Ok _) ->
-            ( { model
-                | message = "Your display name has been updated."
-                , problems = []
-              }
+            ( { model | problems = [] }
             , Cmd.none
             )
 
@@ -100,7 +86,10 @@ updateForm transform model =
 
 viewForm : Model -> Element Msg
 viewForm model =
-    column [ width fill, spacing 20 ]
+    column
+        [ width fill
+        , spacing 20
+        ]
         [ row
             [ width fill
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -140,17 +129,12 @@ viewForm model =
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 
