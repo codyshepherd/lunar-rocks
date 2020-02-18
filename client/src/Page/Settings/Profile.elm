@@ -12,6 +12,7 @@ import Infobar exposing (Infobar)
 import Page.Settings.Profile.About as About
 import Page.Settings.Profile.Avatar as Avatar
 import Page.Settings.Profile.DisplayName as DisplayName
+import Page.Settings.SettingsNav as SettingsNav
 import Process
 import Profile exposing (Profile)
 import Task
@@ -146,7 +147,7 @@ view model =
                 Nothing ->
                     el [] none
         ]
-        [ settingsNav
+        [ SettingsNav.view SettingsNav.profile
         , column [ centerX, width (px 740), height fill, spacing 20 ] <|
             [ row [ width fill ]
                 [ el [ Font.size 50, Font.family Fonts.cinzelFont ] <| text "Profile"
@@ -179,40 +180,6 @@ view model =
                     |> Element.map GotAboutMsg
                 ]
             ]
-        ]
-
-
-settingsNav : Element Msg
-settingsNav =
-    column
-        [ width (px 210)
-        , alignTop
-        , Border.color (rgba 0.36 0.38 0.45 1)
-        , Border.rounded 3
-        , Border.width 2
-        ]
-        [ el
-            [ paddingXY 16 16
-            , width fill
-            , Font.color (rgb255 200 200 200)
-            , Border.color (rgba 0.36 0.38 0.45 1)
-            , Border.widthEach { bottom = 2, left = 0, right = 0, top = 0 }
-            , Background.color (rgb255 51 57 77)
-            ]
-            (text "Settings")
-        , link
-            [ Border.color (rgba 0.36 0.38 0.45 1)
-            , mouseOver [ Border.color (rgba 0.42 0.44 0.51 1) ]
-            , paddingXY 16 16
-            , Border.widthEach { bottom = 2, left = 0, right = 0, top = 0 }
-            , width fill
-            ]
-            { url = "/settings/account", label = text "Account" }
-        , link
-            [ paddingXY 16 16
-            , width fill
-            ]
-            { url = "/settings/profile", label = text "Profile" }
         ]
 
 

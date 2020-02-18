@@ -5,6 +5,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Html
+import Html.Attributes
 
 
 type Infobar
@@ -48,7 +50,19 @@ view (Infobar status info) msg =
                         ]
                )
         )
-        [ el [ paddingXY 20 10 ] (text info)
+        [ el [ paddingEach { top = 10, right = 6, bottom = 10, left = 20 } ] <|
+            html
+                (Html.i
+                    [ case status of
+                        Success ->
+                            Html.Attributes.class "fa fa-check-circle"
+
+                        Error ->
+                            Html.Attributes.class "fa fa-minus-circle"
+                    ]
+                    []
+                )
+        , el [ paddingEach { top = 10, right = 25, bottom = 10, left = 0 } ] (text info)
         , Input.button
             [ paddingXY 20 10
             , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }

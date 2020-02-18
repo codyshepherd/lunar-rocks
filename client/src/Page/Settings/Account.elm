@@ -10,6 +10,7 @@ import Fonts
 import Infobar exposing (Infobar)
 import Page.Settings.Account.Email as Email
 import Page.Settings.Account.Password as Password
+import Page.Settings.SettingsNav as SettingsNav
 import Process
 import Task
 import User exposing (User)
@@ -134,7 +135,7 @@ view model =
                 Nothing ->
                     el [] none
         ]
-        [ settingsNav Account
+        [ SettingsNav.view SettingsNav.account
         , column [ centerX, width (px 740), height fill, spacing 30, Font.family Fonts.cinzelFont ] <|
             [ column [ width fill, spacing 20 ]
                 [ el [ Font.size 50, Font.family Fonts.cinzelFont ] <| text "Account"
@@ -159,44 +160,6 @@ view model =
                 |> Element.map GotEmailMsg
             ]
         ]
-
-
-settingsNav : SettingsPage -> Element Msg
-settingsNav page =
-    column
-        [ width (px 210)
-        , alignTop
-        , Border.color (rgba 0.36 0.38 0.45 1)
-        , Border.rounded 3
-        , Border.width 2
-        ]
-        [ el
-            [ paddingXY 16 16
-            , width fill
-            , Font.color (rgb255 200 200 200)
-            , Border.color (rgba 0.36 0.38 0.45 1)
-            , Border.widthEach { bottom = 2, left = 0, right = 0, top = 0 }
-            , Background.color (rgb255 51 57 77)
-            ]
-            (text "Settings")
-        , link
-            [ width fill
-            , paddingXY 16 16
-            , Border.color (rgba 0.36 0.38 0.45 1)
-            , Border.widthEach { bottom = 2, left = 0, right = 0, top = 0 }
-            ]
-            { url = "/settings/account", label = text "Account" }
-        , link
-            [ paddingXY 16 16
-            , width fill
-            ]
-            { url = "/settings/profile", label = text "Profile" }
-        ]
-
-
-type SettingsPage
-    = Account
-    | Profile
 
 
 
