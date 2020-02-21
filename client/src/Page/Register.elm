@@ -9,11 +9,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import FormHelpers exposing (onEnter)
-import Infobar exposing (Infobar)
 import Json.Encode as Encode
-import Process
 import Session exposing (Session)
-import Task
 import User
 
 
@@ -26,7 +23,6 @@ type alias Model =
     { session : Session
     , problems : List Problem
     , form : Form
-    , infobar : Maybe Infobar
     }
 
 
@@ -52,7 +48,6 @@ init session =
             , password = ""
             , confirmPassword = ""
             }
-      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -76,7 +71,6 @@ type Msg
     | EnteredPassword String
     | EnteredPasswordConfirmation String
     | CompletedRegistration (Result Api.AuthError Api.AuthSuccess)
-    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -106,25 +100,11 @@ update msg model =
         EnteredPasswordConfirmation password ->
             updateForm (\form -> { form | confirmPassword = password }) model
 
-        CompletedRegistration (Err error) ->
-            ( case error of
-                Api.AuthError err ->
-                    { model
-                        | infobar = Just <| Infobar.error err
-                    }
-
-                Api.DecodeError _ ->
-                    { model
-                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
-                    }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
+        CompletedRegistration (Err _) ->
+            ( model, Cmd.none )
 
         CompletedRegistration (Ok _) ->
             ( model, Nav.pushUrl (Session.navKey model.session) "confirm" )
-
-        ClearInfobar ->
-            ( { model | infobar = Nothing }, Cmd.none )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -151,14 +131,6 @@ view model =
         , height fill
         , paddingXY 0 150
         , Font.family Fonts.quattrocentoFont
-        , inFront <|
-            case model.infobar of
-                Just infobar ->
-                    row [ alignBottom, width fill, paddingXY 0 30 ]
-                        [ Infobar.view infobar ClearInfobar ]
-
-                Nothing ->
-                    el [] none
         ]
         [ column [ centerX, alignTop, width (px 375), spacing 25 ]
             [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign up for Lunar Rocks" ]

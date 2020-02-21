@@ -10,11 +10,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import FormHelpers exposing (onEnter)
-import Infobar exposing (Infobar)
 import Json.Encode as Encode
-import Process
 import Session exposing (Session(..))
-import Task
 import User
 
 
@@ -22,7 +19,6 @@ type alias Model =
     { session : Session
     , problems : List Problem
     , form : Form
-    , infobar : Maybe Infobar
     }
 
 
@@ -62,7 +58,6 @@ init session =
                     , password = ""
                     , confirmPassword = ""
                     }
-      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -79,7 +74,6 @@ type Msg
     | EnteredPassword String
     | EnteredPasswordConfirmation String
     | CompletedReset (Result Api.AuthError Api.AuthSuccess)
-    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -109,21 +103,10 @@ update msg model =
         EnteredPasswordConfirmation password ->
             updateForm (\form -> { form | confirmPassword = password }) model
 
-        CompletedReset (Err error) ->
-            ( case error of
-                Api.AuthError err ->
-                    { model
-                        | infobar = Just <| Infobar.error err
-                    }
+        CompletedReset (Err _) ->
+            ( model, Cmd.none )
 
-                Api.DecodeError _ ->
-                    { model
-                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
-                    }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
-
-        CompletedReset (Ok _) ->
+        CompletedReset (Ok (Api.AuthSuccess _)) ->
             case model.session of
                 LoggedIn _ _ ->
                     ( { model
@@ -133,16 +116,12 @@ update msg model =
                             , password = ""
                             , confirmPassword = ""
                             }
-                        , infobar = Just <| Infobar.success "Password updated successfully"
                       }
-                    , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
+                    , Nav.pushUrl (Session.navKey model.session) "/settings/account"
                     )
 
                 Anonymous _ ->
                     ( model, Nav.pushUrl (Session.navKey model.session) "login" )
-
-        ClearInfobar ->
-            ( { model | infobar = Nothing }, Cmd.none )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -162,14 +141,6 @@ view model =
         , width fill
         , paddingXY 0 150
         , Font.family Fonts.quattrocentoFont
-        , inFront <|
-            case model.infobar of
-                Just infobar ->
-                    row [ alignBottom, width fill, paddingXY 0 30 ]
-                        [ Infobar.view infobar ClearInfobar ]
-
-                Nothing ->
-                    el [] none
         ]
         [ column [ centerX, alignTop, width (px 375), spacing 25 ]
             [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Reset Password" ]

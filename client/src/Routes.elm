@@ -10,6 +10,7 @@ type Route
     | ForgotPassword
     | Home
     | Login
+    | Logout
     | Profile String
     | ProfileSettings
     | Register
@@ -25,6 +26,7 @@ routeParser =
         , map ForgotPassword (s "forgot-password")
         , map Home top
         , map Login (s "login")
+        , map Logout (s "logout")
         , map Register (s "register")
         , map ResetPassword (s "reset-password")
         , map ProfileSettings (s "settings" </> s "profile")

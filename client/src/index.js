@@ -297,7 +297,7 @@ const init = async () => {
       .then(() => {
         app.ports.onCognitoResponse.send({
           response: "success",
-          message: null
+          message: "Password updated successfully"
         });
       })
       .catch(err => {

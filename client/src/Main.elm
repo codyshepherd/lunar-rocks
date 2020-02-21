@@ -1,9 +1,10 @@
-module Main exposing (Model, Msg(..), init, main, subscriptions, update, view, viewLink)
+module Main exposing (Model, Msg(..), init, main, subscriptions, update, view)
 
 import Account
 import Api
 import Avatar exposing (Avatar)
 import Browser
+import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
@@ -12,7 +13,9 @@ import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Html exposing (Html)
+import Infobar exposing (Infobar)
 import Json.Decode exposing (Value)
+import Nav
 import Page.Confirm as Confirm
 import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
@@ -23,9 +26,11 @@ import Page.Register as Register
 import Page.ResetPassword as ResetPassword
 import Page.Settings.Account as AccountSettings
 import Page.Settings.Profile as ProfileSettings
+import Process
 import Profile
 import Routes exposing (Route)
 import Session exposing (Session(..))
+import Task
 import Url
 import User exposing (User)
 
@@ -56,6 +61,7 @@ type alias Model =
     { session : Session
     , route : Route
     , page : Page
+    , infobar : Maybe Infobar
     }
 
 
@@ -74,7 +80,7 @@ type Page
 
 
 init : Maybe User -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init maybeUser _ navKey =
+init maybeUser url navKey =
     let
         session =
             Session.fromUser navKey maybeUser
@@ -82,7 +88,10 @@ init maybeUser _ navKey =
         model =
             { session = session
             , route = Routes.Home
+
+            -- , route = Route.fromUrl url
             , page = Home { session = session, counter = 0 }
+            , infobar = Nothing
             }
     in
     ( model, Cmd.none )
@@ -107,6 +116,14 @@ loadCurrentPage session ( model, cmd ) =
                             Login.init session
                     in
                     ( Login pageModel, Cmd.map LoginMsg pageCmd )
+
+                Routes.Logout ->
+                    ( Home { session = session, counter = 0 }
+                    , Cmd.batch
+                        [ Nav.replaceUrl (Session.navKey model.session) "/"
+                        , Api.logout
+                        ]
+                    )
 
                 Routes.Profile username ->
                     let
@@ -197,9 +214,12 @@ type Msg
     | OnUrlChange Url.Url
     | GotAvatar Avatar
     | GotSession Session
+    | GotAuthInfo (Result Api.AuthError Api.AuthSuccess)
+    | ShowSuccessInfobar Dom.Viewport (Maybe String)
+    | ShowErrorInfobar Dom.Viewport String
+    | ClearInfobar
     | HomeMsg Home.Msg
     | LoginMsg Login.Msg
-    | Logout
     | ProfileMsg Profile.Msg
     | ProfileSettingsMsg ProfileSettings.Msg
     | AccountSettingsMsg AccountSettings.Msg
@@ -248,13 +268,41 @@ update msg model =
                     , Nav.replaceUrl (Session.navKey session) "/"
                     )
 
-        ( Logout, _ ) ->
+        ( GotAuthInfo (Err error), _ ) ->
+            let
+                err =
+                    case error of
+                        Api.AuthError authError ->
+                            authError
+
+                        Api.DecodeError _ ->
+                            "An internal decoding error occured. Please contact the developers."
+            in
             ( model
-            , Cmd.batch
-                [ Nav.replaceUrl (Session.navKey model.session) "/"
-                , Api.logout
-                ]
+            , Task.perform (\viewport -> ShowErrorInfobar viewport err) Dom.getViewport
             )
+
+        ( GotAuthInfo (Ok (Api.AuthSuccess maybeInfo)), _ ) ->
+            ( model
+            , Task.perform (\viewport -> ShowSuccessInfobar viewport maybeInfo) Dom.getViewport
+            )
+
+        ( ShowSuccessInfobar viewport maybeInfo, _ ) ->
+            ( { model
+                | infobar = Maybe.map (Infobar.success viewport model.route) maybeInfo
+              }
+            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
+            )
+
+        ( ShowErrorInfobar viewport info, _ ) ->
+            ( { model
+                | infobar = Just <| Infobar.error viewport model.route info
+              }
+            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
+            )
+
+        ( ClearInfobar, _ ) ->
+            ( { model | infobar = Nothing }, Cmd.none )
 
         ( HomeMsg subMsg, Home pageModel ) ->
             let
@@ -358,6 +406,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Session.changes GotSession (Session.navKey model.session)
+        , Api.authResponse (\authResult -> GotAuthInfo authResult)
         , case model.page of
             Home pageModel ->
                 Sub.map HomeMsg (Home.subscriptions pageModel)
@@ -403,55 +452,55 @@ view model =
     case model.page of
         Home pageModel ->
             Element.map HomeMsg (Home.view pageModel)
-                |> viewWith model.session "Home"
+                |> viewWith model.session model.infobar "Home"
 
         Login pageModel ->
             Element.map LoginMsg (Login.view pageModel)
-                |> viewWith model.session "Login"
+                |> viewWith model.session model.infobar "Login"
 
         Profile pageModel ->
             Element.map ProfileMsg (Profile.view pageModel)
-                |> viewWith model.session "Profile"
+                |> viewWith model.session model.infobar "Profile"
 
         ProfileSettings pageModel ->
             Element.map ProfileSettingsMsg (ProfileSettings.view pageModel)
-                |> viewWith model.session "Profile Settings"
+                |> viewWith model.session model.infobar "Profile Settings"
 
         AccountSettings pageModel ->
             Element.map AccountSettingsMsg (AccountSettings.view pageModel)
-                |> viewWith model.session "Account Settings"
+                |> viewWith model.session model.infobar "Account Settings"
 
         Register pageModel ->
             Element.map RegisterMsg (Register.view pageModel)
-                |> viewWith model.session "Register"
+                |> viewWith model.session model.infobar "Register"
 
         Confirm pageModel ->
             Element.map ConfirmMsg (Confirm.view pageModel)
-                |> viewWith model.session "Confirm"
+                |> viewWith model.session model.infobar "Confirm"
 
         ForgotPassword pageModel ->
             Element.map ForgotPasswordMsg (ForgotPassword.view pageModel)
-                |> viewWith model.session "Forgot Password"
+                |> viewWith model.session model.infobar "Forgot Password"
 
         ResetPassword pageModel ->
             Element.map ResetPasswordMsg (ResetPassword.view pageModel)
-                |> viewWith model.session "Reset Password"
+                |> viewWith model.session model.infobar "Reset Password"
 
         MusicSession pageModel ->
             Element.map MusicSessionMsg (MusicSession.view pageModel)
-                |> viewWith model.session "Session"
+                |> viewWith model.session model.infobar "Session"
 
         NotFound ->
             { title = "Not Found"
             , body =
                 [ layout [] <|
-                    column [ width fill ] [ viewNav model.session ]
+                    column [ width fill ] [ Nav.view model.session ]
                 ]
             }
 
 
-viewWith : Session -> String -> Element Msg -> { title : String, body : List (Html Msg) }
-viewWith session title content =
+viewWith : Session -> Maybe Infobar -> String -> Element Msg -> { title : String, body : List (Html Msg) }
+viewWith session maybeInfobar title content =
     { title = title
     , body =
         [ layout
@@ -463,68 +512,16 @@ viewWith session title content =
                 [ width fill
                 , height fill
                 , centerX
+                , inFront <|
+                    case maybeInfobar of
+                        Just infobar ->
+                            Infobar.view infobar ClearInfobar
+
+                        Nothing ->
+                            el [] none
                 ]
-                [ viewNav session
+                [ Nav.view session
                 , content
                 ]
         ]
     }
-
-
-viewNav : Session -> Element Msg
-viewNav session =
-    row
-        [ width fill
-        , paddingXY 0 15
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color (rgba 0.11 0.12 0.14 1)
-        ]
-        [ column [ centerX, width fill, paddingXY 30 0 ]
-            [ row [ width fill ]
-                [ column [ alignLeft, Font.family Fonts.cinzelFont, Font.size 36 ]
-                    [ viewLink "/" <| text "Lunar Rocks"
-                    ]
-                , column [ alignRight ]
-                    [ row [ spacing 15, Font.family Fonts.quattrocentoFont, Font.size 18 ] <|
-                        case session of
-                            Session.LoggedIn _ user ->
-                                let
-                                    account =
-                                        User.account user
-
-                                    username =
-                                        Account.username account
-
-                                    avatar =
-                                        Profile.avatar <|
-                                            User.profile user
-                                in
-                                -- [ viewLink ("/" ++ username) "Profile"
-                                [ viewLink "/settings/account" <|
-                                    row [ spacing 7 ]
-                                        [ el [] <| image [ height (px 30), Border.rounded 50, clip ] (Avatar.imageMeta avatar)
-                                        , el [] <| text username
-                                        ]
-                                , el [ Events.onClick Logout, pointer ] <| text "Sign Out"
-
-                                -- , viewLink ("/" ++ Username.toString (User.username user) ++ "/dopestep") "Session Test"
-                                ]
-
-                            Session.Anonymous _ ->
-                                [ viewLink "/login" <| text "Sign in"
-                                , viewLink "/register" <| text "Sign up"
-
-                                -- , viewLink "/notFound"
-                                ]
-                    ]
-                ]
-            ]
-        ]
-
-
-viewLink : String -> Element msg -> Element msg
-viewLink path label =
-    link []
-        { url = path
-        , label = label
-        }

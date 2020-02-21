@@ -1,21 +1,17 @@
 module Page.Settings.Profile exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Account exposing (Account)
-import Api
 import Avatar
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Fonts
-import Infobar exposing (Infobar)
 import Page.Settings.Profile.About as About
 import Page.Settings.Profile.Avatar as Avatar
 import Page.Settings.Profile.DisplayName as DisplayName
 import Page.Settings.SettingsNav as SettingsNav
-import Process
 import Profile exposing (Profile)
-import Task
 import User exposing (User)
 
 
@@ -26,7 +22,6 @@ type alias Model =
     , avatarForm : Avatar.Model
     , displayNameForm : DisplayName.Model
     , activeForm : ActiveForm
-    , infobar : Maybe Infobar
     }
 
 
@@ -57,7 +52,6 @@ init user =
       , avatarForm = avatarModel
       , displayNameForm = displayNameModel
       , activeForm = AvatarForm
-      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -71,8 +65,6 @@ type Msg
     = GotAboutMsg About.Msg
     | GotAvatarMsg Avatar.Msg
     | GotDisplayNameMsg DisplayName.Msg
-    | GotAuthInfo (Result Api.AuthError Api.AuthSuccess)
-    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,30 +97,6 @@ update msg model =
             , Cmd.map GotDisplayNameMsg subCmd
             )
 
-        GotAuthInfo (Err error) ->
-            ( case error of
-                Api.AuthError err ->
-                    { model
-                        | infobar = Just <| Infobar.error err
-                    }
-
-                Api.DecodeError _ ->
-                    { model
-                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
-                    }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
-
-        GotAuthInfo (Ok (Api.AuthSuccess maybeInfo)) ->
-            ( { model
-                | infobar = Maybe.map Infobar.success maybeInfo
-              }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
-
-        ClearInfobar ->
-            ( { model | infobar = Nothing }, Cmd.none )
-
 
 view : Model -> Element Msg
 view model =
@@ -138,14 +106,6 @@ view model =
         , height fill
         , paddingXY 0 40
         , spacing 40
-        , inFront <|
-            case model.infobar of
-                Just infobar ->
-                    row [ alignBottom, width fill, paddingXY 0 30 ]
-                        [ Infobar.view infobar ClearInfobar ]
-
-                Nothing ->
-                    el [] none
         ]
         [ SettingsNav.view SettingsNav.profile
         , column [ centerX, width (px 740), height fill, spacing 20 ] <|
@@ -189,15 +149,12 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Api.authResponse (\authResult -> GotAuthInfo authResult)
-        , case model.activeForm of
-            AboutForm ->
-                Sub.map GotAboutMsg (About.subscriptions model.aboutForm)
+    case model.activeForm of
+        AboutForm ->
+            Sub.map GotAboutMsg (About.subscriptions model.aboutForm)
 
-            AvatarForm ->
-                Sub.map GotAvatarMsg (Avatar.subscriptions model.avatarForm)
+        AvatarForm ->
+            Sub.map GotAvatarMsg (Avatar.subscriptions model.avatarForm)
 
-            DisplayNameForm ->
-                Sub.map GotDisplayNameMsg (DisplayName.subscriptions model.displayNameForm)
-        ]
+        DisplayNameForm ->
+            Sub.map GotDisplayNameMsg (DisplayName.subscriptions model.displayNameForm)

@@ -9,18 +9,14 @@ import Element.Font as Font
 import Element.Input as Input
 import Fonts
 import FormHelpers exposing (onEnter)
-import Infobar exposing (Infobar)
 import Json.Encode as Encode
-import Process
 import Session exposing (Session)
-import Task
 
 
 type alias Model =
     { session : Session
     , problems : List Problem
     , form : Form
-    , infobar : Maybe Infobar
     }
 
 
@@ -42,7 +38,6 @@ init session =
             { username = ""
             , confirmationCode = ""
             }
-      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -57,7 +52,6 @@ type Msg
     | EnteredUsername String
     | EnteredConfirmationCode String
     | CompletedConfirmation (Result Api.AuthError Api.AuthSuccess)
-    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -81,25 +75,11 @@ update msg model =
         EnteredConfirmationCode newConfirmationCode ->
             updateForm (\form -> { form | confirmationCode = newConfirmationCode }) model
 
-        CompletedConfirmation (Err error) ->
-            ( case error of
-                Api.AuthError err ->
-                    { model
-                        | infobar = Just <| Infobar.error err
-                    }
-
-                Api.DecodeError _ ->
-                    { model
-                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
-                    }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
+        CompletedConfirmation (Err _) ->
+            ( model, Cmd.none )
 
         CompletedConfirmation (Ok _) ->
             ( model, Nav.replaceUrl (Session.navKey model.session) "login" )
-
-        ClearInfobar ->
-            ( { model | infobar = Nothing }, Cmd.none )
 
 
 updateForm : (Form -> Form) -> Model -> ( Model, Cmd Msg )
@@ -119,14 +99,6 @@ view model =
         , height fill
         , paddingXY 0 150
         , Font.family Fonts.quattrocentoFont
-        , inFront <|
-            case model.infobar of
-                Just infobar ->
-                    row [ alignBottom, width fill, paddingXY 0 30 ]
-                        [ Infobar.view infobar ClearInfobar ]
-
-                Nothing ->
-                    el [] none
         ]
         [ column [ centerX, alignTop, width (px 375), spacing 25 ]
             [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Confirm your registration" ]

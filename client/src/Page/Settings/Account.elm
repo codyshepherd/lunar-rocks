@@ -1,18 +1,13 @@
 module Page.Settings.Account exposing (Model, Msg(..), init, subscriptions, update, view)
 
 import Account exposing (Account)
-import Api
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Fonts
-import Infobar exposing (Infobar)
 import Page.Settings.Account.Email as Email
 import Page.Settings.Account.Password as Password
 import Page.Settings.SettingsNav as SettingsNav
-import Process
-import Task
 import User exposing (User)
 
 
@@ -30,7 +25,6 @@ type alias Model =
     , passwordForm : Password.Model
     , emailForm : Email.Model
     , activeForm : ActiveForm
-    , infobar : Maybe Infobar
     }
 
 
@@ -55,7 +49,6 @@ init user =
       , passwordForm = passwordModel
       , emailForm = emailModel
       , activeForm = PasswordForm
-      , infobar = Nothing
       }
     , Cmd.none
     )
@@ -68,8 +61,6 @@ init user =
 type Msg
     = GotPasswordMsg Password.Msg
     | GotEmailMsg Email.Msg
-    | GotAuthInfo (Result Api.AuthError Api.AuthSuccess)
-    | ClearInfobar
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,30 +84,6 @@ update msg model =
             , Cmd.map GotEmailMsg subCmd
             )
 
-        GotAuthInfo (Err error) ->
-            ( case error of
-                Api.AuthError err ->
-                    { model
-                        | infobar = Just <| Infobar.error err
-                    }
-
-                Api.DecodeError _ ->
-                    { model
-                        | infobar = Just <| Infobar.error "An internal decoding error occured. Please contact the developers."
-                    }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
-
-        GotAuthInfo (Ok (Api.AuthSuccess maybeInfo)) ->
-            ( { model
-                | infobar = Maybe.map Infobar.success maybeInfo
-              }
-            , Task.perform (\_ -> ClearInfobar) <| Process.sleep 2500
-            )
-
-        ClearInfobar ->
-            ( { model | infobar = Nothing }, Cmd.none )
-
 
 view : Model -> Element Msg
 view model =
@@ -126,14 +93,6 @@ view model =
         , height fill
         , paddingXY 0 40
         , spacing 40
-        , inFront <|
-            case model.infobar of
-                Just infobar ->
-                    row [ alignBottom, width fill, paddingXY 0 30 ]
-                        [ Infobar.view infobar ClearInfobar ]
-
-                Nothing ->
-                    el [] none
         ]
         [ SettingsNav.view SettingsNav.account
         , column [ centerX, width (px 740), height fill, spacing 30, Font.family Fonts.cinzelFont ] <|
@@ -168,12 +127,9 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Api.authResponse (\authResult -> GotAuthInfo authResult)
-        , case model.activeForm of
-            PasswordForm ->
-                Sub.map GotPasswordMsg Password.subscriptions
+    case model.activeForm of
+        PasswordForm ->
+            Sub.map GotPasswordMsg Password.subscriptions
 
-            EmailForm ->
-                Sub.map GotEmailMsg (Email.subscriptions model.emailForm)
-        ]
+        EmailForm ->
+            Sub.map GotEmailMsg (Email.subscriptions model.emailForm)
