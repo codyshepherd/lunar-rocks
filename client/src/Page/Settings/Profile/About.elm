@@ -233,6 +233,15 @@ validateField (Trimmed form) field =
                 if String.length form.website > 2000 then
                     [ "Website URL must be less than 2000 characters." ]
 
+                else if
+                    String.left 7 form.website
+                        /= "http://"
+                        && String.left 8 form.website
+                        /= "https://"
+                        && not (String.isEmpty form.website)
+                then
+                    [ "Website URL must begin with https:// or http://" ]
+
                 else
                     []
 

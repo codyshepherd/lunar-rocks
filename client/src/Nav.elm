@@ -4,7 +4,6 @@ import Account
 import Avatar
 import Element exposing (..)
 import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
 import Fonts
 import Profile

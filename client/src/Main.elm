@@ -1,6 +1,5 @@
 module Main exposing (Model, Msg(..), init, main, subscriptions, update, view)
 
-import Account
 import Api
 import Avatar exposing (Avatar)
 import Browser
@@ -8,10 +7,7 @@ import Browser.Dom as Dom
 import Browser.Navigation as Nav
 import Element exposing (..)
 import Element.Background as Background
-import Element.Border as Border
-import Element.Events as Events
 import Element.Font as Font
-import Fonts
 import Html exposing (Html)
 import Infobar exposing (Infobar)
 import Json.Decode exposing (Value)
@@ -126,11 +122,20 @@ loadCurrentPage session ( model, cmd ) =
                     )
 
                 Routes.Profile username ->
-                    let
-                        ( pageModel, pageCmd ) =
-                            Profile.init session username
-                    in
-                    ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
+                    case session of
+                        LoggedIn _ user ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Profile.init user username
+                            in
+                            ( Profile pageModel, Cmd.map ProfileMsg pageCmd )
+
+                        Anonymous _ ->
+                            let
+                                ( pageModel, pageCmd ) =
+                                    Home.init session
+                            in
+                            ( Home pageModel, Cmd.map HomeMsg pageCmd )
 
                 Routes.ProfileSettings ->
                     case session of

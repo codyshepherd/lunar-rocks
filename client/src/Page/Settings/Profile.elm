@@ -121,7 +121,7 @@ view model =
                     , Font.family Fonts.cinzelFont
                     , Font.size 18
                     , mouseOver
-                        [ Background.color (rgb255 51 57 77)
+                        [ Background.color (rgb255 43 47 59)
                         ]
                     ]
                   <|
