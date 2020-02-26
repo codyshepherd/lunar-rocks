@@ -1,15 +1,13 @@
-module Page.Settings.Password exposing (Model, Msg, init, subscriptions, update, viewForm)
+module Page.Settings.Account.Password exposing (Model, Msg, init, subscriptions, update, viewForm)
 
 import Account exposing (Account)
 import Api
 import Element exposing (..)
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
-import Html.Events exposing (on)
-import Json.Decode as Decode exposing (field, string)
+import FormHelpers exposing (onEnter)
 import Json.Encode as Encode
 import User
 
@@ -23,7 +21,6 @@ type alias Model =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 type alias Form =
@@ -85,22 +82,12 @@ update account msg model =
         EnteredConfirmNewPassword newPassword ->
             updateForm (\form -> { form | confirmNewPassword = newPassword }) model
 
-        CompletedPasswordUpdate (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedPasswordUpdate (Err _) ->
+            ( model, Cmd.none )
 
         CompletedPasswordUpdate (Ok _) ->
             ( { model
-                | message = "Your password has been updated."
-                , problems = []
+                | problems = []
                 , form =
                     { oldPassword = ""
                     , newPassword = ""
@@ -158,8 +145,8 @@ viewForm model =
                 , link
                     [ alignLeft
                     , Font.size 16
-                    , Font.color (rgb 0.47 0.61 0.93)
-                    , mouseOver [ Font.color (rgb 0.38 0.55 0.92) ]
+                    , Font.color (rgb255 120 156 237)
+                    , mouseOver [ Font.color (rgb255 84 129 232) ]
                     ]
                     { url = "/forgot-password"
                     , label = text "Forgot Password?"
@@ -191,33 +178,12 @@ viewForm model =
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ Font.family Fonts.quattrocentoFont ] [ el [ Font.size 18 ] <| text errorMessage ]
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute <|
-        Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 
@@ -273,7 +239,7 @@ validateField (Trimmed form) field =
         case field of
             OldPassword ->
                 if String.length form.oldPassword < User.minPasswordChars then
-                    [ "Incorrect old password." ]
+                    [ "Old password was at least 16 characters long." ]
 
                 else
                     []

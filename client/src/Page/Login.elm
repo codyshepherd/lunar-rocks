@@ -4,15 +4,12 @@ import Api
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
-import Html.Events exposing (on)
-import Json.Decode as Decode
+import FormHelpers exposing (onEnter)
 import Json.Encode as Encode
 import Session exposing (Session)
-import User
 
 
 type alias Model =
@@ -24,7 +21,6 @@ type alias Model =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 type alias Form =
@@ -78,17 +74,8 @@ update msg model =
         EnteredPassword newPassword ->
             updateForm (\form -> { form | password = newPassword }) model
 
-        CompletedLogin (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedLogin (Err _) ->
+            ( model, Cmd.none )
 
         CompletedLogin (Ok _) ->
             -- navigation to Home page handled by Session
@@ -106,8 +93,14 @@ updateForm transform model =
 
 view : Model -> Element Msg
 view model =
-    row [ centerX, width fill, paddingXY 0 150, Font.family Fonts.quattrocentoFont ]
-        [ column [ centerX, width (px 375), spacing 25 ]
+    row
+        [ centerX
+        , width fill
+        , height fill
+        , paddingXY 0 150
+        , Font.family Fonts.quattrocentoFont
+        ]
+        [ column [ centerX, alignTop, width (px 375), spacing 25 ]
             [ row [ centerX ] [ el [ Font.family Fonts.cinzelFont, Font.size 27 ] <| text "Sign in to Lunar Rocks" ]
             , row
                 [ centerX
@@ -137,8 +130,8 @@ view model =
                     , link
                         [ alignLeft
                         , Font.size 16
-                        , Font.color (rgb 0.47 0.61 0.93)
-                        , mouseOver [ Font.color (rgb 0.38 0.55 0.92) ]
+                        , Font.color (rgb255 120 156 237)
+                        , mouseOver [ Font.color (rgb255 84 129 232) ]
                         ]
                         { url = "/forgot-password"
                         , label = text "Forgot Password?"
@@ -157,40 +150,19 @@ view model =
                     ]
                 ]
             , row [ centerX ]
-                [ column [] (List.map viewProblem model.problems)
+                [ column [ spacing 10 ] (List.map viewProblem model.problems)
                 ]
             ]
         ]
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ centerX, paddingXY 0 5 ] [ el [ Font.size 18 ] <| text errorMessage ]
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute <|
-        Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 
@@ -244,14 +216,14 @@ validateField (Trimmed form) field =
         case field of
             Username ->
                 if String.isEmpty form.username then
-                    [ "Incorrect username or password." ]
+                    [ "Username can't be blank." ]
 
                 else
                     []
 
             Password ->
-                if String.length form.password < User.minPasswordChars then
-                    [ "Incorrect username or password." ]
+                if String.isEmpty form.password then
+                    [ "Password can't be blank." ]
 
                 else
                     []

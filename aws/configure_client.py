@@ -16,14 +16,41 @@ def write_amplify_config(stack: Dict):
             if output['OutputKey'] == 'UserPoolClientOutput':
                 config['user_pool_web_client_id'] = output['OutputValue']
 
+            if output['OutputKey'] == 'IdentityPoolOutput':
+                config['identity_pool_id'] = output['OutputValue']
+
+            if output['OutputKey'] == 'UserObjectStoreOutput':
+                config['user_object_store_id'] = output['OutputValue']
+
+
+        # with open('../client/aws/aws-exports.js', 'w') as config_file:
+        #     config_file.write(
+        #         'export const awsconfig = {\n'
+        #         '  region: "us-west-2",\n'
+        #         f'  identityPoolId: "{config["identity_pool_id"]}",\n'
+        #         f'  userPoolId: "{config["user_pool_id"]}",\n'
+        #         f'  userPoolWebClientId: "{config["user_pool_web_client_id"]}"\n'
+        #         '};'
+        #     )
+
         with open('../client/aws/aws-exports.js', 'w') as config_file:
             config_file.write(
                 'export const awsconfig = {\n'
-                '  region: "us-west-2",\n'
-                f'  userPoolId: "{config["user_pool_id"]}",\n'
-                f'  userPoolWebClientId: "{config["user_pool_web_client_id"]}"\n'
+                '  Auth: {\n'
+                f'    identityPoolId: "{config["identity_pool_id"]}",\n'
+                '    region: "us-west-2",\n'
+                f'    userPoolId: "{config["user_pool_id"]}",\n'
+                f'    userPoolWebClientId: "{config["user_pool_web_client_id"]}"\n'
+                '  },\n'
+                '  Storage: {\n'
+                '    AWSS3: {\n'
+                f'      bucket: "{config["user_object_store_id"]}",\n'
+                '      region: "us-west-2",\n'
+                '    }\n'
+                '  }\n'
                 '};'
             )
+
     except KeyError as ex:
         print('The stack was not configured properly. A {} key could not be found'.format(ex))
 

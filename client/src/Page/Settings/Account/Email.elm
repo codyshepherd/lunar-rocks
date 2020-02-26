@@ -1,15 +1,13 @@
-module Page.Settings.Email exposing (Model, Msg, init, subscriptions, update, viewForm)
+module Page.Settings.Account.Email exposing (Model, Msg, init, subscriptions, update, viewForm)
 
 import Account exposing (Account)
 import Api
 import Element exposing (..)
 import Element.Border as Border
-import Element.Events exposing (..)
 import Element.Font as Font
 import Element.Input as Input
 import Fonts
-import Html.Events exposing (on)
-import Json.Decode as Decode exposing (field, string)
+import FormHelpers exposing (onEnter)
 import Json.Encode as Encode
 
 
@@ -40,7 +38,6 @@ type alias Form =
 
 type Problem
     = InvalidEntry ValidatedField String
-    | AuthProblem String
 
 
 type EmailConfirmationStatus
@@ -89,21 +86,12 @@ update account msg model =
         EnteredEmail email ->
             updateForm (\form -> { form | email = email }) model
 
-        CompletedEmailUpdate (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedEmailUpdate (Err _) ->
+            ( model, Cmd.none )
 
         CompletedEmailUpdate (Ok _) ->
             ( { model
-                | message = "We sent a confirmation code to your new email."
+                | message = "Please confirm your new email."
                 , problems = []
                 , confirmationStatus = AwaitingConfirmation
               }
@@ -125,22 +113,13 @@ update account msg model =
         EnteredConfirmationCode confirmationCode ->
             updateForm (\form -> { form | confirmationCode = confirmationCode }) model
 
-        CompletedEmailConfirmation (Err error) ->
-            case error of
-                Api.AuthError err ->
-                    ( { model | problems = AuthProblem err :: model.problems }, Cmd.none )
-
-                Api.DecodeError _ ->
-                    ( { model
-                        | problems = AuthProblem "An internal decoding error occured. Please contact the developers." :: model.problems
-                      }
-                    , Cmd.none
-                    )
+        CompletedEmailConfirmation (Err _) ->
+            ( model, Cmd.none )
 
         CompletedEmailConfirmation (Ok _) ->
             ( { model
-                | form = (\form -> { form | email = Account.email account, confirmationCode = "" }) model.form
-                , message = "Your email has been updated."
+                | form = (\form -> { form | confirmationCode = "" }) model.form
+                , message = "We will send you a confirmation code when you update your email."
                 , problems = []
                 , confirmationStatus = EmailConfirmed
               }
@@ -236,33 +215,12 @@ viewForm model =
 
 
 viewProblem : Problem -> Element msg
-viewProblem problem =
-    let
-        errorMessage =
-            case problem of
-                InvalidEntry _ error ->
-                    error
-
-                AuthProblem error ->
-                    error
-    in
-    row [ Font.family Fonts.quattrocentoFont ] [ el [ Font.size 18 ] <| text errorMessage ]
-
-
-onEnter : msg -> Element.Attribute msg
-onEnter msg =
-    Element.htmlAttribute <|
-        Html.Events.on "keyup"
-            (Decode.field "key" Decode.string
-                |> Decode.andThen
-                    (\key ->
-                        if key == "Enter" then
-                            Decode.succeed msg
-
-                        else
-                            Decode.fail "Not the enter key"
-                    )
-            )
+viewProblem (InvalidEntry _ error) =
+    row
+        [ centerX ]
+        [ el [ Font.size 18 ] <|
+            text error
+        ]
 
 
 

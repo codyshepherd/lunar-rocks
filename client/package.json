@@ -17,7 +17,19 @@
     "waaclock": "^0.5.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.8.4",
     "elm-hot": "^1.1.0",
-    "node-elm-compiler": "^5.0.4"
-  }
+    "node-elm-compiler": "^5.0.4",
+    "parcel-plugin-static-files-copy": "^2.3.1"
+  },
+  "staticFiles": {
+    "staticPath": {
+      "staticPath": "assets",
+      "staticOutDir": "assets"
+    },
+    "watcherGlob": "**"
+  },
+  "browserslist": [
+    "last 1 Chrome versions"
+  ]
 }
