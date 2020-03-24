@@ -1,15 +1,48 @@
+import pathlib
 
 from aws_cdk import (
-    aws_iam as iam,
+    aws_apigateway as apigateway,
     aws_cognito as cognito,
+    aws_iam as iam,
+    aws_lambda,
     aws_s3 as s3,
     core
 )
+
+WORKING_DIR = pathlib.Path.cwd()
+
+def discover_lambda_files_in_path(path: pathlib.Path):
+    files = [f for f in path.glob('**/*_fn.py') if pathlib.Path.is_file(f) and '_fn.py' in f.name]
+    lambda_files = {}
+    for f in files:
+        print(f.with_suffix('').name)
+        lambda_files[f.with_suffix('').name] = f
+
+    return lambda_files
 
 
 class LunarRocksStack(core.Stack):
     def __init__(self, app: core.App, id: str, **kwargs) -> None:
         super().__init__(app, id, **kwargs)
+
+        # Get various lambda function files
+        lambda_files = discover_lambda_files_in_path(WORKING_DIR)
+
+        # API Gateway to serve the client page
+        with open(lambda_files['serve_client_fn'], encoding='utf8') as fh:
+            serve_client_fn = fh.read()
+        web_server_handler = aws_lambda.Function(
+                self,
+                "ServeClientFn",
+                code=aws_lambda.InlineCode(serve_client_fn),
+                handler="index.handler",
+                runtime=aws_lambda.Runtime.PYTHON_3_7,
+                description="Handler function for serving LR client page"
+                )
+        web_api = apigateway.LambdaRestApi(
+                self,
+                'LambdaRestApi',
+                handler=web_server_handler)
 
         # user pool and client provide auth for web app and API
         user_pool = cognito.CfnUserPool(
