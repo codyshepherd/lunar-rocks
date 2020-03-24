@@ -25,8 +25,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: |
-        npm install -g elm@0.19.0
-        npm install -g elm-test@0.19.0
+        npm install -g elm@latest-0.19.1
         npm install -g elm parcel-bundler
         cd client
         npm install
