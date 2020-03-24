@@ -42,7 +42,7 @@ jobs:
         # Directory containing files to upload
         path: client/
     - name: current-index-ptr
-    - run: |
+      run: |
         export datenow=$(date +%Y%m%d%H%M%s)
         echo "index-${datenow}.html" > current.txt
         cp "client/index.html" "index-%{datenow}.html"
