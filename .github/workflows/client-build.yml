@@ -31,21 +31,24 @@ jobs:
         cd client
         npm install
         parcel build src/index.html
+        mkdir output
+        cp src/index.html output
       env:
         CLIENT_CONFIG: ${{ secrets.CLIENT_CONFIG }}
     - name: Upload artifact
-      uses: actions/upload-artifact@v1.0.0
+      # v2 currently in preview and required to upload unzipped file
+      uses: actions/upload-artifact@v2-preview
       if: success()
       with:
         # Artifact name
-        name: index.html
-        # Directory containing files to upload
-        path: client/
+        name: output
+        path: client/output/index.html
     - name: current-index-ptr
       run: |
         export datenow=$(date +%Y%m%d%H%M%s)
+        echo $datenow
         echo "index-${datenow}.html" > current.txt
-        cp "client/index.html" "index-%{datenow}.html"
+        cp "client/src/index.html" "index-${datenow}.html"
     - name: Upload current file to S3 bucket
       uses: tpaschalis/s3-sync-action@master
       with:
