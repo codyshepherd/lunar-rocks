@@ -1,0 +1,43 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Build Client
+
+on:
+  push:
+    branches: [ devel, workflows/add-client-build ]
+  pull_request:
+    branches: [ devel, workflows/add-client-build ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: build-client
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm install -g elm@latest-0.19.1
+    - run: npm install -g elm parcel-bundler
+    - run: |
+        echo $CLIENT_CONFIG > client/aws/aws-exports.js
+        cd client
+        npm install
+        parcel build src/index.html
+      env:
+        CLIENT_CONFIG: ${{ secrets.CLIENT_CONFIG }}
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      if: success()
+      with:
+        # Artifact name
+        name: index.html
+        # Directory containing files to upload
+        path: client/
