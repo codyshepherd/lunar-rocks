@@ -24,6 +24,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Configure
+
+Make sure you edit `config/stack.yaml` to include the correct
+configuration for your test or production stack. The file included
+in the repo is meant as an example only, to demonstrate the template
+the CDK app expects.
+
 ## Deploy
 
 Deploy to AWS:
