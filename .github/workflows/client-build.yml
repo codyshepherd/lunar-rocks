@@ -24,12 +24,15 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+    - run: npm install -g elm@latest-0.19.1
+    - run: npm install -g elm parcel-bundler
     - run: |
-        npm install -g elm@latest-0.19.1
-        npm install -g elm parcel-bundler
+        echo $CLIENT_CONFIG > client/aws/aws-exports.js
         cd client
         npm install
         parcel build src/index.html
+      env:
+        CLIENT_CONFIG: ${{ secrets.CLIENT_CONFIG }}
     - name: Upload artifact
       uses: actions/upload-artifact@v1.0.0
       if: success()
