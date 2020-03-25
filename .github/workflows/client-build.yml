@@ -64,7 +64,7 @@ jobs:
       with:
         args: --acl private
       env:
-        FILE: "index-${DATENOW}.html"
+        FILE: "index-*.html"
         AWS_REGION: 'us-west-2'
         AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
