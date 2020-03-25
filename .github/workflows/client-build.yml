@@ -41,7 +41,7 @@ jobs:
       if: success()
       with:
         # Artifact name
-        name: index.html
+        name: index-bundle
         path: client/output/index.html
   s3-upload:
     runs-on: ubuntu-latest
@@ -50,13 +50,15 @@ jobs:
     steps:
     - uses: actions/download-artifact@v1
       with:
-        name: index.html
+        name: index-bundle
     - name: current-index-ptr
       run: |
         export DATENOW=$(date +%Y%m%d%H%M%s)
         echo $DATENOW
         echo "index-${DATENOW}.html" > current.txt
-        cp "index.html" "index-${DATENOW}.html"
+        file index-bundle
+        ls index-bundle
+        cp "index-bundle/index.html" "index-${DATENOW}.html"
     - name: Upload current file to S3 bucket
       uses: tpaschalis/s3-sync-action@master
       with:
