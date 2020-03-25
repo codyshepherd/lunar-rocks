@@ -46,7 +46,7 @@ jobs:
   s3-upload:
     runs-on: ubuntu-latest
     needs: build-client
-    if: "$GITHUB_EVENT_NAME == push && $GITHUB_REF == refs/heads/devel"
+    if: github.event_name == 'push' && github.ref == 'refs/heads/devel'
     - name: current-index-ptr
 
       run: |
