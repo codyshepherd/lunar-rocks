@@ -1,4 +1,5 @@
 import pathlib
+import yaml
 
 from aws_cdk import (
     aws_apigateway as apigateway,
@@ -10,6 +11,7 @@ from aws_cdk import (
 )
 
 WORKING_DIR = pathlib.Path.cwd()
+CONFIG_DIR = pathlib.PosixPath(WORKING_DIR).joinpath('config/stack.yaml')
 
 def discover_lambda_files_in_path(path: pathlib.Path):
     files = [f for f in path.glob('**/*_fn.py') if pathlib.Path.is_file(f) and '_fn.py' in f.name]
@@ -20,10 +22,18 @@ def discover_lambda_files_in_path(path: pathlib.Path):
 
     return lambda_files
 
+def load_config(path: pathlib.Path):
+    with open(path, encoding='utf8') as fh:
+        config = yaml.safe_load(fh)
+
+    return config
+
 
 class LunarRocksStack(core.Stack):
     def __init__(self, app: core.App, id: str, **kwargs) -> None:
         super().__init__(app, id, **kwargs)
+
+        config = load_config(CONFIG_DIR)
 
         # Get various lambda function files
         lambda_files = discover_lambda_files_in_path(WORKING_DIR)
@@ -43,6 +53,24 @@ class LunarRocksStack(core.Stack):
                 self,
                 'LambdaRestApi',
                 handler=web_server_handler)
+
+        # S3 Bucket for Gateway to use
+        removal_policy = core.RemovalPolicy.DESTROY
+        if config['prod']:
+            removal_policy = core.RemovalPolicy.RETAIN
+            user_object_store = s3.Bucket(
+                    self,
+                    "LunarRocksPagesBucket",
+                    bucket_name=config['pages_bucket'],
+                    removal_policy=removal_policy
+                    )
+        else:
+            user_object_store = s3.Bucket(
+                    self,
+                    "LunarRocksPagesBucket",
+                    removal_policy=remove
+                    )
+
 
         # user pool and client provide auth for web app and API
         user_pool = cognito.CfnUserPool(
