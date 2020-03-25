@@ -55,15 +55,22 @@ class LunarRocksStack(core.Stack):
                 handler=web_server_handler)
 
         # S3 Bucket for Gateway to use
-        remove = core.RemovalPolicy.DESTROY
+        removal_policy = core.RemovalPolicy.DESTROY
         if config['prod']:
-            remove = core.RemovalPolicy.RETAIN
-        user_object_store = s3.Bucket(
-                self,
-                "LunarRocksPagesBucket",
-                bucket_name=config['pages_bucket'],
-                removal_policy=remove
-                )
+            removal_policy = core.RemovalPolicy.RETAIN
+            user_object_store = s3.Bucket(
+                    self,
+                    "LunarRocksPagesBucket",
+                    bucket_name=config['pages_bucket'],
+                    removal_policy=removal_policy
+                    )
+        else:
+            user_object_store = s3.Bucket(
+                    self,
+                    "LunarRocksPagesBucket",
+                    removal_policy=remove
+                    )
+
 
         # user pool and client provide auth for web app and API
         user_pool = cognito.CfnUserPool(
