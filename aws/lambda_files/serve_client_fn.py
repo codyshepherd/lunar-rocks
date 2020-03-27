@@ -24,7 +24,7 @@ def handler(event, context):
         index_page = s3.get_object(Bucket=page_bucket_name, Key=index_target)
 
         return {
-          "body": json.dumps(index_page['Body'].read().decode('utf-8')),
+          "body": index_page['Body'].read().decode('utf-8'),
           "headers": {
             'content-type': "text/html",
           },

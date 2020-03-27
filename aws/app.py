@@ -13,10 +13,23 @@ from aws_cdk import (
     core
 )
 
+from typing import (
+    Any,
+    Dict,
+)
+
 WORKING_DIR = pathlib.Path.cwd()
 CONFIG_DIR = pathlib.PosixPath(WORKING_DIR).joinpath('config/stack.yaml')
 
-def discover_lambda_files_in_path(path: pathlib.Path):
+def discover_lambda_files_in_path(path: pathlib.Path) -> Dict[str, pathlib.Path]:
+    '''
+    This is a helper function meant to make organizing and using files that
+    define lambda functions easier.
+
+    Looks in working dir and any subdirs for files ending in "_fn.py", assumes
+    they are lambda function files, and organizes them into a dict for later
+    retrieval.
+    '''
     files = [f for f in path.glob('**/*_fn.py') if pathlib.Path.is_file(f) and '_fn.py' in f.name]
     lambda_files = {}
     for f in files:
@@ -25,7 +38,10 @@ def discover_lambda_files_in_path(path: pathlib.Path):
 
     return lambda_files
 
-def load_config(path: pathlib.Path):
+def load_config(path: pathlib.Path) -> Dict[str, Any]:
+    '''
+    Helper function for loading yaml into a dict
+    '''
     with open(path, encoding='utf8') as fh:
         config = yaml.safe_load(fh)
 
@@ -38,6 +54,10 @@ class LunarRocksStack(core.Stack):
 
         config = load_config(CONFIG_DIR)
         stack_id = config['stack_id']
+
+        ####################################################
+        # Web Server
+        ####################################################
 
         # S3 Bucket for Gateway to use
         if config['prod']:
@@ -54,7 +74,7 @@ class LunarRocksStack(core.Stack):
         # Get various lambda function files
         lambda_files = discover_lambda_files_in_path(WORKING_DIR)
 
-        # API Gateway to serve the client page
+        # Lambda Function for handling API requests
         with open(lambda_files['serve_client_fn'], encoding='utf8') as fh:
             serve_client_fn = fh.read()
         web_server_handler = aws_lambda.Function(
@@ -68,6 +88,8 @@ class LunarRocksStack(core.Stack):
                     "S3_BUCKET": pages_bucket_name
                 }
         )
+
+        # Give Lambda function rights to read s3 bucket
         lambda_read_statement = iam.PolicyStatement(
                 actions=['s3:List*', 's3:Get*'],
                 principals=[web_server_handler.role],
@@ -75,11 +97,15 @@ class LunarRocksStack(core.Stack):
         )
         pages_bucket.add_to_resource_policy(lambda_read_statement)
         pages_bucket.grant_read(web_server_handler)
+
+        # Build a domain certificate for HTTPS/TLS
         domain_cert = cert_mgr.Certificate(
                 self,
                 stack_id + "DomainCert",
                 domain_name=config['domain_name'],
         )
+
+        # Set up ApiGateway and domain mapping
         gateway_domain = apigateway.DomainNameOptions(
                 certificate=domain_cert,
                 domain_name=config['domain_name'],
@@ -107,6 +133,10 @@ class LunarRocksStack(core.Stack):
                 target=route53.RecordTarget.from_alias(r53_targets.ApiGatewayDomain(web_api.domain_name)),
                 zone=dns_hosted_zone,
         )
+
+        ####################################################
+        # Cognito / User Authentication
+        ####################################################
 
         # user pool and client provide auth for web app and API
         user_pool = cognito.CfnUserPool(
