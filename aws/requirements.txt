@@ -10,6 +10,8 @@ aws-cdk.aws-iam==1.22.0
 aws-cdk.aws-kms==1.22.0
 aws-cdk.aws-lambda==1.22.0
 aws-cdk.aws-logs==1.22.0
+aws-cdk.aws-route53==1.22.0
+aws-cdk.aws-route53-targets==1.22.0
 aws-cdk.aws-s3==1.22.0
 aws-cdk.aws-s3-assets==1.22.0
 aws-cdk.aws-sqs==1.22.0
@@ -23,12 +25,14 @@ botostubs==0.11.1.10.45
 cattrs==1.0.0
 Click==7.0
 docutils==0.15.2
+flake8==3.7.9
 importlib-resources==1.0.2
 isort==4.3.21
 jmespath==0.9.4
 jsii==0.21.2
 lazy-object-proxy==1.4.3
 mccabe==0.6.1
+mypy==0.770
 publication==0.0.3
 pylint==2.4.4
 python-dateutil==2.8.1

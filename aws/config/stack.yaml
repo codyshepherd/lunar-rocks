@@ -1,2 +1,4 @@
+domain_name: "moon-forge.com"
 pages_bucket: test-bucket-name
 prod: false
+stack_id: "LunarRocksTest"

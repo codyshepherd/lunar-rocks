@@ -3,17 +3,33 @@ import yaml
 
 from aws_cdk import (
     aws_apigateway as apigateway,
+    aws_certificatemanager as cert_mgr,
     aws_cognito as cognito,
     aws_iam as iam,
     aws_lambda,
+    aws_route53 as route53,
+    aws_route53_targets as r53_targets,
     aws_s3 as s3,
     core
+)
+
+from typing import (
+    Any,
+    Dict,
 )
 
 WORKING_DIR = pathlib.Path.cwd()
 CONFIG_DIR = pathlib.PosixPath(WORKING_DIR).joinpath('config/stack.yaml')
 
-def discover_lambda_files_in_path(path: pathlib.Path):
+def discover_lambda_files_in_path(path: pathlib.Path) -> Dict[str, pathlib.Path]:
+    '''
+    This is a helper function meant to make organizing and using files that
+    define lambda functions easier.
+
+    Looks in working dir and any subdirs for files ending in "_fn.py", assumes
+    they are lambda function files, and organizes them into a dict for later
+    retrieval.
+    '''
     files = [f for f in path.glob('**/*_fn.py') if pathlib.Path.is_file(f) and '_fn.py' in f.name]
     lambda_files = {}
     for f in files:
@@ -22,7 +38,10 @@ def discover_lambda_files_in_path(path: pathlib.Path):
 
     return lambda_files
 
-def load_config(path: pathlib.Path):
+def load_config(path: pathlib.Path) -> Dict[str, Any]:
+    '''
+    Helper function for loading yaml into a dict
+    '''
     with open(path, encoding='utf8') as fh:
         config = yaml.safe_load(fh)
 
@@ -34,43 +53,90 @@ class LunarRocksStack(core.Stack):
         super().__init__(app, id, **kwargs)
 
         config = load_config(CONFIG_DIR)
+        stack_id = config['stack_id']
+
+        ####################################################
+        # Web Server
+        ####################################################
+
+        # S3 Bucket for Gateway to use
+        if config['prod']:
+            pages_bucket_name = config['pages_bucket']
+            pages_bucket = s3.Bucket.from_bucket_arn(self, "LunarRocksPagesBucketexists", 'arn:aws:s3:::' + pages_bucket_name)
+        else:
+            pages_bucket = s3.Bucket(
+                    self,
+                    stack_id + "PagesBucket",
+                    removal_policy=core.RemovalPolicy.DESTROY
+            )
+            pages_bucket_name = pages_bucket.bucket_name
 
         # Get various lambda function files
         lambda_files = discover_lambda_files_in_path(WORKING_DIR)
 
-        # API Gateway to serve the client page
+        # Lambda Function for handling API requests
         with open(lambda_files['serve_client_fn'], encoding='utf8') as fh:
             serve_client_fn = fh.read()
         web_server_handler = aws_lambda.Function(
                 self,
-                "ServeClientFn",
+                stack_id + "ServeClientFn",
                 code=aws_lambda.InlineCode(serve_client_fn),
                 handler="index.handler",
                 runtime=aws_lambda.Runtime.PYTHON_3_7,
-                description="Handler function for serving LR client page"
-                )
+                description="Handler function for serving LR client page",
+                environment = {
+                    "S3_BUCKET": pages_bucket_name
+                }
+        )
+
+        # Give Lambda function rights to read s3 bucket
+        lambda_read_statement = iam.PolicyStatement(
+                actions=['s3:List*', 's3:Get*'],
+                principals=[web_server_handler.role],
+                resources=[pages_bucket.bucket_arn],
+        )
+        pages_bucket.add_to_resource_policy(lambda_read_statement)
+        pages_bucket.grant_read(web_server_handler)
+
+        # Build a domain certificate for HTTPS/TLS
+        domain_cert = cert_mgr.Certificate(
+                self,
+                stack_id + "DomainCert",
+                domain_name=config['domain_name'],
+        )
+
+        # Set up ApiGateway and domain mapping
+        gateway_domain = apigateway.DomainNameOptions(
+                certificate=domain_cert,
+                domain_name=config['domain_name'],
+        )
+        dns_hosted_zone = route53.HostedZone(
+                self,
+                stack_id + "HostedZone",
+                zone_name=config['domain_name'],
+        )
         web_api = apigateway.LambdaRestApi(
                 self,
-                'LambdaRestApi',
-                handler=web_server_handler)
+                stack_id + 'LambdaRestApi',
+                domain_name=gateway_domain,
+                handler=web_server_handler,
+                default_cors_preflight_options={
+                    "allow_origins": apigateway.Cors.ALL_ORIGINS,
+                    "allow_methods": ["GET"],
+                    "allow_headers": apigateway.Cors.DEFAULT_HEADERS
+                },
+        )
+        dns_record_set = route53.ARecord(
+                self,
+                stack_id + "RecordSet",
+                record_name=config['domain_name'],
+                target=route53.RecordTarget.from_alias(r53_targets.ApiGatewayDomain(web_api.domain_name)),
+                zone=dns_hosted_zone,
+        )
 
-        # S3 Bucket for Gateway to use
-        removal_policy = core.RemovalPolicy.DESTROY
-        if config['prod']:
-            removal_policy = core.RemovalPolicy.RETAIN
-            user_object_store = s3.Bucket(
-                    self,
-                    "LunarRocksPagesBucket",
-                    bucket_name=config['pages_bucket'],
-                    removal_policy=removal_policy
-                    )
-        else:
-            user_object_store = s3.Bucket(
-                    self,
-                    "LunarRocksPagesBucket",
-                    removal_policy=remove
-                    )
-
+        ####################################################
+        # Cognito / User Authentication
+        ####################################################
 
         # user pool and client provide auth for web app and API
         user_pool = cognito.CfnUserPool(
@@ -282,7 +348,7 @@ class LunarRocksStack(core.Stack):
         )
 
 
-
+config = load_config(CONFIG_DIR)
 app = core.App()
-stack = LunarRocksStack(app, "LunarRocksStack")
+stack = LunarRocksStack(app, config['stack_id'] + "Stack")
 app.synth()

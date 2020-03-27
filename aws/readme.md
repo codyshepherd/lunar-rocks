@@ -26,10 +26,14 @@ pip install -r requirements.txt
 
 ### Configure
 
-Make sure you edit `config/stack.yaml` to include the correct
-configuration for your test or production stack. The file included
-in the repo is meant as an example only, to demonstrate the template
-the CDK app expects.
+* Local Config
+  * Make sure you edit `config/stack.yaml` to include the correct
+    configuration for your test or production stack. The file included
+    in the repo is meant as an example only, to demonstrate the template
+    the CDK app expects.
+* Domain Config
+  * You will need to configure your domain to use the custom nameservers
+    listed by AWS route53 rather than whatever default NS they might use
 
 ## Deploy
 
