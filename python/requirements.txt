@@ -3,6 +3,6 @@ Flask
 itsdangerous==0.24
 Jinja2
 MarkupSafe==1.0
-numpy==1.13.3
+numpy==1.22.0
 websockets
 Werkzeug==0.15.3
