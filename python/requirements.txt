@@ -5,4 +5,4 @@ Jinja2
 MarkupSafe==1.0
 numpy==1.13.3
 websockets
-Werkzeug==0.15.3
+Werkzeug==2.2.3
